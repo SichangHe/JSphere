@@ -13,6 +13,32 @@ Spheres may overlap, producing a Venn diagram.
 Many websites ship way too much JS,
 but they are kind of stuck with the situation due to the lack of alternatives.
 
+## Deeper motivation
+
+I believe front-end JS is overused.
+Many websites ship multiple MiB of JS to their clients (e.g.
+Facebook), but JS is designed for scripting, not systems.
+Current mitigations to this issue is to compile from TS, etc.,
+but JS is not designed as a compilation target—we introduced WASM for this.
+
+WASM cannot replace JS, but I hope it will in the future.
+WASM cannot replace JS because it lacks JS features:
+
+- Browser APIs, including DOM manipulation.
+    This renders WASM a mere "number cruncher",
+    and is hard to fix because most browser APIs are powerful and
+    complex JS "string functions".
+- Be compiled from app languages and remain small (e.g. Elm, Clojure).
+    This will be fixed now that we have WasmGC.
+- Outstanding tooling. This comes gradually with a big ecosystem.
+- Low learning curve and extreme dynamism.
+    However, developers can be happy with static languages (e.g.
+    Kotlin, Go), though humans have inertia.
+
+To mitigate the first problem,
+we need to understand what front-end JS is used for.
+Why do websites need JS in the first place?
+
 ## JS functionality spheres
 
 - Frontend processing (essential)
