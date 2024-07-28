@@ -36,6 +36,7 @@ but they are kind of stuck with the situation due to the lack of alternatives.
 TODO:
 
 - [ ] Manually check out the JS in a few websites.
+- [ ] How to go from browser APIs to intent?
 
 ## Survey methods
 
@@ -52,9 +53,12 @@ TODO:
     - Cons: slow, cannot handle extreme JS dynamism,
         does not reflect real-world usage.
 - Script injection. E.g., browser extension, proxy.
-    - Pros: easy, compliant, reveals real-world usage, could scale.
-    - Cons: no idea which portions are useful, may need IRB.
-- ~~Browser modification~~—too much work.
+    - Pros: easy, mostly compliant, reveals real-world usage, could scale.
+    - Cons: some scripts know (evasion), no idea which portions are useful,
+        may need IRB.
+- Browser modification~~—too much work~~. Presumably VisibleV8.
+    - Pros: most compliant, real-world usage.
+    - Cons: resource heavy?
 - ML. Presumably by fine-tuning LLM.
     - Pros: guesses intention. Reads comments, docs, commit messages.
     - Cons: who labels? Where to get GPUs?

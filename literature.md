@@ -22,6 +22,9 @@ reconstruct web attack, flowchart viz
 
 ## ⭐ [VisibleV8: In-browser Monitoring of JavaScript in the Wild](https://dl.acm.org/doi/pdf/10.1145/3355369.3355599), 2019 IMC
 
+[VisibleV8](https://github.com/wspr-ncsu/visiblev8), maintained, instrument V8.
+Tracking JS w/ JS can be spotted.
+
 ## [Hiding in Plain Site: Detecting JavaScript Obfuscation through Concealed Browser API Usage](https://dl-acm-org.libproxy2.usc.edu/doi/pdf/10.1145/3419394.3423616), 2020 IMC
 
 ## [Jalangi: A Selective Record-Replay and Dynamic Analysis Framework for JavaScript](https://people.eecs.berkeley.edu/~ksen/papers/jalangi.pdf), 2013 ESEC/FSE
