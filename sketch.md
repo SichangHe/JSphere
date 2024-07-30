@@ -8,10 +8,20 @@ moving the functionality to the backend.
 
 Spheres may overlap, producing a Venn diagram.
 
-## Hypothesis
+## Problems
 
-Many websites ship way too much JS,
-but they are kind of stuck with the situation due to the lack of alternatives.
+1. Many websites ship way too much JS than needed.
+1. Running JS takes too many resources on the client side than needed.
+
+## Hypotheses
+
+- Web developers are kind of stuck with the front-end situation due to
+    the lack of alternatives.
+- Web developers ship lots of dead JS code (problem 1).
+    - Shipping libraries without tree shaking.
+    - Shipping the whole app instead of only the necessary parts.
+    - ~~Preemptive loading.~~ I don't think so.
+- Misalignment between developer intention and actual JS shipped.
 
 ## Deeper motivation
 
