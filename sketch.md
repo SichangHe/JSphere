@@ -1,9 +1,9 @@
+<!-- toc -->
 # Sketch of JSphere the Project
 
 Study why websites use JS.
 Specifically, what the JS is for: intention, use, application, etc.
-(spheres),
-that may or may not be replaceable by plain html/css or
+(spheres), that may or may not be replaceable by plain html/css or
 moving the functionality to the backend.
 
 Spheres may overlap, producing a Venn diagram.
@@ -28,16 +28,15 @@ Spheres may overlap, producing a Venn diagram.
 I believe front-end JS is overused.
 Many websites ship multiple MiB of JS to their clients (e.g.
 Facebook), but JS is designed for scripting, not systems.
-Current mitigations to this issue is to compile from TS, etc.,
-but JS is not designed as a compilation target—we introduced WASM for this.
+Current mitigations to this issue is to compile from TS, etc., but
+JS is not designed as a compilation target—we introduced WASM for this.
 
 WASM cannot replace JS, but I hope it will in the future.
 WASM cannot replace JS because it lacks JS features:
 
 - Browser APIs, including DOM manipulation.
-    This renders WASM a mere "number cruncher",
-    and is hard to fix because most browser APIs are powerful and
-    complex JS "string functions".
+    This renders WASM a mere "number cruncher", and is hard to fix because
+    most browser APIs are powerful and complex JS "string functions".
 - Be compiled from app languages and remain small (e.g. Elm, Clojure).
     This will be fixed now that we have WasmGC.
 - Outstanding tooling. This comes gradually with a big ecosystem.
@@ -45,8 +44,8 @@ WASM cannot replace JS because it lacks JS features:
     However, developers can be happy with static languages (e.g.
     Kotlin, Go), though humans have inertia.
 
-To mitigate the first problem,
-we need to understand what front-end JS is used for.
+To mitigate the first problem, we need to
+understand what front-end JS is used for.
 Why do websites need JS in the first place?
 
 ## JS functionality spheres
@@ -98,8 +97,3 @@ TODO:
 - ML. Presumably by fine-tuning LLM.
     - Pros: guesses intention. Reads comments, docs, commit messages.
     - Cons: who labels? Where to get GPUs?
-
----
-
-Credit:
-LLaMa 3.1 generated some of the listing entries (I manually cleaned them).
