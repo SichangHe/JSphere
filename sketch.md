@@ -97,3 +97,8 @@ TODO:
 - ML. Presumably by fine-tuning LLM.
     - Pros: guesses intention. Reads comments, docs, commit messages.
     - Cons: who labels? Where to get GPUs?
+
+## Development
+
+Track the evolution of JS usage in websites. Where are we going?
+Are we getting more JS unnecessary? Are we on a slope to JS hell?
