@@ -14,7 +14,12 @@ run JS in JS. track user data flow, decide if sent
 
 ## [Online Tracking: A 1-million-site Measurement and Analysis](https://dl.acm.org/doi/pdf/10.1145/2976749.2978313), 2016 CCS
 
-## [Browser Feature Usage on the Modern Web](https://dl.acm.org/doi/pdf/10.1145/2987443.2987466), 2016 IMC
+## ⭐ [Browser Feature Usage on the Modern Web](https://dl.acm.org/doi/pdf/10.1145/2987443.2987466), 2016 IMC
+
+browser add feature but not remove.
+browser feature: n:1 map to web standard; found in Firefox WebIDL file.
+browser extension for instrumentation and enough 5-round user interaction.
+HTML&DOM API most prominent; Beacon for tracking; hardware access, storage
 
 ## 🙅 [JSgraph: Enabling Reconstruction of Web Attacks via Efficient Tracking of Live In-Browser JavaScript Executions](https://www.researchgate.net/profile/Phani-Vadrevu/publication/323248874_JSgraph_Enabling_Reconstruction_of_Web_Attacks_via_Efficient_Tracking_of_Live_In-Browser_JavaScript_Executions/links/5c8fc4ce45851564fae68400/JSgraph-Enabling-Reconstruction-of-Web-Attacks-via-Efficient-Tracking-of-Live-In-Browser-JavaScript-Executions.pdf), 2018 NDSS
 
