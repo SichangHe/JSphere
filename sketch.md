@@ -72,6 +72,8 @@ TODO:
 
 - [ ] Manually check out the JS in a few websites.
 - [ ] How to go from browser APIs to intent?
+    - Only need to check most used APIs, which [contribute to most API
+        calls](literature.html#-browser-feature-usage-on-the-modern-web-2016-imc).
 
 ## Survey methods
 
@@ -97,6 +99,17 @@ TODO:
 - ML. Presumably by fine-tuning LLM.
     - Pros: guesses intention. Reads comments, docs, commit messages.
     - Cons: who labels? Where to get GPUs?
+
+## Anticipated implications
+
+Towards better user experiences online.
+
+- Developer: alert them of common tendencies to
+    overuse JS → optimize website.
+- Browser vendor: design & recommend to guide developer—teach them to
+    utilize backend & HTML/CSS features.
+    - Perhaps add features that remove the need for common bloat patterns.
+- People who block JS: more educated decisions when blocking.
 
 ## Development
 
