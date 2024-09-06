@@ -19,7 +19,9 @@ run JS in JS. track user data flow, decide if sent
 browser add feature but not remove.
 browser feature: n:1 map to web standard; found in Firefox WebIDL file.
 browser extension for instrumentation and enough 5-round user interaction.
-HTML&DOM API most prominent; Beacon for tracking; hardware access, storage
+HTML&DOM API most prominent; Beacon for tracking; hardware access, storage.
+[dataset: Web API usage in
+the Alexa 10k](https://www.cs.uic.edu/~ckanich/datasets/web_api_usage.psql.gz)
 
 ## 🙅 [JSgraph: Enabling Reconstruction of Web Attacks via Efficient Tracking of Live In-Browser JavaScript Executions](https://www.researchgate.net/profile/Phani-Vadrevu/publication/323248874_JSgraph_Enabling_Reconstruction_of_Web_Attacks_via_Efficient_Tracking_of_Live_In-Browser_JavaScript_Executions/links/5c8fc4ce45851564fae68400/JSgraph-Enabling-Reconstruction-of-Web-Attacks-via-Efficient-Tracking-of-Live-In-Browser-JavaScript-Executions.pdf), 2018 NDSS
 
