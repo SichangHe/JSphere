@@ -22,6 +22,8 @@ Spheres may overlap, producing a Venn diagram.
     - Shipping the whole app instead of only the necessary parts.
     - ~~Preemptive loading.~~ I don't think so.
 - Misalignment between developer intention and actual JS shipped.
+- Large amounts of JS is used for bulk transformation of JSON data to
+    DOM nodes, a common protocol in SPAs.
 
 ## Deeper motivation
 
@@ -56,6 +58,7 @@ Why do websites need JS in the first place?
     - Domain-specific logic
 - HTML generation (maybe replaceable by SSR)
     - Dynamic content rendering
+    - Style application
 - UX enhancements (maybe replaceable by CSS)
     - Animations and effects
 - Extensional features (bloated and hard to replace)
@@ -82,6 +85,8 @@ TODO:
 - Public browser extension (but IRB :o)
 - Web archives
 - ~~Questionnaire for developers~~—social science :(
+
+Implication: only open web, no login.
 
 ## Analysis methods
 
