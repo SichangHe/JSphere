@@ -28,43 +28,59 @@ displaying its information in front of end users.
 -->
 However, it remains understudied why this huge amount of JS code is used.
 While observations from the industry have argued that most of
-the JS transferred is unnecessary [@ceglowski2015website],
-<!-- TODO: cite examples. -->
-research efforts have focused on its security vulnerabilities and
-privacy invasions.
-We understand neither the purposes of the use of JS nor its efficiency in
-achieving them.
+the JS is unnecessary (e.g., [@ceglowski2015website]),
+research efforts have instead focused on its security vulnerabilities,
+privacy invasions, or performance (e.g., [@snyder2016browser;
+@iqbal2021fingerprinting; @mardani2021horcrux]).
+Despite these efforts, the root cause of all JS issues remains unanswered:
+Why is so much JS used? How effective is JS in achieving these purposes?
 
 <!-- 1. What need will your research address? -->
-Although JS was originally designed for beginners to
-script browser interactions [@paolini1994netscape], it has been adopted for
-a plethora of systems tasks, which may explain its high resource usage.
+Better understanding of the use of JS will broadly benefit developers and
+users.
+Although JS was originally designed for beginner programmers to
+script interactive user experience (UX) [@paolini1994netscape],
+it has been adopted for a plethora of systems tasks, which
+may explain its high resource usage.
 For example, as the popularity of Single-Page Applications (SPAs)
 [@oh2013automated] rose, many websites that could otherwise be served as
 static HTML instead ship entire SPA frameworks, fetch JSON data from
 the server, and convert them into DOM elements.
-If we can identify common use of JS,
-we may better inform developers interested in optimizing their websites,
-improve general online browsing experience, and
-utilize Internet bandwidths when serving Web content.
+If we can identify common use of JS, we may guide developers interested in
+optimizing their websites, improve general online browsing experience, and
+inform future utilization of the Internet for serving Web content.
+
+<!-- 1. What research you plan to do (briefly, a paragraph or so).
+    (What is approach, from NABC.) -->
+We propose to classify the functionalities of JS code on top websites.
+Specifically, we aim to classify each blob of JS in
+the top 1000 websites into the following categories, which we call "spheres":
+
+- **frontend processing**, e.g., user interaction, form validation, and
+    other logic;
+- **DOM element generation**, including styling application;
+- **UX enhancement**, e.g., animations and effects;
+- **extensional features**, e.g., authentication and analytics; or
+- **unused**: potential dead code that is never executed.
+
+To achieve this, we will analyze JS browser API invocations when
+interacting with these websites.
+For each website, we plan to "monkey test" its home page and
+12 linked second or
+third-level webpages five times following prior practices [@snyder2016browser],
+and record traces of JS API calls with VisibleV8,
+a modified Chrome browser [@jueckstock2019visiblev8].
+Using the API names and their call stacks in the recorded traces,
+we will classify the corresponding JS functions into the above categories by
+their apparent intentions.
+For example, the `addEventListener` function indicates frontend processing,
+`createElement` indicates DOM element generation, `requestAnimationFrame`
+indicates animation, and `sendBeacon` indicates tracking.
+Although there are thousands of JS APIs,
+only a fraction is used widely [@snyder2016browser], therefore we anticipate to
+classify most of the JS code through a small number of APIs.
 
 <!--
-I would like to study why so much JS is used, its usage patterns,
-functionalities, developer intentions and their potential mismatches with
-actual deployment.
-As a first step, I would like to analyze the JS code on websites and
-infer whether they are for frontend processing, content generation,
-extensional features (e.g., auth and analytics), boilerplate, or
-other purposes.
-I hope to get a deeper understanding of what people use JS for, which
-may inform future utilization of the Internet and designs for the Internet to
-serve content.
--->
-
-<!--
-1. What research you plan to do (briefly, a paragraph or so).
-    (What is approach, from NABC.)
-Top 1000 sites.
 1. What do you expect the results of your research to be?
     (What are the benfits, from NABC.)
 1. what specific *deliverables* you will have for
