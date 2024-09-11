@@ -1,0 +1,96 @@
+---
+title: "Proposal for JSphere: Classification of JavaScript Functionalities"
+subtitle: "Project A for CSci 651 by John Heidemann"
+author: "Steven Hé (Sīchàng).\\
+
+    Mentor: Harsha V. Madhyastha"
+format: html
+bibliography: main.bib
+csl: acm-sig-proceedings-long-author-list.csl
+---
+
+JavaScript (JS) plays a major role in content delivery on the modern Internet.
+For the median webpage, research has found that JS code amounts to
+nearly half of the bytes transferred [@goel2022jawa],
+JS execution time accounts for about half of
+the compute delay [@goel2024sprinter], and the content fetched and
+rendered from JS presumably occupies the majority of the network and
+compute resources on browsers.
+In this sense, JS is steering a large portion of the Internet traffic, and
+displaying its information in front of end users.
+
+<!--
+1. How does your research "fit in"? (The competition, from NABC.) 1.
+    why is it interesting research (to the field)? 2.
+    why is it interesting for you (what will you learn)?3.
+    what is relationship to other work (briefly, a few sentences or so,
+    ideally with references to prior work or other projects)
+-->
+However, it remains understudied why this huge amount of JS code is used.
+While observations from the industry have argued that most of
+the JS transferred is unnecessary [@ceglowski2015website],
+<!-- TODO: cite examples. -->
+research efforts have focused on its security vulnerabilities and
+privacy invasions.
+We understand neither the purposes of the use of JS nor its efficiency in
+achieving them.
+
+<!-- 1. What need will your research address? -->
+Although JS was originally designed for beginners to
+script browser interactions [@paolini1994netscape], it has been adopted for
+a plethora of systems tasks, which may explain its high resource usage.
+For example, as the popularity of Single-Page Applications (SPAs)
+[@oh2013automated] rose, many websites that could otherwise be served as
+static HTML instead ship entire SPA frameworks, fetch JSON data from
+the server, and convert them into DOM elements.
+If we can identify common use of JS,
+we may better inform developers interested in optimizing their websites,
+improve general online browsing experience, and
+utilize Internet bandwidths when serving Web content.
+
+<!--
+I would like to study why so much JS is used, its usage patterns,
+functionalities, developer intentions and their potential mismatches with
+actual deployment.
+As a first step, I would like to analyze the JS code on websites and
+infer whether they are for frontend processing, content generation,
+extensional features (e.g., auth and analytics), boilerplate, or
+other purposes.
+I hope to get a deeper understanding of what people use JS for, which
+may inform future utilization of the Internet and designs for the Internet to
+serve content.
+-->
+
+<!--
+1. What research you plan to do (briefly, a paragraph or so).
+    (What is approach, from NABC.)
+Top 1000 sites.
+1. What do you expect the results of your research to be?
+    (What are the benfits, from NABC.)
+1. what specific *deliverables* you will have for
+    Project B. These must include: 1. meeting once a week with your mentor. 2.
+    written weekly notes about your progress (suggested format:
+    a Google docs document that you can share).
+    This should list: (i) what I accomplished last week, (ii)
+    what questions I have and what problems I need help with, (iii)
+    what I plan to do next week, (iv) comments from the mentor.
+    Each week, please prepare these notes and send them to
+    your mentor the night before your meeting, then
+    update the notes after the meeting (with answers to your questions and
+    any revisions to your plan). 3. what end results you will have.
+    Probably some specific code, or measurement.
+    Probably including some specific experiment or analysis. 4.
+    That you will do a Project B report if
+    your project proposal is approved and you choose to pursue it.
+    The Research Project B report is about 2-6 pages summarizing where
+    you are as of the Project B deadline and what (if anything) you plan for
+    Research Project C. 5.
+    If your Research Project C is approved, that
+    you will do a Project C report and an end-of-semester poster.
+    A Research Project C report is about 3-8 pages summarizing where
+    you are at the end of the semester.
+    Research Project C will also have a required poster.
+    The poster session will be outside the class time, so
+    attendance is optional.
+    (We expect to provide support for poster printing; details will follow.)
+-->
