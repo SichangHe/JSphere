@@ -1,9 +1,9 @@
 ---
-title: "Proposal for JSphere: Classification of JavaScript Functionalities"
+title: "Proposal for JSphere: Classification of The Use of JavaScript on The Web"
 subtitle: "Project A for CSci 651 by John Heidemann"
 author: "Steven Hé (Sīchàng).\\
 
-    Mentor: Harsha V. Madhyastha"
+    Mentor: Harsha V. Madhyastha."
 format: html
 bibliography: main.bib
 csl: acm-sig-proceedings-long-author-list.csl
@@ -15,9 +15,9 @@ nearly half of the bytes transferred [@goel2022jawa],
 JS execution time accounts for about half of
 the compute delay [@goel2024sprinter], and the content fetched and
 rendered from JS presumably occupies the majority of the network and
-compute resources on browsers.
-In this sense, JS is steering a large portion of the Internet traffic, and
-displaying its information in front of end users.
+compute resources in browsers.
+In this sense, JS is steering a large portion of the Internet traffic and
+displaying information in front of end users.
 
 <!--
 1. How does your research "fit in"? (The competition, from NABC.) 1.
@@ -62,12 +62,12 @@ the following categories, which we call *spheres*:
 - **DOM element generation**, including styling application;
 - **UX enhancement**, e.g., animations and effects;
 - **extensional features**, e.g., authentication and analytics; or
-- **silent**: code that does not invoke any JS APIs, likely never executed.
+- **silent**: code that does not call any JS APIs, likely never executed.
 
-To infer these spheres, we will analyze JS browser API invocations when
+To infer these spheres, we will analyze JS browser API calls when
 interacting with these websites.
 We plan to follow prior practices [@snyder2016browser] when interacting with
-each website: we will "monkey test" its root page,
+each website: we will randomly interact with ("monkey test") its root page,
 3 second-level linked webpages, and 9 third-level webpages, for
 five times each.
 Meanwhile, we will record traces of JS API calls with VisibleV8,
@@ -80,22 +80,20 @@ For example, the `addEventListener` API call indicates frontend processing,
 indicates animation, and `sendBeacon` indicates tracking.
 Although there are thousands of JS APIs,
 only a fraction is used widely [@snyder2016browser], therefore we expect to
-classify most JS code through a small number of popular APIs.
-We will conduct conduct random sampling to
+classify most JS code through a few popular APIs.
+We will conduct random sampling to
 manually validate the classification accuracy of our heuristics.
 
 <!-- 1. What do you expect the results of your research to be?
     (What are the benfits, from NABC.) -->
 We expect to produce a summary of inferred sphere distributions of
-the websites we analyze.
+the websites we analyze, and explore the relationships between JS spheres and
+website performance metrics.
 First, we will report the percentage of JS code in each sphere,
 the sphere distributions across websites, and
 the overall JS-sphere relationships as a Venn diagram.
 Then, we plan to report the distributions of the number of bytes of
 JS files (bytes of JS) across the spheres.
-Accompanied with these distributions,
-we will report the classification accuracy of
-our heuristics during manual validation.
 Additionally, we may associate the bytes of JS per sphere with
 each webpage's page load time, including time to first byte and time to
 interactive.
@@ -104,10 +102,18 @@ them to see what specific functionalities they are used for.
 Our results will provide a first glance at the common use of JS on the Web,
 which may uncover patterns and trends in JS usage and light up the path for
 future investigation on JS usage optimality and impact.
+For example, if *extensional features* shows significant on the Venn diagram,
+we may infer that websites frequently engage in
+extraordinary behaviors compared to content delivery; if
+*frontend processing* is common among JS files, it may suggest that
+websites rely too much on JS for displaying content, and
+should instead reconsider server-side rendering; if
+*UX enhancement* is associated with longer page load time, it may reveal that
+the use of JS usually works against the developers' intention in these cases.
 
 <!-- 1. what specific *deliverables* you will have for
     Project B.-->
-We will include the following deliverables for Project B:
+We will include the following deliverables for Project B, as required:
 
 - Weekly meetings between Steven and Harsha.
 - Weekly progress notes in a Google Docs document. These notes will include:
@@ -120,15 +126,18 @@ We will include the following deliverables for Project B:
     Harsha the night before their meeting.
     Steven will update the notes after the meeting with answers to
     their questions and any revisions to their plan.
-- The resulting code, measurement data, and analysis documentation.
+- The resulting code, intermediate measurement data, and
+    analysis documentation.
     Specifically, we will include the code used to browse and interact with
     the websites, collect the API traces, and classify the JS files.
-    The measurement data will include the website domains, page load time and
-    bytes, the API traces, the JS files, and the relations among them.
-    We will additionally include the process and results of
-    the manual validation.
+    As an intermediate stage, we will design heuristics only for
+    classifying the *DOM element generation* sphere.
+    We will include the process and results of the manual validation on
+    this single sphere. The measurement data will include the website domains,
+    <!-- page load time and bytes, -->
+    the API traces, the JS files, and the relations among them.
 - A 2-6 page Project B report summarizing the progress of the project as of
     the Project B deadline and the plan for Research Project C.
-- If the project proposal is approved, a 3-8 page Project C report and
+- If the Project C proposal is approved, a 3-8 page Project C report and
     an end-of-semester poster summarizing the progress of
     the project at the end of the semester.
