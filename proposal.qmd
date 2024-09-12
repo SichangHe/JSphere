@@ -52,61 +52,83 @@ inform future utilization of the Internet for serving Web content.
 
 <!-- 1. What research you plan to do (briefly, a paragraph or so).
     (What is approach, from NABC.) -->
-We propose to classify the functionalities of JS code on top websites.
-Specifically, we aim to classify each blob of JS in
-the top 1000 websites into the following categories, which we call "spheres":
+We propose to classify the functionalities of JS code on top websites on
+the public Web. Specifically, we aim to classify each JS file in
+the top 1000 websites, without any logins, into one or more of
+the following categories, which we call *spheres*:
 
 - **frontend processing**, e.g., user interaction, form validation, and
     other logic;
 - **DOM element generation**, including styling application;
 - **UX enhancement**, e.g., animations and effects;
 - **extensional features**, e.g., authentication and analytics; or
-- **unused**: potential dead code that is never executed.
+- **silent**: code that does not invoke any JS APIs, likely never executed.
 
-To achieve this, we will analyze JS browser API invocations when
+To infer these spheres, we will analyze JS browser API invocations when
 interacting with these websites.
-For each website, we plan to "monkey test" its home page and
-12 linked second or
-third-level webpages five times following prior practices [@snyder2016browser],
-and record traces of JS API calls with VisibleV8,
-a modified Chrome browser [@jueckstock2019visiblev8].
+We plan to follow prior practices [@snyder2016browser] when interacting with
+each website: we will "monkey test" its root page,
+3 second-level linked webpages, and 9 third-level webpages, for
+five times each.
+Meanwhile, we will record traces of JS API calls with VisibleV8,
+a modified Chromium browser [@jueckstock2019visiblev8].
 Using the API names and their call stacks in the recorded traces,
-we will classify the corresponding JS functions into the above categories by
-their apparent intentions.
-For example, the `addEventListener` function indicates frontend processing,
+we will apply heuristics to
+classify each corresponding JS file into the above spheres.
+For example, the `addEventListener` API call indicates frontend processing,
 `createElement` indicates DOM element generation, `requestAnimationFrame`
 indicates animation, and `sendBeacon` indicates tracking.
 Although there are thousands of JS APIs,
-only a fraction is used widely [@snyder2016browser], therefore we anticipate to
-classify most of the JS code through a small number of APIs.
+only a fraction is used widely [@snyder2016browser], therefore we expect to
+classify most JS code through a small number of popular APIs.
+We will conduct conduct random sampling to
+manually validate the classification accuracy of our heuristics.
 
-<!--
-1. What do you expect the results of your research to be?
-    (What are the benfits, from NABC.)
-1. what specific *deliverables* you will have for
-    Project B. These must include: 1. meeting once a week with your mentor. 2.
-    written weekly notes about your progress (suggested format:
-    a Google docs document that you can share).
-    This should list: (i) what I accomplished last week, (ii)
-    what questions I have and what problems I need help with, (iii)
-    what I plan to do next week, (iv) comments from the mentor.
-    Each week, please prepare these notes and send them to
-    your mentor the night before your meeting, then
-    update the notes after the meeting (with answers to your questions and
-    any revisions to your plan). 3. what end results you will have.
-    Probably some specific code, or measurement.
-    Probably including some specific experiment or analysis. 4.
-    That you will do a Project B report if
-    your project proposal is approved and you choose to pursue it.
-    The Research Project B report is about 2-6 pages summarizing where
-    you are as of the Project B deadline and what (if anything) you plan for
-    Research Project C. 5.
-    If your Research Project C is approved, that
-    you will do a Project C report and an end-of-semester poster.
-    A Research Project C report is about 3-8 pages summarizing where
-    you are at the end of the semester.
-    Research Project C will also have a required poster.
-    The poster session will be outside the class time, so
-    attendance is optional.
-    (We expect to provide support for poster printing; details will follow.)
--->
+<!-- 1. What do you expect the results of your research to be?
+    (What are the benfits, from NABC.) -->
+We expect to produce a summary of inferred sphere distributions of
+the websites we analyze.
+First, we will report the percentage of JS code in each sphere,
+the sphere distributions across websites, and
+the overall JS-sphere relationships as a Venn diagram.
+Then, we plan to report the distributions of the number of bytes of
+JS files (bytes of JS) across the spheres.
+Accompanied with these distributions,
+we will report the classification accuracy of
+our heuristics during manual validation.
+Additionally, we may associate the bytes of JS per sphere with
+each webpage's page load time, including time to first byte and time to
+interactive.
+Finally, we will show the most popular JS APIs and conduct case studies on
+them to see what specific functionalities they are used for.
+Our results will provide a first glance at the common use of JS on the Web,
+which may uncover patterns and trends in JS usage and light up the path for
+future investigation on JS usage optimality and impact.
+
+<!-- 1. what specific *deliverables* you will have for
+    Project B.-->
+We will include the following deliverables for Project B:
+
+- Weekly meetings between Steven and Harsha.
+- Weekly progress notes in a Google Docs document. These notes will include:
+    - What Steven accomplished last week.
+    - Questions and problems Steven needs help with.
+    - What Steven plans to do next week.
+    - Comments from Harsha.
+
+    Each week, Steven will prepare these notes and send them to
+    Harsha the night before their meeting.
+    Steven will update the notes after the meeting with answers to
+    their questions and any revisions to their plan.
+- The resulting code, measurement data, and analysis documentation.
+    Specifically, we will include the code used to browse and interact with
+    the websites, collect the API traces, and classify the JS files.
+    The measurement data will include the website domains, page load time and
+    bytes, the API traces, the JS files, and the relations among them.
+    We will additionally include the process and results of
+    the manual validation.
+- A 2-6 page Project B report summarizing the progress of the project as of
+    the Project B deadline and the plan for Research Project C.
+- If the project proposal is approved, a 3-8 page Project C report and
+    an end-of-semester poster summarizing the progress of
+    the project at the end of the semester.
