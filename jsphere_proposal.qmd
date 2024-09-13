@@ -22,7 +22,7 @@ csl: acm-sig-proceedings-long-author-list.csl
 JavaScript (JS) plays a major role in content delivery on the modern Internet.
 For the median webpage, reports show that JS code amounts to
 around a quarter of the bytes transferred [@httparchive2024web;
-httparchive2024javascript] and JS execution time accounts for about half of
+@httparchive2024javascript] and JS execution time accounts for about half of
 the compute delay [@goel2024sprinter].
 In this sense, in most end users' Internet browsing experiences,
 JS is central for steering the traffic and displaying information.
