@@ -3,7 +3,13 @@
 ## Crawling
 
 - [ ] Test VV8.
+    - Just use Docker.
     - [ ] Does <https://github.com/wspr-ncsu/visiblev8-crawler> work?
+        - Over-engineered.
+            Would prefer simpler single script than this monstrosity of SQLite,
+            Celery, Mongo, and PostgreSQL.
+        - Runs Puppeteer eventually (`crawler.js`).
+            ⇒ Let's just use Puppeteer.
     - [ ] Prevent being blocked by USC OIT: Ask John/ add link to
         research description page in `User-Agent`.
 - [ ] Analyze API call traces & try heuristics.
