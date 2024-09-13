@@ -1,4 +1,3 @@
-<!-- toc -->
 # Sketch of JSphere the Project
 
 Study why websites use JS.

@@ -1,4 +1,3 @@
-<!-- toc -->
 <!-- markdownlint-disable line-length -->
 # Literature around JS Monitoring
 
