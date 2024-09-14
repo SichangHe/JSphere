@@ -2,8 +2,8 @@
 
 ## Crawling
 
-- [ ] Test VV8.
-    - Just use Docker.
+- [x] Test VV8.
+    - Docker just works.
     - [ ] Does <https://github.com/wspr-ncsu/visiblev8-crawler> work?
         - Over-engineered.
             Would prefer simpler single script than this monstrosity of SQLite,
