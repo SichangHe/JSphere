@@ -1,0 +1,13 @@
+[workspace]
+members = [".", "jsphere_vv8_log"]
+
+[workspace.dependencies]
+shame = "0.0.4"
+
+[package]
+name = "jsphere"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
