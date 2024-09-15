@@ -32,6 +32,7 @@ pub enum LogRecord {
     /// `!`: Execution context for subsequent log records.
     ExecutionContext {
         /// Active script ID in the current isolate script-ID-space, e.g., 5.
+        /// If set to [ID_UNSURE], means unsure.
         script_id: i32,
     },
 
@@ -80,6 +81,9 @@ pub enum LogRecord {
     },
 }
 
+/// Unsure script ID (`?` in the log file).
+pub const ID_UNSURE: i32 = i32::MIN;
+
 impl TryFrom<&str> for LogRecord {
     type Error = LogRecordErr;
 
@@ -113,11 +117,15 @@ impl TryFrom<&str> for LogRecord {
             }
 
             "!" => {
-                let script_id = parts
+                let script_id_str = parts
                     .next()
-                    .ok_or(LogRecordErr::NoExecutionContextScriptId)?
-                    .parse()
-                    .map_err(|_| LogRecordErr::InvalidExecutionContextScriptId)?;
+                    .ok_or(LogRecordErr::NoExecutionContextScriptId)?;
+                let script_id = match script_id_str {
+                    "?" => ID_UNSURE,
+                    _ => script_id_str
+                        .parse()
+                        .map_err(|_| LogRecordErr::InvalidExecutionContextScriptId)?,
+                };
                 Ok(LogRecord::ExecutionContext { script_id })
             }
 

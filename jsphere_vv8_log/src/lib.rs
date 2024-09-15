@@ -11,7 +11,7 @@ use std::{
 
 pub use js_values::JSValue;
 pub use log_files::{read_logs, LogFile, LogFileInfo};
-pub use log_records::{LogRecord, LogRecordErr};
+pub use log_records::{LogRecord, LogRecordErr, ID_UNSURE};
 use rayon::prelude::*;
 pub use record_lines::SplitRecordLine;
 use shame::prelude::*;

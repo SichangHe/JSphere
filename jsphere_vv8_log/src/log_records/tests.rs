@@ -14,6 +14,12 @@ fn log_record_parsing() {
     let actual = "@?".try_into().unwrap();
     assert_eq!(expected, actual);
 
+    let expected = LogRecord::ExecutionContext {
+        script_id: ID_UNSURE,
+    };
+    let actual = "!?".try_into().unwrap();
+    assert_eq!(expected, actual);
+
     let arguments = JSValue::String(
         "eyJtZXRob2QiOiJQYWdlLmZyYW1lU3RvcHBlZExvYWRpbmciLCJwYXJhbXMiOnsiZnJhbWVJZCI6IjQxMTNDMTY3NDA0REYxOUQ3MUI5NjdDMEYwMTA2NjNGIn0sIn Nlc3Npb25JZCI6IjgwRTg0QUM5N0JDMjA1NTQ2RkQ2QUQ5MTQ2NzEyRkQxIn0=".into()
         );
