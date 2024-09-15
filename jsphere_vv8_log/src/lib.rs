@@ -21,5 +21,9 @@ pub mod log_files;
 pub mod log_records;
 pub mod record_lines;
 
+fn unescape_colon(data: &str) -> String {
+    data.replace(r"\:", ":").replace(r"\\", r"\")
+}
+
 #[cfg(test)]
 mod evcxr_examples;

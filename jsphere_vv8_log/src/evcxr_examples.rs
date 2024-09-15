@@ -22,4 +22,10 @@ fn main() {
     );
     println!("{:#?}", &logs[0].records[..20]);
     println!("{:#?}", &logs[0].read_errs[..20]);
+    for (index, log) in logs.iter().enumerate() {
+        let info = &log.info;
+        let n_records = log.records.len();
+        let n_read_errs = log.read_errs.len();
+        println!("logs[{index}]: {info:?} | {n_records} records, {n_read_errs} read errors");
+    }
 }

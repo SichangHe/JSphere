@@ -43,17 +43,13 @@ impl From<&str> for JSValue {
                     JSValue::RegEx(unescape_colon(&value[1..value.len() - 1]))
                 } else if value.starts_with('{') && value.ends_with('}') {
                     // "{Constructor}"
-                    JSValue::Object(value[1..value.len() - 1].into())
+                    JSValue::Object(unescape_colon(&value[1..value.len() - 1]))
                 } else if let Ok(n) = value.parse() {
                     JSValue::Number(n)
                 } else {
-                    JSValue::Function(value.into())
+                    JSValue::Function(unescape_colon(value))
                 }
             }
         }
     }
-}
-
-fn unescape_colon(data: &str) -> String {
-    data.replace(r"\:", ":").replace(r"\\", r"\")
 }

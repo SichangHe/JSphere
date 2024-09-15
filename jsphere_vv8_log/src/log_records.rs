@@ -25,7 +25,8 @@ pub enum LogRecord {
         /// the parent script's ID as [JSValue::Number] in case of `eval`.
         /// E.g., `"chrome\://headless/headless_command.js"` or `""`.
         name: JSValue,
-        /// The full script source.
+        /// The full script source, with unprintable and
+        /// Unicode characters escaped (see [JSValue]).
         source: String,
     },
 
@@ -112,7 +113,7 @@ impl TryFrom<&str> for LogRecord {
                     .parse()
                     .map_err(|_| LogRecordErr::InvalidScriptId)?;
                 let name = parts.next().ok_or(LogRecordErr::NoScriptName)?.into();
-                let source = parts.drain().into();
+                let source = unescape_colon(parts.drain());
                 Ok(LogRecord::ScriptProvenance { id, name, source })
             }
 
