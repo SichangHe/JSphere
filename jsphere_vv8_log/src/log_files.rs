@@ -30,53 +30,73 @@ pub struct LogFile {
     info: LogFileInfo,
     /// The parsed log records.
     records: Vec<LogRecord>,
-    /// Invalid lines encountered when reading the log file.
-    read_errs: Vec<String>,
+    /// Invalid lines encountered when reading the log file, alone with
+    /// the corresponding [LogRecordErr].
+    read_errs: Vec<(String, LogRecordErr)>,
 }
 
 impl TryFrom<&Path> for LogFile {
-    type Error = anyhow::Error;
+    type Error = LogFileErr;
 
     #[inline]
-    fn try_from(path: &Path) -> Result<Self> {
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
         if !path.is_file() {
-            bail!("`{path:?}` is not a file");
+            return Err(LogFileErr::NotAFile);
         }
-        let file_name = path
-            .file_name()
-            .context("no file name")?
-            .to_str()
-            .context("file name not valid UTF-8")?;
-        let info = file_name.try_into().context("not VV8 log file name")?;
+        let file_name = path.file_name().ok_or(LogFileErr::NoFileName)?;
+        let file_name_str = file_name.to_str().ok_or(LogFileErr::InvalidFileName)?;
+        let info = file_name_str
+            .try_into()
+            .map_err(|_| LogFileErr::NotALogFileName)?;
 
-        let file = File::open(path).context("Failed to open the log file")?;
-        let (records, invalid_lines) = parse_log_file(file);
+        let file = File::open(path).map_err(LogFileErr::OpenFileError)?;
+        let (records, read_errs) = parse_log_file(file);
         Ok(LogFile {
             info,
             records,
-            read_errs: invalid_lines,
+            read_errs,
         })
     }
 }
 
+/// Error when parsing a VV8 log file to [LogFile].
+#[derive(Debug, Error)]
+pub enum LogFileErr {
+    #[error("Not a file")]
+    NotAFile,
+    #[error("No file name")]
+    NoFileName,
+    #[error("File name not valid UTF-8")]
+    InvalidFileName,
+    #[error("Not a VV8 log file name")]
+    NotALogFileName,
+    #[error("Failed to open the log file")]
+    OpenFileError(std::io::Error),
+}
+
 /// Parse the log file content into records.
-fn parse_log_file(file: File) -> (Vec<LogRecord>, Vec<String>) {
+fn parse_log_file(file: File) -> (Vec<LogRecord>, Vec<(String, LogRecordErr)>) {
     let file_reader = BufReader::new(file);
-    let mut records = Vec::with_capacity(256);
-    let mut invalid_lines = Vec::with_capacity(4);
+    let mut records = Vec::with_capacity(1024);
+    let mut read_errs = Vec::with_capacity(256);
     for line in file_reader.lines() {
-        let maybe_record = || -> Result<_> { line?.as_str().try_into() }();
-        match maybe_record {
-            Ok(record) => records.push(record),
+        match line {
+            Ok(line) => match line.as_str().try_into() {
+                Ok(record) => records.push(record),
+                Err(err) => {
+                    warn!(line, ?err, "LogFile: parsing line");
+                    read_errs.push((line, err));
+                }
+            },
             Err(err) => {
                 warn!(?err, "LogFile: reading line");
-                invalid_lines.push(err.to_string())
+                read_errs.push((err.to_string(), LogRecordErr::UnknownLogRecordType));
             }
         }
     }
     records.shrink_to_fit();
-    invalid_lines.shrink_to_fit();
-    (records, invalid_lines)
+    read_errs.shrink_to_fit();
+    (records, read_errs)
 }
 
 /// Information in the log file name VV8 creates:
@@ -96,35 +116,54 @@ pub struct LogFileInfo {
 }
 
 impl TryFrom<&str> for LogFileInfo {
-    type Error = anyhow::Error;
+    type Error = LogFileInfoErr;
 
     #[inline]
-    fn try_from(file_name: &str) -> Result<Self> {
+    fn try_from(file_name: &str) -> Result<Self, Self::Error> {
         if is_not_vv8_log_file(file_name) {
-            bail!("`{file_name}` not a VV8 log file name");
+            return Err(LogFileInfoErr::NotALogFileName);
         }
-        let middle = &file_name[4..(file_name.len() - 4)];
-        let parts: Vec<&str> = middle.split('-').collect();
-        if parts.len() == 4 {
-            let timestamp = parts[0].parse().context("Failed to parse the timestamp")?;
-            let pid = parts[1].parse().context("Failed to parse the process ID")?;
-            let tid = parts[2].parse().context("Failed to parse the thread ID")?;
-            let thread_name = parts[3].to_string();
-            Ok(LogFileInfo {
-                timestamp,
-                pid,
-                tid,
-                thread_name,
-            })
-        } else {
-            bail!("LogFileInfo: File name `{file_name}` not in expected format");
-        }
+        do_parse_log_file_info(file_name)
     }
+}
+
+/// Assuming the file name is a VV8 log file name.
+fn do_parse_log_file_info(file_name: &str) -> Result<LogFileInfo, LogFileInfoErr> {
+    let middle = &file_name[4..(file_name.len() - 4)];
+    let parts: Vec<&str> = middle.split('-').collect();
+    if parts.len() != 4 {
+        return Err(LogFileInfoErr::NotALogFileName);
+    }
+    let timestamp = parts[0]
+        .parse()
+        .map_err(|_| LogFileInfoErr::TimestampParsing)?;
+    let pid = parts[1].parse().map_err(|_| LogFileInfoErr::PidParsing)?;
+    let tid = parts[2].parse().map_err(|_| LogFileInfoErr::TidParsing)?;
+    let thread_name = parts[3].to_string();
+    Ok(LogFileInfo {
+        timestamp,
+        pid,
+        tid,
+        thread_name,
+    })
 }
 
 #[inline]
 pub fn is_not_vv8_log_file(file_name: &str) -> bool {
     !file_name.ends_with(".log") || !file_name.starts_with("vv8-")
+}
+
+/// Error when parsing a log file name to [LogFileInfo].
+#[derive(Debug, Error)]
+pub enum LogFileInfoErr {
+    #[error("Not a VV8 log file name")]
+    NotALogFileName,
+    #[error("Failed to parse the timestamp")]
+    TimestampParsing,
+    #[error("Failed to parse the process ID")]
+    PidParsing,
+    #[error("Failed to parse the thread ID")]
+    TidParsing,
 }
 
 #[cfg(test)]
