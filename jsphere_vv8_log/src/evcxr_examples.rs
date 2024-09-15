@@ -7,7 +7,7 @@ use crate as jsphere_vv8_log;
 :dep shame
 :dep jsphere_vv8_log = { path = "jsphere_vv8_log" }
 // */
-use jsphere_vv8_log::{log_files::*, *};
+use jsphere_vv8_log::*;
 use shame::prelude::*;
 use std::time::Instant;
 
@@ -21,4 +21,5 @@ fn main() {
         start_time.elapsed().as_millis()
     );
     println!("{:#?}", &logs[0].records[..20]);
+    println!("{:#?}", &logs[0].read_errs[..20]);
 }

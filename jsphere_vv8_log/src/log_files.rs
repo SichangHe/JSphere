@@ -88,38 +88,16 @@ pub enum LogFileErr {
 /// Returns log records sorted by line numbers, alone with read errors.
 fn parse_log_file(file: File) -> (Vec<(usize, LogRecord)>, Vec<ReadErr>) {
     let file_reader = BufReader::new(file);
-    let (mut records, mut read_errs) = file_reader
-        .lines()
-        .enumerate()
-        .par_bridge()
-        .map(|(index, line)| (index, parse_log_file_line(line)))
-        .fold(
-            || (Vec::with_capacity(1024), Vec::with_capacity(256)),
-            |(mut records, mut read_errs), (index, maybe_record)| {
-                match maybe_record {
-                    Ok(record) => records.push((index, record)),
-                    Err((line, err)) => read_errs.push(ReadErr {
-                        line_n: index,
-                        line,
-                        err,
-                    }),
-                }
-                (records, read_errs)
-            },
-        )
-        .reduce(
-            || (Vec::with_capacity(1024), Vec::with_capacity(256)),
-            |(mut records, mut read_errs), (records2, read_errs2)| {
-                records.extend(records2);
-                read_errs.extend(read_errs2);
-                (records, read_errs)
-            },
-        );
+    let mut records = Vec::with_capacity(1024);
+    let mut read_errs = Vec::with_capacity(32);
+    for (line_n, line) in file_reader.lines().enumerate() {
+        match parse_log_file_line(line) {
+            Ok(record) => records.push((line_n, record)),
+            Err((line, err)) => read_errs.push(ReadErr { line_n, line, err }),
+        }
+    }
 
-    // NOTE: Sorting is necessary because `par_bridge` may change the order.
-    records.sort_unstable_by_key(|(index, _)| *index);
     records.shrink_to_fit();
-    read_errs.sort_unstable_by_key(|read_err| read_err.line_n);
     read_errs.shrink_to_fit();
     (records, read_errs)
 }
