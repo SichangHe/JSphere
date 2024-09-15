@@ -6,14 +6,15 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG NODE_VERSION=22.7.0
+ARG VV8_VERSION=ae1e5af_128.0.6613.137
 ARG PNPM_VERSION=8.15.7
 
-FROM node:${NODE_VERSION}-alpine
+FROM visiblev8/vv8-base:${VV8_VERSION}
 
 # Use production node environment by default.
 ENV NODE_ENV production
 
+# The VV8 image comes with node.
 # Install pnpm.
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm@${PNPM_VERSION}
@@ -32,8 +33,8 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 # Run the application as a non-root user.
 USER node
 
-# Copy the rest of the source files into the image.
-COPY . .
+# Copy the source files into the image.
+COPY server.js server.js
 
 # Expose the port that the application listens on.
 EXPOSE 3000
