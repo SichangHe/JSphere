@@ -2,23 +2,26 @@ use super::*;
 
 /// Read and parse all log files in the specified directory.
 /// Returns a tuple of vectors, where the first vector contains the successful results and the second vector contains the failed results.
-pub fn read_logs(dir: &str) -> Result<Vec<LogFile>> {
-    let mut log_files = Vec::new();
-
-    for entry in fs::read_dir(dir).context("Reading directory")? {
-        match entry {
-            Ok(entry) => {
-                let path = entry.path();
-                match path.as_path().try_into() {
-                    Ok(log_file) => log_files.push(log_file),
-                    Err(err) => debug!(?path, ?err, "Did not parse as log file"),
-                }
-            }
-            Err(err) => error!(?err, "Reading directory entry"),
-        }
-    }
-
+pub fn read_logs<P: AsRef<Path>>(dir: P) -> Result<Vec<LogFile>> {
+    let log_files = fs::read_dir(dir)
+        .context("Reading directory")?
+        .par_bridge()
+        .filter_map(read_dir_entry)
+        .collect();
     Ok(log_files)
+}
+
+fn read_dir_entry(entry: io::Result<DirEntry>) -> Option<LogFile> {
+    entry
+        .inspect_err(|err| error!(?err, "Reading directory entry"))
+        .ok()
+        .and_then(|entry| {
+            let path = entry.path();
+            path.as_path()
+                .try_into()
+                .inspect_err(|err| debug!(?path, ?err, "Did not parse as log file"))
+                .ok()
+        })
 }
 
 /// Struct to represent a successful log file processing result.
@@ -28,11 +31,10 @@ pub fn read_logs(dir: &str) -> Result<Vec<LogFile>> {
 pub struct LogFile {
     /// The information in the file name.
     info: LogFileInfo,
-    /// The parsed log records.
-    records: Vec<LogRecord>,
-    /// Invalid lines encountered when reading the log file, alone with
-    /// the corresponding [LogRecordErr].
-    read_errs: Vec<(String, LogRecordErr)>,
+    /// The parsed log records with line numbers from 0.
+    records: Vec<(usize, LogRecord)>,
+    /// Invalid lines encountered when reading the log file.
+    read_errs: Vec<ReadErr>,
 }
 
 impl TryFrom<&Path> for LogFile {
@@ -59,6 +61,14 @@ impl TryFrom<&Path> for LogFile {
     }
 }
 
+#[derive_enum_everything]
+pub struct ReadErr {
+    /// Line number starting from 0.
+    line_n: usize,
+    line: String,
+    err: LogRecordErr,
+}
+
 /// Error when parsing a VV8 log file to [LogFile].
 #[derive(Debug, Error)]
 pub enum LogFileErr {
@@ -75,28 +85,54 @@ pub enum LogFileErr {
 }
 
 /// Parse the log file content into records.
-fn parse_log_file(file: File) -> (Vec<LogRecord>, Vec<(String, LogRecordErr)>) {
+/// Returns log records sorted by line numbers, alone with read errors.
+fn parse_log_file(file: File) -> (Vec<(usize, LogRecord)>, Vec<ReadErr>) {
     let file_reader = BufReader::new(file);
-    let mut records = Vec::with_capacity(1024);
-    let mut read_errs = Vec::with_capacity(256);
-    for line in file_reader.lines() {
-        match line {
-            Ok(line) => match line.as_str().try_into() {
-                Ok(record) => records.push(record),
-                Err(err) => {
-                    warn!(line, ?err, "LogFile: parsing line");
-                    read_errs.push((line, err));
+    let (mut records, mut read_errs) = file_reader
+        .lines()
+        .enumerate()
+        .par_bridge()
+        .map(|(index, line)| (index, parse_log_file_line(line)))
+        .fold(
+            || (Vec::with_capacity(1024), Vec::with_capacity(256)),
+            |(mut records, mut read_errs), (index, maybe_record)| {
+                match maybe_record {
+                    Ok(record) => records.push((index, record)),
+                    Err((line, err)) => read_errs.push(ReadErr {
+                        line_n: index,
+                        line,
+                        err,
+                    }),
                 }
+                (records, read_errs)
             },
-            Err(err) => {
-                warn!(?err, "LogFile: reading line");
-                read_errs.push((err.to_string(), LogRecordErr::UnknownLogRecordType));
-            }
-        }
-    }
+        )
+        .reduce(
+            || (Vec::with_capacity(1024), Vec::with_capacity(256)),
+            |(mut records, mut read_errs), (records2, read_errs2)| {
+                records.extend(records2);
+                read_errs.extend(read_errs2);
+                (records, read_errs)
+            },
+        );
+
+    // NOTE: Sorting is necessary because `par_bridge` may change the order.
+    records.sort_unstable_by_key(|(index, _)| *index);
     records.shrink_to_fit();
+    read_errs.sort_unstable_by_key(|read_err| read_err.line_n);
     read_errs.shrink_to_fit();
     (records, read_errs)
+}
+
+fn parse_log_file_line(line: io::Result<String>) -> Result<LogRecord, (String, LogRecordErr)> {
+    let line = line.map_err(|err| {
+        warn!(?err, "LogFile: reading line");
+        (err.to_string(), LogRecordErr::UnknownLogRecordType)
+    })?;
+    line.as_str().try_into().map_err(|err| {
+        warn!(line, ?err, "LogFile: parsing line");
+        (line, err)
+    })
 }
 
 /// Information in the log file name VV8 creates:

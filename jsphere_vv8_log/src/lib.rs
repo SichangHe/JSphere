@@ -4,14 +4,15 @@
 //! for the specification of the log file format.
 
 use std::{
-    fs::{self, File},
-    io::{BufRead, BufReader},
+    fs::{self, DirEntry, File},
+    io::{self, BufRead, BufReader},
     path::Path,
 };
 
 pub use js_values::JSValue;
 pub use log_files::{read_logs, LogFile, LogFileInfo};
 pub use log_records::{LogRecord, LogRecordErr};
+use rayon::prelude::*;
 pub use record_lines::SplitRecordLine;
 use shame::prelude::*;
 
