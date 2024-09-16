@@ -38,7 +38,30 @@ async function visitPageNTimes(context, url, nTimes) {
 async function visitPage(context, url) {
     const page = await context.newPage()
     try {
+        await page.routeFromHAR("TODO.har", { update: true })
+        // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
+        // NOTE: this could affect the page's performance.
+        await page.addInitScript({
+            path: "./node_modules/gremlins.js/dist/gremlins.min.js",
+        })
         await page.goto(url)
+        await page.evaluate(() =>
+            // See <https://marmelab.com/gremlins.js/>.
+            // This runs within the browser context.
+            gremlins
+                .createHorde({
+                    randomizer: new gremlins.Chance(1234),
+                    species: gremlins.allSpecies,
+                    mogwais: [gremlins.mogwais.alert()],
+                    strategies: [
+                        // 1 ms delay between each action.
+                        gremlins.strategies.distribution({ delay: 1 }),
+                        // 30,000 actions ⇒ 30 seconds.
+                        gremlins.strategies.allTogether({ nb: 30_000 }),
+                    ],
+                })
+                .unleash(),
+        )
         throw new Error("TODO")
     } finally {
         page.close()
