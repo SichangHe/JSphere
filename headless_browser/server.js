@@ -75,7 +75,10 @@ async function visitPage(context, url) {
  * @returns {Promise<*>} A promise that resolves with the result of the task when the task has been executed and the context has been closed.
  */
 async function inContext(browser, task) {
-    const context = await browser.newContext()
+    const context = await browser.newContext({
+        userAgent:
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Web Measure/1.0 (https://webresearch.eecs.umich.edu/overview-of-web-measurements/)",
+    })
     try {
         return await task(context)
     } finally {
