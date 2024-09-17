@@ -16,5 +16,8 @@
             - [x] Figure out Playwright.
     - [x] Prevent being blocked by USC OIT: Ask John/ add link to
         research description page in `User-Agent`.
+- [ ] Make Playwright and monkey testing work.
+    - [ ] Prevent navigation.
+    - [ ] Visit 3 + 9 clicked pages like Snyder did.
 - [ ] Analyze API call traces & try heuristics.
 - [ ] (future) Talk to Jingyuan for not just random monkey tests?
