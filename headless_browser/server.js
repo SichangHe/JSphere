@@ -5,11 +5,8 @@
  * @typedef {import('playwright').Browser} Browser
  * @typedef {import('playwright').BrowserContext} BrowserContext
  */
+import { readFile } from "node:fs/promises"
 import { chromium } from "playwright"
-import { readFile } from "fs"
-import { promisify } from "util"
-
-const readFilePromise = promisify(readFile)
 
 /**
  * Buffer for the gremlins script.
@@ -23,8 +20,8 @@ let _gremlinsBuf = undefined
 async function gremlinsScript() {
     if (_gremlinsBuf === undefined) {
         _gremlinsBuf = [
-            readFilePromise("./node_modules/gremlins.js/dist/gremlins.min.js"),
-            readFilePromise("./runGremlins.js"),
+            readFile("./node_modules/gremlins.js/dist/gremlins.min.js"),
+            readFile("./runGremlins.js"),
         ]
     }
     if (_gremlinsBuf instanceof Array) {
