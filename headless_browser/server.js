@@ -1,9 +1,43 @@
-// Run as: node server.js
+// Run at `headless_browser/` as: node server.js
+// @ts-check
 
-import { chromium, Browser, BrowserContext } from "playwright"
+/**
+ * @typedef {import('playwright').Browser} Browser
+ * @typedef {import('playwright').BrowserContext} BrowserContext
+ */
+import { chromium } from "playwright"
+import { readFile } from "fs"
+import { promisify } from "util"
+
+const readFilePromise = promisify(readFile)
+
+/**
+ * Buffer for the gremlins script.
+ * It can be either a promise when the script is being read from the file system or a string of the script.
+ * @type {undefined |Promise<Buffer>[] | string}
+ */
+let _gremlinsBuf = undefined
+/**
+ * @returns {Promise<string>} The gremlins script, either cached or newly read.
+ */
+async function gremlinsScript() {
+    if (_gremlinsBuf === undefined) {
+        _gremlinsBuf = [
+            readFilePromise("./node_modules/gremlins.js/dist/gremlins.min.js"),
+            readFilePromise("./runGremlins.js"),
+        ]
+    }
+    if (_gremlinsBuf instanceof Array) {
+        const [gremlinsPromise, runGremlinsPromise] = _gremlinsBuf
+        const gremlins = await gremlinsPromise
+        const runGremlins = await runGremlinsPromise
+        _gremlinsBuf = `${gremlins.toString()};${runGremlins.toString()}`
+    }
+    return _gremlinsBuf
+}
 
 async function main() {
-    console.log(chromium)
+    gremlinsScript() // Start reading the gremlins script in the background.
     const browser = await chromium.launch({
         executablePath: "/opt/chromium.org/chromium/chrome",
         chromiumSandbox: false,
@@ -25,7 +59,7 @@ async function main() {
  */
 async function visitPageNTimes(context, url, nTimes) {
     for (let count = 0; count < nTimes; count++) {
-        await visitPage(context, url)
+        await visitPage(context, url, `${count}.har`)
     }
 }
 
@@ -33,35 +67,19 @@ async function visitPageNTimes(context, url, nTimes) {
  * Visits a specified URL in the given browser context.
  * @param {BrowserContext} context - The browser context in which to visit the URL.
  * @param {string} url - The URL to visit.
+ * @param {string} harPath - The path to write the HAR file.
  * @returns {Promise<void>} A promise that resolves when the page has been visited.
  */
-async function visitPage(context, url) {
+async function visitPage(context, url, harPath) {
     const page = await context.newPage()
     try {
-        await page.routeFromHAR("TODO.har", { update: true })
-        // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
-        // NOTE: this could affect the page's performance.
-        await page.addInitScript({
-            path: "./node_modules/gremlins.js/dist/gremlins.min.js",
-        })
+        await page.routeFromHAR(harPath, { update: true, updateMode: "full" })
         await page.goto(url)
-        await page.evaluate(() =>
-            // See <https://marmelab.com/gremlins.js/>.
-            // This runs within the browser context.
-            gremlins
-                .createHorde({
-                    randomizer: new gremlins.Chance(1234),
-                    species: gremlins.allSpecies,
-                    mogwais: [gremlins.mogwais.alert()],
-                    strategies: [
-                        // 1 ms delay between each action.
-                        gremlins.strategies.distribution({ delay: 1 }),
-                        // 30,000 actions ⇒ 30 seconds.
-                        gremlins.strategies.allTogether({ nb: 30_000 }),
-                    ],
-                })
-                .unleash(),
-        )
+        // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
+        // Here, we do not run the Gremlins script before the page's own to
+        // avoid affecting its performance.
+        const gremlinsScriptContent = await gremlinsScript()
+        await page.evaluate(gremlinsScriptContent)
         throw new Error("TODO")
     } finally {
         page.close()
