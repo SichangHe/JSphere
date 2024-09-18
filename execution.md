@@ -20,4 +20,7 @@
     - [ ] Prevent navigation.
     - [ ] Visit 3 + 9 clicked pages like Snyder did.
 - [ ] Analyze API call traces & try heuristics.
-- [ ] (future) Talk to Jingyuan for not just random monkey tests?
+
+Deferred:
+
+- [ ] Targeted event listener tests instead of chaos testing?
