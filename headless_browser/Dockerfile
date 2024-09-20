@@ -10,6 +10,7 @@ ARG VV8_VERSION=ae1e5af_128.0.6613.137
 ARG PNPM_VERSION=8.15.7
 
 FROM visiblev8/vv8-base:${VV8_VERSION}
+USER root
 
 # Use production node environment by default.
 ENV NODE_ENV production

@@ -8,6 +8,8 @@ import { mkdir, readFile } from "node:fs/promises"
 import { chdir } from "node:process"
 import { chromium } from "playwright"
 
+/** Magic directory read input from. */
+const INPUT_DIR = "/home/node/input_urls.txt"
 /** Global magic directory to write output to. */
 const OUTPUT_DIR = "/home/node/output"
 
@@ -37,11 +39,21 @@ async function gremlinsScript() {
 }
 
 async function main() {
+    const urls = await readInputUrls(INPUT_DIR)
     gremlinsScript() // Start reading the gremlins script in the background.
-    // TODO: Read from a file.
-    const url = "https://www.google.com"
     const nTimes = 5
-    await testSite(url, nTimes)
+    for (const url of urls) {
+        await testSite(url, nTimes)
+    }
+}
+
+/**
+ * Read a file to get the URLs per line.
+ * @param {string} path - The path to the file containing the URLs.
+ */
+async function readInputUrls(path) {
+    const urls = await readFile(path)
+    return urls.toString().split("\n")
 }
 
 /**
@@ -74,6 +86,7 @@ async function testSite(url, nTimes) {
 async function visitSite(context, url) {
     const page = await context.newPage()
     try {
+        // TODO: Add timeout.
         await page.goto(url)
         // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
         // Here, we do not run the Gremlins script before the page's own to
