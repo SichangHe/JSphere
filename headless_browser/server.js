@@ -9,9 +9,9 @@ import { chdir } from "node:process"
 import { chromium } from "playwright"
 
 /** Magic directory read input from. */
-const INPUT_DIR = "/home/node/input_urls.txt"
+const INPUT_DIR = "input_urls.txt"
 /** Global magic directory to write output to. */
-const OUTPUT_DIR = "/home/node/output"
+const OUTPUT_DIR = "target"
 
 /**
  * Buffer for the gremlins script.
@@ -115,7 +115,9 @@ async function inContext(userDataDir, logDir, harDir, task) {
         acceptDownloads: false,
         executablePath: "/opt/chromium.org/chromium/chrome",
         chromiumSandbox: false,
-        headless: true,
+        // Prevent Playwright from using `--headless=old`.
+        headless: false,
+        args: ["--headless"],
         recordHar: {
             content: "omit",
             path: harDir,

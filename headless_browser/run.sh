@@ -8,6 +8,6 @@ if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
 fi
 
 docker run --cap-add=SYS_ADMIN \
-    -v "$(pwd)/target:/home/node/output" \
+    -v "$(pwd)/target:/home/node/target" \
     -v "$(pwd)/input_urls.txt:/home/node/input_urls.txt" \
     $IMAGE_NAME
