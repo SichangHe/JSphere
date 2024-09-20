@@ -23,4 +23,5 @@
 
 Deferred:
 
+- [ ] If top 1000 sites yield poor results, try sampling other sites.
 - [ ] Targeted event listener tests instead of chaos testing?
