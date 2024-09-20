@@ -2,11 +2,14 @@
 // @ts-check
 
 /**
- * @typedef {import('playwright').Browser} Browser
  * @typedef {import('playwright').BrowserContext} BrowserContext
  */
-import { readFile } from "node:fs/promises"
+import { mkdir, readFile } from "node:fs/promises"
+import { chdir } from "node:process"
 import { chromium } from "playwright"
+
+/** Global magic directory to write output to. */
+const OUTPUT_DIR = "/home/node/output"
 
 /**
  * Buffer for the gremlins script.
@@ -35,64 +38,82 @@ async function gremlinsScript() {
 
 async function main() {
     gremlinsScript() // Start reading the gremlins script in the background.
-    const browser = await chromium.launch({
-        executablePath: "/opt/chromium.org/chromium/chrome",
-        chromiumSandbox: false,
-        headless: true,
-    })
-    const url = "https://www.youtube.com"
+    // TODO: Read from a file.
+    const url = "https://www.google.com"
     const nTimes = 5
-    await inContext(browser, async (context) =>
-        visitPageNTimes(context, url, nTimes),
-    )
+    await testSite(url, nTimes)
 }
 
 /**
- * Visits a specified URL in the given browser context for the given number of times.
- * @param {BrowserContext} context - The browser context in which to visit the URL.
+ * Test a specified website for the given number of times.
+ * - Reuse browser context per URL.
+ * - Writes each URL's data to a directory under `OUTPUT_DIR`, with
+ *     the logs in `1/`, `2/`, etc. and the HARs at `1.har`, `2.har`, etc.
  * @param {string} url - The URL to visit.
  * @param {number} nTimes - The number of times to visit the URL.
- * @returns {Promise<void>} A promise that resolves when the page has been visited.
  */
-async function visitPageNTimes(context, url, nTimes) {
+async function testSite(url, nTimes) {
+    const urlEncoded = encodeURIComponent(url)
+    const urlOutputDir = `${OUTPUT_DIR}/${urlEncoded}`
+    const userDataDir = `${urlOutputDir}/user_data`
     for (let count = 0; count < nTimes; count++) {
-        await visitPage(context, url, `${count}.har`)
+        const logDir = `${urlOutputDir}/${count}`
+        await mkdir(logDir, { recursive: true })
+        const harDir = `${urlOutputDir}/${count}.har`
+        const task = async (/** @type {BrowserContext} */ context) =>
+            await visitSite(context, url)
+        await inContext(userDataDir, logDir, harDir, task)
     }
 }
 
 /**
- * Visits a specified URL in the given browser context.
+ * Visits a specified site in the given browser context.
  * @param {BrowserContext} context - The browser context in which to visit the URL.
  * @param {string} url - The URL to visit.
- * @param {string} harPath - The path to write the HAR file.
- * @returns {Promise<void>} A promise that resolves when the page has been visited.
  */
-async function visitPage(context, url, harPath) {
+async function visitSite(context, url) {
     const page = await context.newPage()
     try {
-        await page.routeFromHAR(harPath, { update: true, updateMode: "full" })
         await page.goto(url)
         // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
         // Here, we do not run the Gremlins script before the page's own to
         // avoid affecting its performance.
         const gremlinsScriptContent = await gremlinsScript()
         await page.evaluate(gremlinsScriptContent)
-        throw new Error("TODO")
+        // TODO: Trap links.
+        // TODO: Go to secondary and tertiary pages.
     } finally {
         page.close()
     }
 }
 
 /**
- * Executes a task in a new browser context and ensures the context is closed afterwards.
- * @param {Browser} browser - The browser instance in which to create a new context.
- * @param {function(BrowserContext): Promise<*>} task - The task to be executed in the new context. This function should accept a single parameter: the context.
- * @returns {Promise<*>} A promise that resolves with the result of the task when the task has been executed and the context has been closed.
+ * Executes a task in a new browser context and ensures the context and
+ * browser are closed afterwards.
+ * @template T
+ * @param {string} userDataDir - Directory to restore and store user data for browser context.
+ * @param {string} logDir - Directory to run the browser and write VV8 logs.
+ * @param {string} harDir - Directory to write the HAR file.
+ * @param {function(BrowserContext): Promise<T>} task - The task to be executed in the new context. This function should accept a single parameter: the context.
  */
-async function inContext(browser, task) {
-    const context = await browser.newContext({
+async function inContext(userDataDir, logDir, harDir, task) {
+    chdir(logDir)
+    const context = await chromium.launchPersistentContext(userDataDir, {
+        acceptDownloads: false,
+        executablePath: "/opt/chromium.org/chromium/chrome",
+        chromiumSandbox: false,
+        headless: true,
+        recordHar: {
+            content: "omit",
+            path: harDir,
+            mode: "full",
+        },
         userAgent:
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Web Measure/1.0 (https://webresearch.eecs.umich.edu/overview-of-web-measurements/)",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 WebMeasure/1.0 (https://webresearch.eecs.umich.edu/overview-of-web-measurements/)",
+        viewport: {
+            width: 1920,
+            height: 1080,
+        },
     })
     try {
         return await task(context)
