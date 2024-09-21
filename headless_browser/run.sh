@@ -1,21 +1,24 @@
 #!/bin/bash
+set -e
 
-IMAGE_NAME="sssstevenhe/jsphere-vv8-headless:0.0.0"
-
-if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
-    echo "$IMAGE_NAME not found. Building before running..."
-    docker compose build
+if test ! -d "node_modules"; then
+    pnpm i
 fi
+
+IMAGE_NAME="visiblev8/vv8-base"
 
 mkdir -p target
 chmod 777 target
 
-# Run with
-# namespaces support on,
-# mounting output and
-# input directories.
+# Run
+# as root,
+# with namespaces support on,
+# mounting current directory at `run/`,
+# with `entrypoint.sh` as the entry point,
+# the VV8 image.
 docker run \
+    --user 0 \
     --cap-add=SYS_ADMIN \
-    -v "$(pwd)/target:/home/node/target" \
-    -v "$(pwd)/input_urls.txt:/home/node/input_urls.txt" \
+    -v "$(pwd):/home/node/run" \
+    --entrypoint "run/entrypoint.sh" \
     $IMAGE_NAME
