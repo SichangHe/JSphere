@@ -88,17 +88,28 @@ async function testSite(url, nTimes) {
  */
 async function visitSite(context, url) {
     const page = await context.newPage()
+    const /** @type {Set<string>} */ navigations = new Set()
     try {
         // TODO: Add timeout.
         // TODO: Handle returned response, e.g., 404.
         await page.goto(url)
+        await page.route("**/*", async (route) => {
+            const request = route.request()
+            if (request.isNavigationRequest()) {
+                const abortPromise = route.abort()
+                navigations.add(request.url())
+                await abortPromise
+            } else {
+                await route.continue()
+            }
+        })
         // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
         // Here, we do not run the Gremlins script before the page's own to
         // avoid affecting its performance.
         const gremlinsScriptContent = await gremlinsScript()
         await page.evaluate(gremlinsScriptContent)
         // TODO: Trap links.
-        // TODO: Go to secondary and tertiary pages.
+        // TODO: Go to secondary and tertiary pages in `navigations`.
     } finally {
         page.close()
     }
