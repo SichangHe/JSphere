@@ -20,7 +20,7 @@ ENV NODE_ENV production
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm@${PNPM_VERSION}
 
-WORKDIR /usr/src/app
+WORKDIR /home/node
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.local/share/pnpm/store to speed up subsequent builds.
