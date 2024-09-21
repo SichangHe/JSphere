@@ -5,13 +5,15 @@
  * @typedef {import('playwright').BrowserContext} BrowserContext
  */
 import { mkdir, readFile } from "node:fs/promises"
-import { chdir } from "node:process"
+import { chdir, cwd } from "node:process"
 import { chromium } from "playwright"
 
-/** Magic directory read input from. */
-const INPUT_DIR = "input_urls.txt"
-/** Global magic directory to write output to. */
-const OUTPUT_DIR = "target"
+/** Absolute path of initial current working directory. */
+const CWD = cwd()
+/** Absolute path of magic directory to read input from. */
+const INPUT_DIR = `${CWD}/input_urls.txt`
+/** Absolute path of global magic directory to write output to. */
+const OUTPUT_DIR = `${CWD}/target`
 
 /**
  * Buffer for the gremlins script.
