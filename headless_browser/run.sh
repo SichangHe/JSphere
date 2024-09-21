@@ -7,6 +7,9 @@ if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
     docker compose build
 fi
 
+mkdir -p target
+chmod 777 target
+
 # Run with
 # namespaces support on,
 # as current user,
