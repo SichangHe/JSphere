@@ -36,6 +36,8 @@ USER node
 
 # Copy the source files into the image.
 COPY server.js server.js
+COPY package.json package.json
+COPY runGremlins.js runGremlins.js
 
 # Expose the port that the application listens on.
 EXPOSE 3000
