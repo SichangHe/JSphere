@@ -12,12 +12,10 @@ chmod 777 target
 
 # Run with
 # namespaces support on,
-# as current user,
 # mounting output and
 # input directories.
 docker run \
     --cap-add=SYS_ADMIN \
-    -u "$(id -u)":1000 \
     -v "$(pwd)/target:/home/node/target" \
     -v "$(pwd)/input_urls.txt:/home/node/input_urls.txt" \
     $IMAGE_NAME

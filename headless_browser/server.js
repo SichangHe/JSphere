@@ -90,6 +90,7 @@ async function visitSite(context, url) {
     const page = await context.newPage()
     try {
         // TODO: Add timeout.
+        // TODO: Handle returned response, e.g., 404.
         await page.goto(url)
         // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
         // Here, we do not run the Gremlins script before the page's own to
