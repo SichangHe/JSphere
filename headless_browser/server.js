@@ -68,6 +68,7 @@ async function testSite(url, nTimes) {
     const urlEncoded = encodeURIComponent(url)
     const urlOutputDir = `${OUTPUT_DIR}/${urlEncoded}`
     const userDataDir = `${urlOutputDir}/user_data`
+    await mkdir(userDataDir, { recursive: true })
     for (let count = 0; count < nTimes; count++) {
         const logDir = `${urlOutputDir}/${count}`
         await mkdir(logDir, { recursive: true })

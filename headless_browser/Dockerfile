@@ -41,4 +41,4 @@ COPY server.js server.js
 EXPOSE 3000
 
 # Run the application.
-CMD node server.js
+ENTRYPOINT ["node", "server.js"]
