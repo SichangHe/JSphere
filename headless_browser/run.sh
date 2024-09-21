@@ -7,7 +7,14 @@ if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
     docker compose build
 fi
 
-docker run --cap-add=SYS_ADMIN \
+# Run with
+# namespaces support on,
+# as current user,
+# mounting output and
+# input directories.
+docker run \
+    --cap-add=SYS_ADMIN \
+    -u 1000:1000 \
     -v "$(pwd)/target:/home/node/target" \
     -v "$(pwd)/input_urls.txt:/home/node/input_urls.txt" \
     $IMAGE_NAME
