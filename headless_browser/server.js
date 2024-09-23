@@ -16,7 +16,9 @@ const INPUT_DIR = `${CWD}/input_urls.txt`
 /** Absolute path of global magic directory to write output to. */
 const OUTPUT_DIR = `${CWD}/target`
 /** Options for the CLI. */
-const opts = {}
+const opts = {
+    uiDebug: false,
+}
 
 /**
  * Buffer for the gremlins script.
