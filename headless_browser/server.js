@@ -63,7 +63,7 @@ function readCliOptions() {
  */
 async function readInputUrls(path) {
     const urls = await readFile(path)
-    return urls.toString().split("\n")
+    return urls.toString().trim().split("\n")
 }
 
 /**
@@ -110,9 +110,12 @@ async function visitSite(context, url) {
         reachable.secondaryPages = await visitUrl(page, url)
         // TODO: Go to secondary and tertiary pages in `navigations`.
     } catch (error) {
-        console.error(error)
-        // Sleep for 10,000 seconds to keep the browser open for debugging.
-        await new Promise((resolve) => setTimeout(resolve, 10_000_000))
+        if (opts.uiDebug) {
+            console.error(error)
+            await page.pause()
+        } else {
+            throw error
+        }
     } finally {
         page.close()
     }
@@ -126,10 +129,11 @@ async function visitSite(context, url) {
  */
 async function visitUrl(page, url) {
     const /**@type {Set<string>}*/ navigations = new Set()
-    let leftMs = INTERACTION_TIME_MS
     let /**@type {number}*/ startMs
-    let /**@type {number|undefined}*/ endMs
-    let /**@type {Promise|undefined}*/ blockPromise
+    let /**@type {(arg0: number) => void}*/ done
+    const waitUntilDone = new Promise((resolve) => {
+        done = resolve
+    })
 
     console.log("Visiting %s.", url)
     // TODO: Add timeout.
@@ -138,26 +142,30 @@ async function visitUrl(page, url) {
     const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
         const request = route.request()
         const requestUrl = request.url().split("#")[0]
-        if (request.isNavigationRequest() && requestUrl !== url) {
-            // Block navigation, record it, subtract the interaction time, and
-            // go back in the browser.
-            if (endMs === undefined) {
-                endMs = Date.now()
-                console.assert(startMs !== undefined)
-                const elapsed = endMs - startMs
-                leftMs -= elapsed
-            }
+        if (requestUrl === "https://done/") {
+            done(0)
+            await route.fulfill()
+        } else if (request.isNavigationRequest() && requestUrl !== url) {
             // Block navigation and go back.
-            blockPromise = route.fulfill({
+            // FIXME: This is somewhat unreliable.
+            // Sometimes the browser goes back too much.
+            // Perhaps use
+            // `page.on("framenavigated", (frame) => frame.url()...)`
+            // to check for `about:blank`.
+            const blockPromise = route.fulfill({
                 body: "<script>window.history.back()</script>",
                 contentType: "text/html",
             })
+            const endMs = Date.now()
+            console.assert(startMs !== undefined)
+            const elapsed = endMs - startMs
             console.log(
-                "Blocked navigation: %s. %d ms left",
+                "Blocked navigation: %s. Interacted for %d ms.",
                 requestUrl,
-                leftMs,
+                elapsed,
             )
             navigations.add(requestUrl)
+            await blockPromise
         } else {
             await route.continue()
         }
@@ -169,72 +177,41 @@ async function visitUrl(page, url) {
         // avoid affecting its performance.
         await page.evaluate(await gremlinsScript())
         await pageRoutePromise
-        // FIXME: This whole retry business is unnecessary because
-        // the browser resumes the script after going back.
-        while (leftMs > 0) {
-            try {
-                startMs = await page.evaluate(
-                    ({
-                        /**@type{number}*/ leftMs,
-                        /**@type{number|string}*/ url,
-                    }) => {
-                        // Create Gremlins horde within the browser context and unleash it.
-                        // See <https://marmelab.com/gremlins.js/>.
-                        const ACTION_DELAY_MS = 10
-                        const nb = Math.ceil(leftMs / ACTION_DELAY_MS)
-                        __hordePromise__ = gremlins
-                            .createHorde({
-                                randomizer: new gremlins.Chance(url),
-                                species: gremlins.allSpecies,
-                                mogwais: [gremlins.mogwais.alert()],
-                                strategies: [
-                                    gremlins.strategies.distribution({
-                                        delay: ACTION_DELAY_MS,
-                                    }),
-                                    gremlins.strategies.allTogether({ nb }),
-                                ],
-                            })
-                            .unleash()
-                        return Date.now()
-                    },
-                    { leftMs, url },
-                )
-            } catch (error) {
-                if (
-                    error.message ===
-                    "page.evaluate: Execution context was destroyed, most likely because of a navigation"
-                ) {
-                    console.log("Not in context. Simply waiting for timeout")
-                    await new Promise((resolve) => setTimeout(resolve, leftMs))
-                    break
-                } else {
-                    throw error
-                }
-            }
+        startMs = await page.evaluate((seed) => {
+            // Create Gremlins horde within the browser context and unleash it.
+            // See <https://marmelab.com/gremlins.js/>.
+            __hordePromise__ = gremlins
+                .createHorde({
+                    randomizer: new gremlins.Chance(seed),
+                    species: gremlins.allSpecies,
+                    mogwais: [gremlins.mogwais.alert()],
+                    strategies: [
+                        gremlins.strategies.distribution({ delay: 0 }),
+                        // This is way too much, so it would time out anyway.
+                        gremlins.strategies.allTogether({ nb: 3_000 }),
+                    ],
+                })
+                .unleash()
+                .then(() => {
+                    console.log("done")
+                    // @ts-ignore Tell the router we are done.
+                    window.location = "https://done/"
+                })
+            return Date.now()
+        }, url)
 
-            try {
-                await page.evaluate(() => __hordePromise__)
-                break
-            } catch (error) {
-                if (
-                    error.message ===
-                    "page.evaluate: Execution context was destroyed, most likely because of a navigation."
-                ) {
-                    console.log("Blocked navigation.")
-                    console.assert(blockPromise !== undefined)
-                    await blockPromise
-                    // Wait for the page to load.
-                    await new Promise((resolve) => setTimeout(resolve, 100))
-                    console.log("Navigating back.")
-                    // await page.goBack({ waitUntil: "load" })
-                    // await new Promise((resolve) => setTimeout(resolve, 100))
-                    // console.log("Navigated back.")
-                    continue
-                } else {
-                    console.log("Error message: %s", error.message)
-                    throw error
-                }
-            }
+        const INTERACTION_TIME_MS = 30_000
+        setTimeout(() => done(1), INTERACTION_TIME_MS)
+        if ((await waitUntilDone) === 1) {
+            console.log(
+                "Gremlins interaction timed out at %dms.",
+                INTERACTION_TIME_MS,
+            )
+        } else {
+            console.log(
+                "Gremlins interaction completed in %dms.",
+                Date.now() - startMs,
+            )
         }
     } finally {
         await page.unroute(WILDCARD_URL)
@@ -275,6 +252,7 @@ async function inContext(userDataDir, logDir, harDir, task) {
         args: ["--disable-site-isolation-trials"].concat(
             opts.uiDebug ? [] : ["--headless"],
         ),
+        devtools: opts.uiDebug,
         ignoreDefaultArgs: [
             "--disable-background-networking",
             "--disable-back-forward-cache",
