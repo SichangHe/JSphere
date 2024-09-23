@@ -3,9 +3,10 @@
 
 /**
  * @typedef {import('playwright').BrowserContext} BrowserContext
+ * @typedef {import('playwright').Page} Page
  */
-import { mkdir, readFile } from "node:fs/promises"
-import { chdir, cwd } from "node:process"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { argv, chdir, cwd } from "node:process"
 import { chromium } from "playwright"
 
 /** Absolute path of initial current working directory. */
@@ -14,11 +15,15 @@ const CWD = cwd()
 const INPUT_DIR = `${CWD}/input_urls.txt`
 /** Absolute path of global magic directory to write output to. */
 const OUTPUT_DIR = `${CWD}/target`
+/** Options for the CLI. */
+const opts = {
+    uiDebug: false,
+}
 
 /**
  * Buffer for the gremlins script.
  * It can be either a promise when the script is being read from the file system or a string of the script.
- * @type {undefined |Promise<Buffer>[] | string}
+ * @type {undefined |Promise<Buffer> | string}
  */
 let _gremlinsBuf = undefined
 /**
@@ -26,26 +31,31 @@ let _gremlinsBuf = undefined
  */
 async function gremlinsScript() {
     if (_gremlinsBuf === undefined) {
-        _gremlinsBuf = [
-            readFile("./node_modules/gremlins.js/dist/gremlins.min.js"),
-            readFile("./runGremlins.js"),
-        ]
+        _gremlinsBuf = readFile(
+            "./node_modules/gremlins.js/dist/gremlins.min.js",
+        )
     }
-    if (_gremlinsBuf instanceof Array) {
-        const [gremlinsPromise, runGremlinsPromise] = _gremlinsBuf
-        const gremlins = await gremlinsPromise
-        const runGremlins = await runGremlinsPromise
-        _gremlinsBuf = `${gremlins.toString()};${runGremlins.toString()}`
+    if (_gremlinsBuf instanceof Promise) {
+        _gremlinsBuf = (await _gremlinsBuf).toString()
     }
     return _gremlinsBuf
 }
 
 async function main() {
+    readCliOptions()
     const urls = await readInputUrls(INPUT_DIR)
     gremlinsScript() // Start reading the gremlins script in the background.
     const nTimes = 5
     for (const url of urls) {
         await testSite(url, nTimes)
+    }
+}
+
+function readCliOptions() {
+    for (const arg of argv) {
+        if (arg === "--ui-debug") {
+            opts.uiDebug = true
+        }
     }
 }
 
@@ -55,7 +65,7 @@ async function main() {
  */
 async function readInputUrls(path) {
     const urls = await readFile(path)
-    return urls.toString().split("\n")
+    return urls.toString().trim().split("\n")
 }
 
 /**
@@ -71,15 +81,25 @@ async function testSite(url, nTimes) {
     const urlOutputDir = `${OUTPUT_DIR}/${urlEncoded}`
     const userDataDir = `${urlOutputDir}/user_data`
     await mkdir(userDataDir, { recursive: true })
+    const writePromises = []
     for (let count = 0; count < nTimes; count++) {
+        console.log("Test %d of %s.", count, url)
         const logDir = `${urlOutputDir}/${count}`
         await mkdir(logDir, { recursive: true })
         const harDir = `${urlOutputDir}/${count}.har`
+        const reachableDir = `${urlOutputDir}/reachable${count}.json`
         const task = async (/** @type {BrowserContext} */ context) =>
             await visitSite(context, url)
-        await inContext(userDataDir, logDir, harDir, task)
+        const reachable = await inContext(userDataDir, logDir, harDir, task)
+        const reachableJson = JSON.stringify(reachable, null, "\t")
+        const writePromise = writeFile(reachableDir, reachableJson)
+        writePromises.push(writePromise)
     }
+    await Promise.all(writePromises)
 }
+
+/** Time to interact in milliseconds. */
+const INTERACTION_TIME_MS = 30_000
 
 /**
  * Visits a specified site in the given browser context.
@@ -88,21 +108,132 @@ async function testSite(url, nTimes) {
  */
 async function visitSite(context, url) {
     const page = await context.newPage()
+    const reachable = {}
     try {
-        // TODO: Add timeout.
-        // TODO: Handle returned response, e.g., 404.
-        await page.goto(url)
-        // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
-        // Here, we do not run the Gremlins script before the page's own to
-        // avoid affecting its performance.
-        const gremlinsScriptContent = await gremlinsScript()
-        await page.evaluate(gremlinsScriptContent)
-        // TODO: Trap links.
-        // TODO: Go to secondary and tertiary pages.
+        reachable.secondaryPages = await visitUrl(page, url)
+        // TODO: Go to secondary and tertiary pages in `navigations`.
+    } catch (error) {
+        if (opts.uiDebug) {
+            console.error(error)
+            await page.pause()
+        } else {
+            throw error
+        }
     } finally {
         page.close()
     }
+    return reachable
 }
+
+/**
+ * Visit a specified URL from the given page, interact, and record navigations.
+ * @param {Page} page
+ * @param {string} url
+ */
+async function visitUrl(page, url) {
+    const /**@type {string[]}*/ navigations = []
+    const /**@type {Set<string>}*/ navigationSet = new Set()
+    let /**@type {number}*/ startMs
+    let /**@type {(arg0: number) => void}*/ done
+    const waitUntilDone = new Promise((resolve) => {
+        done = resolve
+    })
+
+    console.log("Visiting %s.", url)
+    // TODO: Add timeout.
+    // TODO: Handle returned response, e.g., 404.
+    await page.goto(url)
+    const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
+        const request = route.request()
+        const requestUrl = request.url().split("#")[0]
+        if (requestUrl === "https://done/") {
+            done(0)
+            await route.fulfill()
+        } else if (request.isNavigationRequest() && requestUrl !== url) {
+            // Block navigation and go back.
+            // FIXME: This is somewhat unreliable.
+            // Sometimes the browser goes back too much.
+            // Perhaps use
+            // `page.on("framenavigated", (frame) => frame.url()...)`
+            // to check for `about:blank`.
+            const blockPromise = route.fulfill({
+                body: "<script>window.history.back()</script>",
+                contentType: "text/html",
+            })
+            const endMs = Date.now()
+            console.assert(startMs !== undefined)
+            const elapsed = endMs - startMs
+            console.log(
+                "Blocked navigation: %s. Interacted for %d ms.",
+                requestUrl,
+                elapsed,
+            )
+            if (!navigationSet.has(requestUrl)) {
+                navigationSet.add(requestUrl)
+                navigations.push(requestUrl)
+            }
+            await blockPromise
+        } else {
+            await route.continue()
+        }
+    })
+
+    try {
+        // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
+        // Here, we do not run the Gremlins script before the page's own to
+        // avoid affecting its performance.
+        await page.evaluate(await gremlinsScript())
+        await pageRoutePromise
+        startMs = await page.evaluate((seed) => {
+            // Create Gremlins horde within the browser context and unleash it.
+            // See <https://marmelab.com/gremlins.js/>.
+            __hordePromise__ = gremlins
+                .createHorde({
+                    randomizer: new gremlins.Chance(seed),
+                    species: gremlins.allSpecies,
+                    mogwais: [gremlins.mogwais.alert()],
+                    strategies: [
+                        gremlins.strategies.distribution({ delay: 10 }),
+                        // This is way too much, so it would time out anyway.
+                        gremlins.strategies.allTogether({ nb: 3_000 }),
+                    ],
+                })
+                .unleash()
+                .then(() => {
+                    console.log("done")
+                    // @ts-ignore Tell the router we are done.
+                    window.location = "https://done/"
+                })
+            return Date.now()
+        }, url)
+
+        setTimeout(() => done(1), INTERACTION_TIME_MS)
+        if ((await waitUntilDone) === 1) {
+            console.log(
+                "Gremlins interaction timed out at %dms.",
+                INTERACTION_TIME_MS,
+            )
+        } else {
+            console.log(
+                "Gremlins interaction completed in %dms.",
+                Date.now() - startMs,
+            )
+        }
+    } finally {
+        await page.unroute(WILDCARD_URL)
+    }
+    return navigations
+}
+
+/** Wildcard URL pattern to match all URLs. */
+const WILDCARD_URL = "**/*"
+
+/** Placeholder variable for the gremlins in the browser.
+ * @global @type {Object} */
+var gremlins
+/** Placeholder variable for the "unleash" horde promise in the browser.
+ * @global @type {Object} */
+let __hordePromise__
 
 /**
  * Executes a task in a new browser context and ensures the context and
@@ -117,11 +248,22 @@ async function inContext(userDataDir, logDir, harDir, task) {
     chdir(logDir)
     const context = await chromium.launchPersistentContext(userDataDir, {
         acceptDownloads: false,
-        executablePath: "/opt/chromium.org/chromium/chrome",
+        executablePath: opts.uiDebug
+            ? undefined
+            : "/opt/chromium.org/chromium/chrome",
         chromiumSandbox: false,
+        slowMo: opts.uiDebug ? 300 : undefined,
         // Prevent Playwright from using `--headless=old`.
         headless: false,
-        args: ["--headless"],
+        args: ["--disable-site-isolation-trials"].concat(
+            opts.uiDebug ? [] : ["--headless"],
+        ),
+        devtools: opts.uiDebug,
+        ignoreDefaultArgs: [
+            "--disable-background-networking",
+            "--disable-back-forward-cache",
+            "--disable-popup-blocking",
+        ],
         recordHar: {
             content: "omit",
             path: harDir,
