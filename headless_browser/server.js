@@ -89,7 +89,8 @@ async function testSite(url, nTimes) {
         const task = async (/** @type {BrowserContext} */ context) =>
             await visitSite(context, url)
         const reachable = await inContext(userDataDir, logDir, harDir, task)
-        const writePromise = writeFile(reachableDir, JSON.stringify(reachable))
+        const reachableJson = JSON.stringify(reachable, null, "\t")
+        const writePromise = writeFile(reachableDir, reachableJson)
         writePromises.push(writePromise)
     }
     await Promise.all(writePromises)
@@ -128,7 +129,8 @@ async function visitSite(context, url) {
  * @param {string} url
  */
 async function visitUrl(page, url) {
-    const /**@type {Set<string>}*/ navigations = new Set()
+    const /**@type {string[]}*/ navigations = []
+    const /**@type {Set<string>}*/ navigationSet = new Set()
     let /**@type {number}*/ startMs
     let /**@type {(arg0: number) => void}*/ done
     const waitUntilDone = new Promise((resolve) => {
@@ -164,7 +166,10 @@ async function visitUrl(page, url) {
                 requestUrl,
                 elapsed,
             )
-            navigations.add(requestUrl)
+            if (!navigationSet.has(requestUrl)) {
+                navigationSet.add(requestUrl)
+                navigations.push(requestUrl)
+            }
             await blockPromise
         } else {
             await route.continue()
@@ -186,7 +191,7 @@ async function visitUrl(page, url) {
                     species: gremlins.allSpecies,
                     mogwais: [gremlins.mogwais.alert()],
                     strategies: [
-                        gremlins.strategies.distribution({ delay: 0 }),
+                        gremlins.strategies.distribution({ delay: 10 }),
                         // This is way too much, so it would time out anyway.
                         gremlins.strategies.allTogether({ nb: 3_000 }),
                     ],
@@ -200,7 +205,6 @@ async function visitUrl(page, url) {
             return Date.now()
         }, url)
 
-        const INTERACTION_TIME_MS = 30_000
         setTimeout(() => done(1), INTERACTION_TIME_MS)
         if ((await waitUntilDone) === 1) {
             console.log(
