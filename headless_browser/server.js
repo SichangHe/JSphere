@@ -183,6 +183,8 @@ async function visitUrl(page, url) {
         // Here, we do not run the Gremlins script before the page's own to
         // avoid affecting its performance.
         await page.evaluate(await gremlinsScript())
+        // FIXME: This prevents us from getting the URL we were to visit.
+        await preventNavigation(page)
         await pageRoutePromise
         startMs = await page.evaluate((seed) => {
             // Create Gremlins horde within the browser context and unleash it.
@@ -234,6 +236,26 @@ var gremlins
 /** Placeholder variable for the "unleash" horde promise in the browser.
  * @global @type {Object} */
 let __hordePromise__
+
+/** Prevent jumping to another page because of link clicks, JS, etc.
+ * Adopted from <https://github.com/USC-NSL/FidEx-fidelity/blob/b265021f86c4836bb24378c4e995539293444f47/record_replay/record.js#L90>.
+ * @param {Page} page */
+async function preventNavigation(page) {
+    page.on("dialog", async (dialog) => {
+        const dialogType = dialog.type()
+        if (dialogType === "confirm" || dialogType === "prompt") {
+            console.log("Accepting dialog: %s", dialog.message())
+            await dialog.accept()
+        } else {
+            dialog.dismiss()
+        }
+    })
+    await page.evaluate(() => {
+        window.addEventListener("beforeunload", (event) => {
+            event.preventDefault()
+        })
+    })
+}
 
 /**
  * Executes a task in a new browser context and ensures the context and
