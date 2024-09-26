@@ -198,9 +198,12 @@ async function visitUrl(page, url) {
         })
 
         console.log("Visiting %s.", url)
-        // TODO: Add timeout.
-        // TODO: Handle returned response, e.g., 404.
-        await page.goto(url)
+        const response = await page.goto(url, { timeout: 120_000 })
+        if (response !== null && response.status() >= 400) {
+            throw new Error(
+                `Failed to visit ${url} with status ${response.status()}.`,
+            )
+        }
         const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
             const request = route.request()
             const requestUrl = request.url().split("#")[0]
