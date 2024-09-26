@@ -5,7 +5,7 @@
  * @typedef {import('playwright').BrowserContext} BrowserContext
  * @typedef {import('playwright').Page} Page
  */
-import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises"
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { argv, chdir, cwd } from "node:process"
 import { chromium } from "playwright"
 
@@ -18,6 +18,17 @@ const OUTPUT_DIR = `${CWD}/target`
 /** Options for the CLI. */
 const opts = {
     uiDebug: false,
+}
+
+/** Error thrown when ended up on about:blank after interaction. */
+class AboutBlankErr extends Error {
+    /**
+     * @param {string} targetUrl - URL we want to interact with.
+     */
+    constructor(targetUrl) {
+        super("Ended up on about:blank after interaction.")
+        this.targetUrl = targetUrl
+    }
 }
 
 /**
@@ -80,27 +91,42 @@ async function testSite(url, nTimes) {
     const urlEncoded = encodeURIComponent(url)
     const urlOutputDir = `${OUTPUT_DIR}/${urlEncoded}`
     const userDataDir = `${urlOutputDir}/user_data`
-    await mkdir(userDataDir, { recursive: true })
+    const maxFail = nTimes * 2
+    await mkFreshDir(userDataDir)
     const writePromises = []
-    for (let count = 0; count < nTimes; count++) {
+    for (let count = 0, nFail = 0; count < nTimes && nFail < maxFail; count++) {
         console.log("Test %d of %s.", count, url)
         const logDir = `${urlOutputDir}/${count}`
-        await mkdir(logDir, { recursive: true })
-        const rmPromises = []
-        for (const file of await readdir(logDir)) {
-            rmPromises.push(unlink(`${logDir}/${file}`))
-        }
+        await mkFreshDir(logDir)
         const harDir = `${urlOutputDir}/${count}.har`
         const reachableDir = `${urlOutputDir}/reachable${count}.json`
-        await Promise.all(rmPromises)
         const task = async (/** @type {BrowserContext} */ context) =>
             await visitSite(context, url)
-        const reachable = await inContext(userDataDir, logDir, harDir, task)
-        const reachableJson = JSON.stringify(reachable, null, "\t")
-        const writePromise = writeFile(reachableDir, reachableJson)
-        writePromises.push(writePromise)
+        try {
+            const reachable = await inContext(userDataDir, logDir, harDir, task)
+            const reachableJson = JSON.stringify(reachable, null, "\t")
+            const writePromise = writeFile(reachableDir, reachableJson)
+            writePromises.push(writePromise)
+        } catch (err) {
+            console.error(err)
+            if (err instanceof AboutBlankErr) {
+                nFail++
+                nTimes--
+            } else {
+                // TODO: Log into a file.
+            }
+        }
     }
     await Promise.all(writePromises)
+}
+
+/**
+ * Nuke a directory and recreate it.
+ * @param {string} path
+ */
+async function mkFreshDir(path) {
+    await rm(path, { recursive: true, force: true })
+    await mkdir(path, { recursive: true })
 }
 
 /** Time to interact in milliseconds. */
@@ -156,11 +182,8 @@ async function visitUrl(page, url) {
             await route.fulfill()
         } else if (request.isNavigationRequest() && requestUrl !== url) {
             // Block navigation and go back.
-            // FIXME: This is somewhat unreliable.
-            // Sometimes the browser goes back too much.
-            // Perhaps use
-            // `page.on("framenavigated", (frame) => frame.url()...)`
-            // to check for `about:blank`.
+            // This is somewhat unreliable—sometimes the browser goes back to
+            // `about:blank`. We check this lower below.
             const blockPromise = route.fulfill({
                 body: "<script>window.history.back()</script>",
                 contentType: "text/html",
@@ -214,6 +237,9 @@ async function visitUrl(page, url) {
 
         setTimeout(() => done(1), INTERACTION_TIME_MS)
         if ((await waitUntilDone) === 1) {
+            if (page.url() === "about:blank") {
+                throw new AboutBlankErr(url)
+            }
             console.log(
                 "Gremlins interaction timed out at %dms.",
                 INTERACTION_TIME_MS,
