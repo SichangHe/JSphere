@@ -5,7 +5,7 @@
  * @typedef {import('playwright').BrowserContext} BrowserContext
  * @typedef {import('playwright').Page} Page
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises"
 import { argv, chdir, cwd } from "node:process"
 import { chromium } from "playwright"
 
@@ -86,8 +86,13 @@ async function testSite(url, nTimes) {
         console.log("Test %d of %s.", count, url)
         const logDir = `${urlOutputDir}/${count}`
         await mkdir(logDir, { recursive: true })
+        const rmPromises = []
+        for (const file of await readdir(logDir)) {
+            rmPromises.push(unlink(`${logDir}/${file}`))
+        }
         const harDir = `${urlOutputDir}/${count}.har`
         const reachableDir = `${urlOutputDir}/reachable${count}.json`
+        await Promise.all(rmPromises)
         const task = async (/** @type {BrowserContext} */ context) =>
             await visitSite(context, url)
         const reachable = await inContext(userDataDir, logDir, harDir, task)
@@ -187,7 +192,7 @@ async function visitUrl(page, url) {
         startMs = await page.evaluate((seed) => {
             // Create Gremlins horde within the browser context and unleash it.
             // See <https://marmelab.com/gremlins.js/>.
-            __hordePromise__ = gremlins
+            window.__hordePromise__ = gremlins
                 .createHorde({
                     randomizer: new gremlins.Chance(seed),
                     species: gremlins.allSpecies,
@@ -231,9 +236,9 @@ const WILDCARD_URL = "**/*"
 /** Placeholder variable for the gremlins in the browser.
  * @global @type {Object} */
 var gremlins
-/** Placeholder variable for the "unleash" horde promise in the browser.
+/** Placeholder variable for the window object in the browser.
  * @global @type {Object} */
-let __hordePromise__
+var window
 
 /**
  * Executes a task in a new browser context and ensures the context and
@@ -258,6 +263,7 @@ async function inContext(userDataDir, logDir, harDir, task) {
         args: ["--disable-site-isolation-trials"].concat(
             opts.uiDebug ? [] : ["--headless"],
         ),
+        bypassCSP: true,
         devtools: opts.uiDebug,
         ignoreDefaultArgs: [
             "--disable-background-networking",
