@@ -223,6 +223,7 @@ async function visitUrl(page, url) {
                 // We check this lower below ("noHorde").
                 const endMs = Date.now()
                 const elapsed = endMs - startMs
+                leftMs -= elapsed
                 console.log(
                     "Blocked navigation: %s. Interacted for %d ms.",
                     requestUrl,
@@ -297,6 +298,7 @@ async function visitUrl(page, url) {
                         "Gremlins interaction timed out after %s ms since last update.",
                         elapsed,
                     )
+                    startMs = endMs
                     leftMs -= elapsed
                 } else if (status === "noHorde") {
                     // Go to the outer loop to reload the page.
