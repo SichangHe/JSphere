@@ -139,21 +139,54 @@ const INTERACTION_TIME_MS = 30_000
  */
 async function visitSite(context, url) {
     const page = await context.newPage()
-    const reachable = {}
     try {
-        reachable.secondaryPages = await visitUrl(page, url)
-        // TODO: Go to secondary and tertiary pages in `navigations`.
+        const secondaryPageSet = await visitUrl(page, url)
+        const secondaryPages = [...secondaryPageSet]
+        const secondaryVisits = secondaryPages
+            .filter((link) => link.startsWith(url))
+            .map((link) => ({ link, value: Math.random() }))
+            .sort((a, b) => a.value - b.value)
+            .map((pair) => pair.link)
+            .slice(0, 3)
+
+        const tertiaryPageSet = new Set()
+        for (const secondaryUrl of secondaryVisits) {
+            const navigations = await visitUrl(page, secondaryUrl)
+            for (const tertiaryUrl of navigations) {
+                if (!secondaryPages.includes(tertiaryUrl)) {
+                    tertiaryPageSet.add(tertiaryUrl)
+                }
+            }
+        }
+        const tertiaryPages = [...tertiaryPageSet]
+        const tertiaryVisits = tertiaryPages
+            .filter((link) => link.startsWith(url))
+            .map((link) => ({ link, value: Math.random() }))
+            .sort((a, b) => a.value - b.value)
+            .map((pair) => pair.link)
+            .slice(0, 9)
+
+        for (const tertiaryUrl of tertiaryVisits) {
+            await visitUrl(page, tertiaryUrl)
+        }
+
+        return {
+            secondaryPages,
+            secondaryVisits,
+            tertiaryPages,
+            tertiaryVisits,
+        }
     } catch (error) {
         if (opts.uiDebug) {
             console.error(error)
             await page.pause()
+            return {}
         } else {
             throw error
         }
     } finally {
         page.close()
     }
-    return reachable
 }
 
 /**
@@ -162,8 +195,7 @@ async function visitSite(context, url) {
  * @param {string} url
  */
 async function visitUrl(page, url) {
-    const /**@type {string[]}*/ navigations = []
-    const /**@type {Set<string>}*/ navigationSet = new Set()
+    const /**@type {Set<string>}*/ navigations = new Set()
     let /**@type {number}*/ startMs
     let /**@type {(arg0: number) => void}*/ done
     const waitUntilDone = new Promise((resolve) => {
@@ -196,10 +228,7 @@ async function visitUrl(page, url) {
                 requestUrl,
                 elapsed,
             )
-            if (!navigationSet.has(requestUrl)) {
-                navigationSet.add(requestUrl)
-                navigations.push(requestUrl)
-            }
+            navigations.add(requestUrl)
             await blockPromise
         } else {
             await route.continue()
