@@ -135,7 +135,6 @@ async function visitSite(context, url) {
         const secondaryPageSet = await visitUrl(page, url)
         const secondaryPages = [...secondaryPageSet]
         const secondaryVisits = secondaryPages
-            // FIXME: This same-site filter too crude.
             .filter((link) => link.startsWith(url))
             .map((link) => ({ link, value: Math.random() }))
             .sort((a, b) => a.value - b.value)
@@ -202,7 +201,6 @@ async function visitUrl(page, url) {
         // TODO: Add timeout.
         // TODO: Handle returned response, e.g., 404.
         await page.goto(url)
-        // FIXME: This does not prevent `target=_blank` links from opening new tabs.
         const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
             const request = route.request()
             const requestUrl = request.url().split("#")[0]
