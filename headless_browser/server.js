@@ -12,12 +12,13 @@ import { chromium } from "playwright"
 /** Absolute path of initial current working directory. */
 const CWD = cwd()
 /** Absolute path of magic directory to read input from. */
-const INPUT_DIR = `${CWD}/input_urls.txt`
+const INPUT_DIR = `${CWD}/input_urls.csv`
 /** Absolute path of global magic directory to write output to. */
 const OUTPUT_DIR = `${CWD}/target`
 /** Options for the CLI. */
 const opts = {
     uiDebug: false,
+    urlLimit: 1_000_000_000,
 }
 
 /**
@@ -46,15 +47,19 @@ async function main() {
     const urls = await readInputUrls(INPUT_DIR)
     gremlinsScript() // Start reading the gremlins script in the background.
     const nTimes = 5
-    for (const url of urls) {
+    for (const url of urls.slice(0, opts.urlLimit)) {
         await testSite(url, nTimes)
     }
 }
 
 function readCliOptions() {
-    for (const arg of argv) {
+    for (let index = 0; index < argv.length; index++) {
+        const arg = argv[index]
         if (arg === "--ui-debug") {
             opts.uiDebug = true
+        } else if (arg === "--url-limit") {
+            opts.urlLimit = parseInt(argv[++index])
+            console.assert(opts.urlLimit > 0, "URL limit must be positive.")
         }
     }
 }
@@ -65,7 +70,11 @@ function readCliOptions() {
  */
 async function readInputUrls(path) {
     const urls = await readFile(path)
-    return urls.toString().trim().split("\n")
+    return urls
+        .toString()
+        .trim()
+        .split("\n")
+        .map((line) => "https://" + line.split(",")[1].trim() + "/")
 }
 
 /**
