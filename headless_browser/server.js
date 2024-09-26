@@ -20,17 +20,6 @@ const opts = {
     uiDebug: false,
 }
 
-/** Error thrown when ended up on about:blank after interaction. */
-class AboutBlankErr extends Error {
-    /**
-     * @param {string} targetUrl - URL we want to interact with.
-     */
-    constructor(targetUrl) {
-        super("Ended up on about:blank after interaction.")
-        this.targetUrl = targetUrl
-    }
-}
-
 /**
  * Buffer for the gremlins script.
  * It can be either a promise when the script is being read from the file system or a string of the script.
@@ -109,12 +98,8 @@ async function testSite(url, nTimes) {
             writePromises.push(writePromise)
         } catch (err) {
             console.error(err)
-            if (err instanceof AboutBlankErr) {
-                nFail++
-                nTimes--
-            } else {
-                // TODO: Log into a file.
-            }
+            nFail++
+            nTimes--
         }
     }
     await Promise.all(writePromises)
@@ -143,6 +128,7 @@ async function visitSite(context, url) {
         const secondaryPageSet = await visitUrl(page, url)
         const secondaryPages = [...secondaryPageSet]
         const secondaryVisits = secondaryPages
+            // FIXME: This same-site filter too crude.
             .filter((link) => link.startsWith(url))
             .map((link) => ({ link, value: Math.random() }))
             .sort((a, b) => a.value - b.value)
@@ -197,90 +183,114 @@ async function visitSite(context, url) {
 async function visitUrl(page, url) {
     const /**@type {Set<string>}*/ navigations = new Set()
     let /**@type {number}*/ startMs
-    let /**@type {(arg0: number) => void}*/ done
-    const waitUntilDone = new Promise((resolve) => {
-        done = resolve
-    })
+    let /**@type {number}*/ leftMs = INTERACTION_TIME_MS
 
-    console.log("Visiting %s.", url)
-    // TODO: Add timeout.
-    // TODO: Handle returned response, e.g., 404.
-    await page.goto(url)
-    const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
-        const request = route.request()
-        const requestUrl = request.url().split("#")[0]
-        if (requestUrl === "https://done/") {
-            done(0)
-            await route.fulfill()
-        } else if (request.isNavigationRequest() && requestUrl !== url) {
-            // Block navigation and go back.
-            // This is somewhat unreliable—sometimes the browser goes back to
-            // `about:blank`. We check this lower below.
-            const blockPromise = route.fulfill({
-                body: "<script>window.history.back()</script>",
-                contentType: "text/html",
-            })
-            const endMs = Date.now()
-            console.assert(startMs !== undefined)
-            const elapsed = endMs - startMs
-            console.log(
-                "Blocked navigation: %s. Interacted for %d ms.",
-                requestUrl,
-                elapsed,
-            )
-            navigations.add(requestUrl)
-            await blockPromise
-        } else {
-            await route.continue()
-        }
-    })
+    while (leftMs > 0) {
+        let /**@type {(arg0: string) => void}*/ done
+        const waitUntilDone = new Promise((resolve) => {
+            done = resolve
+        })
 
-    try {
-        // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
-        // Here, we do not run the Gremlins script before the page's own to
-        // avoid affecting its performance.
-        await page.evaluate(await gremlinsScript())
-        await pageRoutePromise
-        startMs = await page.evaluate((seed) => {
-            // Create Gremlins horde within the browser context and unleash it.
-            // See <https://marmelab.com/gremlins.js/>.
-            window.__hordePromise__ = gremlins
-                .createHorde({
-                    randomizer: new gremlins.Chance(seed),
-                    species: gremlins.allSpecies,
-                    mogwais: [gremlins.mogwais.alert()],
-                    strategies: [
-                        gremlins.strategies.distribution({ delay: 10 }),
-                        // This is way too much, so it would time out anyway.
-                        gremlins.strategies.allTogether({ nb: 3_000 }),
-                    ],
-                })
-                .unleash()
-                .then(() => {
-                    console.log("done")
-                    // @ts-ignore Tell the router we are done.
-                    window.location = "https://done/"
-                })
-            return Date.now()
-        }, url)
-
-        setTimeout(() => done(1), INTERACTION_TIME_MS)
-        if ((await waitUntilDone) === 1) {
-            if (page.url() === "about:blank") {
-                throw new AboutBlankErr(url)
+        console.log("Visiting %s.", url)
+        // TODO: Add timeout.
+        // TODO: Handle returned response, e.g., 404.
+        await page.goto(url)
+        // FIXME: This does not prevent `target=_blank` links from opening new tabs.
+        const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
+            const request = route.request()
+            const requestUrl = request.url().split("#")[0]
+            if (request.isNavigationRequest() && requestUrl !== url) {
+                // Block navigation and go back.
+                // This is somewhat unreliable—sometimes the browser goes back to
+                // `about:blank` or stops running Gremlins.
+                // We check this lower below ("noHorde").
+                const endMs = Date.now()
+                const elapsed = endMs - startMs
+                console.log(
+                    "Blocked navigation: %s. Interacted for %d ms.",
+                    requestUrl,
+                    elapsed,
+                )
+                navigations.add(requestUrl)
+                // Delaying the response helps the browser settle down a lot.
+                setTimeout(async () => {
+                    await route.fulfill({
+                        body: "<script>window.history.back()</script>",
+                        contentType: "text/html",
+                    })
+                    startMs = Date.now()
+                }, 1000)
+            } else {
+                await route.continue()
             }
-            console.log(
-                "Gremlins interaction timed out at %dms.",
-                INTERACTION_TIME_MS,
-            )
-        } else {
-            console.log(
-                "Gremlins interaction completed in %dms.",
-                Date.now() - startMs,
-            )
+        })
+        page.on("load", async (frame) => {
+            const endMs = Date.now()
+            const elapsed = endMs - startMs
+            console.log("Frame %s.", frame.url())
+            try {
+                const hasHorde = await page.evaluate(
+                    () => window.__hordePromise__ !== undefined,
+                )
+                if (!hasHorde) {
+                    startMs -= elapsed
+                    done("noHorde")
+                }
+            } catch (_) {
+                // Not settled down on a page.
+            }
+        })
+
+        try {
+            // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
+            // Here, we do not run the Gremlins script before the page's own to
+            // avoid affecting its performance.
+            await page.evaluate(await gremlinsScript())
+            await pageRoutePromise
+            startMs = await page.evaluate((seed) => {
+                // Create Gremlins horde within the browser context and unleash it.
+                // See <https://marmelab.com/gremlins.js/>.
+                window.__hordePromise__ = gremlins
+                    .createHorde({
+                        randomizer: new gremlins.Chance(seed),
+                        species: gremlins.allSpecies,
+                        mogwais: [gremlins.mogwais.alert()],
+                        strategies: [
+                            gremlins.strategies.distribution({ delay: 10 }),
+                            // This is way too much, so it would time out anyway.
+                            gremlins.strategies.allTogether({ nb: 100_000 }),
+                        ],
+                    })
+                    .unleash()
+                    .then(() => {
+                        console.log("done")
+                        // @ts-ignore Tell the router we are done.
+                        window.location = "https://done/"
+                    })
+                return Date.now()
+            }, url)
+
+            while (leftMs > 0) {
+                setTimeout(() => done("timeout"), leftMs)
+                const status = await waitUntilDone
+                if (status === "timeout") {
+                    const endMs = Date.now()
+                    const elapsed = endMs - startMs
+                    console.log(
+                        "Gremlins interaction timed out after %s ms since last update.",
+                        elapsed,
+                    )
+                    leftMs -= elapsed
+                } else if (status === "noHorde") {
+                    // Go to the outer loop to reload the page.
+                    break
+                } else {
+                    throw new Error("Unexpected status: " + status)
+                }
+            }
+        } finally {
+            await page.unroute(WILDCARD_URL)
         }
-    } finally {
-        await page.unroute(WILDCARD_URL)
     }
     return navigations
 }
