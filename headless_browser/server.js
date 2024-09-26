@@ -124,6 +124,13 @@ const INTERACTION_TIME_MS = 30_000
  */
 async function visitSite(context, url) {
     const page = await context.newPage()
+    page.on("popup", async (popupPage) => {
+        if (popupPage !== page) {
+            // Close popups immediately.
+            await popupPage.close()
+        }
+    })
+
     try {
         const secondaryPageSet = await visitUrl(page, url)
         const secondaryPages = [...secondaryPageSet]
