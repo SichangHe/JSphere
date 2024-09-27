@@ -27,6 +27,7 @@
             - `$N/vv8-*.log`
             - `$N.har`
             - `reachable$N.json`
+    - Disable content security policy (CSP) for `eval`.
     - [x] ~~Prevent navigation.~~ Go back in browser history immediately when
         navigating.
         - [x] ~~Browser bug: sometimes go back too much to
