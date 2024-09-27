@@ -29,9 +29,17 @@
             - `reachable$N.json`
     - [x] ~~Prevent navigation.~~ Go back in browser history immediately when
         navigating.
-        - [ ] Browser bug: sometimes go back too much to `about:blank`.
-        - [ ] Fewer navigation when headless??
-    - [ ] Visit 3 + 9 clicked pages like Snyder did.
+        - [x] ~~Browser bug: sometimes go back too much to
+            `about:blank`.~~ Detect if page has horde on `load` event, and
+            reload if not.
+        - ~~[ ] Fewer navigation when headless??~~
+        - Some sites (e.g., YouTube) change URL w/o navigation;
+            cannot do anything about them.
+    - [x] Visit 3 + 9 clicked pages like Snyder did.
+        - [ ] Some secondary URLs' host name vary by `www.` prefix, e.g.,
+            google.com.
+    - [ ] Separate out the 5 trials.
+    - [ ] Save space: remove `user_data/` after all trials; compress logs.
 - [ ] Analyze API call traces & try heuristics.
 
 Deferred:
