@@ -2,7 +2,7 @@
 set -e
 
 if test ! -d "node_modules"; then
-    pnpm i
+    pnpm i --frozen-lockfile
 fi
 
 IMAGE_NAME="visiblev8/vv8-base"
@@ -17,10 +17,13 @@ chmod 777 target
 # with `entrypoint.sh` as the entry point,
 # removing the container after it exits,
 # the VV8 image.
+# shellcheck disable=SC2068
 docker run \
     --user 0 \
     --cap-add=SYS_ADMIN \
     -v "$(pwd):/home/node/run" \
-    --entrypoint "run/entrypoint.sh" \
+    --entrypoint "/usr/local/bin/node" \
+    --workdir "/home/node/run" \
     --rm \
-    $IMAGE_NAME
+    $IMAGE_NAME \
+    server.js $@
