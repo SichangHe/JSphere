@@ -197,10 +197,10 @@ async function visitSite(context, url) {
  */
 async function visitUrl(page, url) {
     const /**@type {Set<string>}*/ navigations = new Set()
-    let /**@type {number}*/ startMs
     let /**@type {number}*/ leftMs = INTERACTION_TIME_MS
 
     while (leftMs > 0) {
+        let /**@type {number}*/ startMs
         let /**@type {(arg0: string) => void}*/ done
         const waitUntilDone = new Promise((resolve) => {
             done = resolve
@@ -231,7 +231,7 @@ async function visitUrl(page, url) {
                 )
                 navigations.add(requestUrl)
                 // Delaying the response helps the browser settle down a lot.
-                setTimeout(async () => {
+                afterDelay(async () => {
                     await route.fulfill({
                         body: "<script>window.history.back()</script>",
                         contentType: "text/html",
@@ -243,15 +243,14 @@ async function visitUrl(page, url) {
             }
         })
         page.on("load", async (frame) => {
-            const endMs = Date.now()
-            const elapsed = endMs - startMs
+            const elapsed = Date.now() - startMs
             console.log("Frame %s.", frame.url())
             try {
                 const hasHorde = await page.evaluate(
                     () => window.__hordePromise__ !== undefined,
                 )
                 if (!hasHorde) {
-                    startMs -= elapsed
+                    leftMs -= elapsed
                     done("noHorde")
                 }
             } catch (_) {
@@ -280,26 +279,29 @@ async function visitUrl(page, url) {
                         ],
                     })
                     .unleash()
-                    .then(() => {
-                        console.log("done")
-                        // @ts-ignore Tell the router we are done.
-                        window.location = "https://done/"
-                    })
                 return Date.now()
             }, url)
 
+            let waitHandle
             while (leftMs > 0) {
-                setTimeout(() => done("timeout"), leftMs)
+                if (waitHandle !== undefined) {
+                    clearTimeout(waitHandle)
+                }
+                waitHandle = afterDelay(() => done("timeout"), leftMs)
                 const status = await waitUntilDone
                 if (status === "timeout") {
                     const endMs = Date.now()
                     const elapsed = endMs - startMs
-                    console.log(
-                        "Gremlins interaction timed out after %s ms since last update.",
-                        elapsed,
-                    )
                     startMs = endMs
                     leftMs -= elapsed
+                    if (elapsed > 10) {
+                        // Filter out short timeouts.
+                        console.log(
+                            "Gremlins interaction timed out after %dms since last update. %dms to go.",
+                            elapsed,
+                            leftMs,
+                        )
+                    }
                 } else if (status === "noHorde") {
                     // Go to the outer loop to reload the page.
                     break
@@ -323,6 +325,25 @@ var gremlins
 /** Placeholder variable for the window object in the browser.
  * @global @type {Object} */
 var window
+
+/**
+ * Delay for at least `ms` and then call `callback`.
+ * Needed because `setTimeout` usually returns early.
+ * @param {() => *} callback
+ * @param {number} ms - Number of milliseconds to delay for.
+ */
+function afterDelay(callback, ms) {
+    const start = Date.now()
+    const check = () => {
+        const elapsed = Date.now() - start
+        if (elapsed < ms) {
+            setTimeout(check, ms - elapsed)
+        } else {
+            callback()
+        }
+    }
+    return setTimeout(check, ms)
+}
 
 /**
  * Executes a task in a new browser context and ensures the context and

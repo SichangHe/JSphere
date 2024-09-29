@@ -42,6 +42,8 @@
             google.com.
     - [ ] Separate out the 5 trials.
     - [ ] Save space: remove `user_data/` after all trials; compress logs.
+    - [ ] Proper logging.
+    - [ ] Checkpointing and resuming.
 - [ ] Analyze API call traces & try heuristics.
 
 Deferred:
