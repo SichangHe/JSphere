@@ -20,6 +20,7 @@
     - Mounting: write directly to `headless_browser/target/` on host.
         - Need sysadmin capability & root in Docker to
             run Playwright & create directory, or else spurious error.
+        - Need `sudo setenforce 0` for Fedora due to SELinux.
     - File management: each site has own directory by
         `encodeURIComponent(url)`, under which;
         - share browser cache in `user_data/`;
