@@ -38,6 +38,8 @@
         - Some sites (e.g., YouTube) change URL w/o navigation;
             cannot do anything about them.
     - [x] Visit 3 + 9 clicked pages like Snyder did.
+    - [x] Some secondary URLs' host name vary by `www.` prefix, e.g.,
+        google.com.
 - [ ] Analyze API call traces & try heuristics.
     - [ ] Crawl only 100 first
     - [ ] Separate site load & interaction
@@ -46,10 +48,11 @@
 
 Deferred:
 
-- [ ] Some secondary URLs' host name vary by `www.` prefix, e.g., google.com.
-- [ ] Separate out the 5 trials.
-- [ ] Save space: remove `user_data/` after all trials; compress logs.
-- [ ] Proper logging.
-- [ ] Checkpointing and resuming.
-- [ ] If top 1000 sites yield poor results, try sampling other sites.
-- [ ] Targeted event listener tests instead of chaos testing?
+- Would like
+    - [ ] Separate out the 5 trials.
+    - [ ] Save space: remove `user_data/` after all trials; compress logs.
+    - [ ] Proper logging.
+    - [ ] Checkpointing and resuming.
+- Just thoughts
+    - [ ] If top 1000 sites yield poor results, try sampling other sites.
+    - [ ] Targeted event listener tests instead of chaos testing?

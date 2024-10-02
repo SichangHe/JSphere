@@ -1,4 +1,5 @@
 // Run at `headless_browser/` as: node server.js
+// See `readCliOptions` for up-to-date command line options.
 // @ts-check
 
 /**
@@ -18,7 +19,8 @@ const OUTPUT_DIR = `${CWD}/target`
 /** Options for the CLI. */
 const opts = {
     uiDebug: false,
-    urlLimit: 1_000_000_000,
+    rankMin: 0,
+    rankMax: 1_000_000_000,
 }
 
 /**
@@ -44,37 +46,109 @@ async function gremlinsScript() {
 
 async function main() {
     readCliOptions()
-    const urls = await readInputUrls(INPUT_DIR)
+    const subdomains = await readInputSubdomains(INPUT_DIR)
     gremlinsScript() // Start reading the gremlins script in the background.
     const nTimes = 5
-    for (const url of urls.slice(0, opts.urlLimit)) {
-        await testSite(url, nTimes)
+    for (const subdomain of subdomains.slice(0, opts.rankMax)) {
+        await testSite(subdomain, nTimes)
     }
 }
 
+/**
+ * Read options from the command line.
+ * Read the code for the up-to-date options.
+ */
 function readCliOptions() {
     for (let index = 0; index < argv.length; index++) {
         const arg = argv[index]
         if (arg === "--ui-debug") {
             opts.uiDebug = true
-        } else if (arg === "--url-limit") {
-            opts.urlLimit = parseInt(argv[++index])
-            console.assert(opts.urlLimit > 0, "URL limit must be positive.")
+        } else if (arg === "--rank-limit") {
+            const [minStr, maxStr] = argv[++index].trim().split(":")
+            opts.rankMin = parseInt(minStr)
+            console.assert(
+                opts.rankMin >= 0,
+                "Minimum rank must be non-negative.",
+            )
+            opts.rankMax = parseInt(maxStr)
+            console.assert(opts.rankMax > 0, "Maximum rank must be positive.")
+            console.assert(
+                opts.rankMin <= opts.rankMax,
+                "Minimum must be less than or equal to maximum.",
+            )
         }
     }
 }
 
 /**
+ * A subdomain with its rank and name.
+ */
+class Subdomain {
+    /**
+     * @param {number} rank
+     * @param {string} name
+     */
+    constructor(rank, name) {
+        this.rank = rank
+        this.name = name
+        this._nameWO3w = name.startsWith(_3W_DOT)
+            ? name.slice(_3W_DOT.length)
+            : name
+    }
+
+    /**
+     * The root URL of the subdomain.
+     */
+    rootUrl() {
+        return `https://${this.name}/`
+    }
+
+    /**
+     * If the given URL matches the subdomain.
+     * @param {string} url
+     */
+    matchUrl(url) {
+        const urlWOHttp = url.startsWith(_HTTP_PREFIX)
+            ? url.slice(_HTTP_PREFIX.length)
+            : url
+        const urlWOHttps = urlWOHttp.startsWith(_HTTPS_PREFIX)
+            ? urlWOHttp.slice(_HTTPS_PREFIX.length)
+            : url
+        const urlWO3w = urlWOHttps.startsWith(_3W_DOT)
+            ? urlWOHttps.slice(_3W_DOT.length)
+            : urlWOHttp
+        return urlWO3w.startsWith(this._nameWO3w)
+    }
+
+    toString() {
+        return `${this.rank}:${this.name}`
+    }
+}
+
+const _3W_DOT = "www."
+const _HTTP_PREFIX = "http://"
+const _HTTPS_PREFIX = "https://"
+
+/**
  * Read a file to get the URLs per line.
  * @param {string} path - The path to the file containing the URLs.
  */
-async function readInputUrls(path) {
+async function readInputSubdomains(path) {
     const urls = await readFile(path)
     return urls
         .toString()
         .trim()
         .split("\n")
-        .map((line) => "https://" + line.split(",")[1].trim() + "/")
+        .map((line) => {
+            const [rankStr, subdomain] = line.trim().split(",")
+            const rank = parseInt(rankStr)
+            return new Subdomain(rank, subdomain)
+        })
+        .filter(
+            (subdomain) =>
+                opts.rankMin <= subdomain.rank &&
+                subdomain.rank <= opts.rankMax,
+        )
 }
 
 /**
@@ -82,24 +156,24 @@ async function readInputUrls(path) {
  * - Reuse browser context per URL.
  * - Writes each URL's data to a directory under `OUTPUT_DIR`, with
  *     the logs in `1/`, `2/`, etc. and the HARs at `1.har`, `2.har`, etc.
- * @param {string} url - The URL to visit.
+ * @param {Subdomain} subdomain - The URL to visit.
  * @param {number} nTimes - The number of times to visit the URL.
  */
-async function testSite(url, nTimes) {
-    const urlEncoded = encodeURIComponent(url)
+async function testSite(subdomain, nTimes) {
+    const urlEncoded = encodeURIComponent(subdomain.name)
     const urlOutputDir = `${OUTPUT_DIR}/${urlEncoded}`
     const userDataDir = `${urlOutputDir}/user_data`
     const maxFail = nTimes * 2
     await mkFreshDir(userDataDir)
     const writePromises = []
     for (let count = 0, nFail = 0; count < nTimes && nFail < maxFail; count++) {
-        console.log("Test %d of %s.", count, url)
+        console.log("Test %d of %s.", count, subdomain)
         const logDir = `${urlOutputDir}/${count}`
         await mkFreshDir(logDir)
         const harDir = `${urlOutputDir}/${count}.har`
         const reachableDir = `${urlOutputDir}/reachable${count}.json`
         const task = async (/** @type {BrowserContext} */ context) =>
-            await visitSite(context, url)
+            await visitSite(context, subdomain)
         try {
             const reachable = await inContext(userDataDir, logDir, harDir, task)
             const reachableJson = JSON.stringify(reachable, null, "\t")
@@ -129,9 +203,9 @@ const INTERACTION_TIME_MS = 30_000
 /**
  * Visits a specified site in the given browser context.
  * @param {BrowserContext} context - The browser context in which to visit the URL.
- * @param {string} url - The URL to visit.
+ * @param {Subdomain} subdomain - The subdomain to visit.
  */
-async function visitSite(context, url) {
+async function visitSite(context, subdomain) {
     const page = await context.newPage()
     page.on("popup", async (popupPage) => {
         if (popupPage !== page) {
@@ -141,14 +215,14 @@ async function visitSite(context, url) {
     })
 
     try {
-        const secondaryPageSet = await visitUrl(page, url)
+        const secondaryPageSet = await visitUrl(page, subdomain.rootUrl())
         const secondaryPages = [...secondaryPageSet]
         const secondaryVisits = secondaryPages
-            .filter((link) => link.startsWith(url))
-            .map((link) => ({ link, value: Math.random() }))
+            .filter((url) => subdomain.matchUrl(url))
+            .map((url) => ({ url, value: Math.random() }))
             .sort((a, b) => a.value - b.value)
-            .map((pair) => pair.link)
-            .slice(0, 3)
+            .map((pair) => pair.url)
+            .slice(0, N_SECONDARY_VISITS)
 
         const tertiaryPageSet = new Set()
         for (const secondaryUrl of secondaryVisits) {
@@ -161,11 +235,11 @@ async function visitSite(context, url) {
         }
         const tertiaryPages = [...tertiaryPageSet]
         const tertiaryVisits = tertiaryPages
-            .filter((link) => link.startsWith(url))
-            .map((link) => ({ link, value: Math.random() }))
+            .filter((url) => subdomain.matchUrl(url))
+            .map((url) => ({ url, value: Math.random() }))
             .sort((a, b) => a.value - b.value)
-            .map((pair) => pair.link)
-            .slice(0, 9)
+            .map((pair) => pair.url)
+            .slice(0, N_TERTIARY_VISITS)
 
         for (const tertiaryUrl of tertiaryVisits) {
             await visitUrl(page, tertiaryUrl)
@@ -189,6 +263,9 @@ async function visitSite(context, url) {
         page.close()
     }
 }
+
+const N_SECONDARY_VISITS = 3
+const N_TERTIARY_VISITS = 9
 
 /**
  * Visit a specified URL from the given page, interact, and record navigations.
