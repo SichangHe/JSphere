@@ -185,7 +185,9 @@ async function testSite(subdomain, nTimes) {
             nTimes--
         }
     }
+    const rmUserDataDir = rm(userDataDir, { recursive: true, force: true })
     await Promise.all(writePromises)
+    await rmUserDataDir
 }
 
 /**
