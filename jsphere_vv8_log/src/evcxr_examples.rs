@@ -15,7 +15,7 @@ use std::time::Instant;
 fn main() {
     init_tracing();
     let start_time = Instant::now();
-    let mut logs = read_logs("/tmp").unwrap();
+    let mut logs = read_logs("headless_browser/target/youtube.com/0").unwrap();
     println!(
         "Read {} log files in {}ms",
         logs.len(),

@@ -206,61 +206,41 @@ const INTERACTION_TIME_MS = 30_000
  * @param {Subdomain} subdomain - The subdomain to visit.
  */
 async function visitSite(context, subdomain) {
-    const page = await context.newPage()
-    page.on("popup", async (popupPage) => {
-        if (popupPage !== page) {
-            // Close popups immediately.
-            await popupPage.close()
-        }
-    })
+    const secondaryPageSet = await visitUrl(context, subdomain.rootUrl())
+    const secondaryPages = [...secondaryPageSet]
+    const secondaryVisits = secondaryPages
+        .filter((url) => subdomain.matchUrl(url))
+        .map((url) => ({ url, value: Math.random() }))
+        .sort((a, b) => a.value - b.value)
+        .map((pair) => pair.url)
+        .slice(0, N_SECONDARY_VISITS)
 
-    try {
-        const secondaryPageSet = await visitUrl(page, subdomain.rootUrl())
-        const secondaryPages = [...secondaryPageSet]
-        const secondaryVisits = secondaryPages
-            .filter((url) => subdomain.matchUrl(url))
-            .map((url) => ({ url, value: Math.random() }))
-            .sort((a, b) => a.value - b.value)
-            .map((pair) => pair.url)
-            .slice(0, N_SECONDARY_VISITS)
-
-        const tertiaryPageSet = new Set()
-        for (const secondaryUrl of secondaryVisits) {
-            const navigations = await visitUrl(page, secondaryUrl)
-            for (const tertiaryUrl of navigations) {
-                if (!secondaryPages.includes(tertiaryUrl)) {
-                    tertiaryPageSet.add(tertiaryUrl)
-                }
+    const tertiaryPageSet = new Set()
+    for (const secondaryUrl of secondaryVisits) {
+        const navigations = await visitUrl(context, secondaryUrl)
+        for (const tertiaryUrl of navigations) {
+            if (!secondaryPages.includes(tertiaryUrl)) {
+                tertiaryPageSet.add(tertiaryUrl)
             }
         }
-        const tertiaryPages = [...tertiaryPageSet]
-        const tertiaryVisits = tertiaryPages
-            .filter((url) => subdomain.matchUrl(url))
-            .map((url) => ({ url, value: Math.random() }))
-            .sort((a, b) => a.value - b.value)
-            .map((pair) => pair.url)
-            .slice(0, N_TERTIARY_VISITS)
+    }
+    const tertiaryPages = [...tertiaryPageSet]
+    const tertiaryVisits = tertiaryPages
+        .filter((url) => subdomain.matchUrl(url))
+        .map((url) => ({ url, value: Math.random() }))
+        .sort((a, b) => a.value - b.value)
+        .map((pair) => pair.url)
+        .slice(0, N_TERTIARY_VISITS)
 
-        for (const tertiaryUrl of tertiaryVisits) {
-            await visitUrl(page, tertiaryUrl)
-        }
+    for (const tertiaryUrl of tertiaryVisits) {
+        await visitUrl(context, tertiaryUrl)
+    }
 
-        return {
-            secondaryPages,
-            secondaryVisits,
-            tertiaryPages,
-            tertiaryVisits,
-        }
-    } catch (error) {
-        if (opts.uiDebug) {
-            console.error(error)
-            await page.pause()
-            return {}
-        } else {
-            throw error
-        }
-    } finally {
-        page.close()
+    return {
+        secondaryPages,
+        secondaryVisits,
+        tertiaryPages,
+        tertiaryVisits,
     }
 }
 
@@ -269,10 +249,10 @@ const N_TERTIARY_VISITS = 9
 
 /**
  * Visit a specified URL from the given page, interact, and record navigations.
- * @param {Page} page
+ * @param {BrowserContext} context - The browser context in which to visit the URL.
  * @param {string} url
  */
-async function visitUrl(page, url) {
+async function visitUrl(context, url) {
     const /**@type {Set<string>}*/ navigations = new Set()
     let /**@type {number}*/ leftMs = INTERACTION_TIME_MS
 
@@ -281,6 +261,13 @@ async function visitUrl(page, url) {
         let /**@type {(arg0: string) => void}*/ done
         const waitUntilDone = new Promise((resolve) => {
             done = resolve
+        })
+        const page = await context.newPage()
+        page.on("popup", async (popupPage) => {
+            if (popupPage !== page) {
+                // Close popups immediately.
+                await popupPage.close()
+            }
         })
 
         console.log("Visiting %s.", url)
@@ -386,8 +373,16 @@ async function visitUrl(page, url) {
                     throw new Error("Unexpected status: " + status)
                 }
             }
+        } catch (error) {
+            if (opts.uiDebug) {
+                console.error(error)
+                await page.pause()
+                break
+            } else {
+                throw error
+            }
         } finally {
-            await page.unroute(WILDCARD_URL)
+            page.close()
         }
     }
     return navigations

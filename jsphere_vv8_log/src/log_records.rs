@@ -27,6 +27,7 @@ pub enum LogRecord {
         name: JSValue,
         /// The full script source, with unprintable and
         /// Unicode characters escaped (see [JSValue]).
+        // TODO: Unescape the strings.
         source: String,
     },
 
