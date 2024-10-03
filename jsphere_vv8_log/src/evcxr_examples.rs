@@ -32,4 +32,5 @@ fn main() {
 
     let log_line = r#"c7611:%eval:{823408,Window}:"() => window.__hordePromise__ !== undefined""#;
     let record = LogRecord::try_from(log_line).unwrap();
+    let value = JSValue::from(r"{464471,parse\:%parse,stringify\:%stringify}");
 }

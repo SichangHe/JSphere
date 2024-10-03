@@ -46,7 +46,7 @@ pub enum LogRecord {
         /// Receiver (`this` value), e.g., `{729551,Window}`.
         receiver: JSValue,
         /// Positional arguments to the function.
-        arguments: JSValue,
+        arguments: Vec<JSValue>,
     },
 
     /// `n`: "Construction" function call, e.g., `new Foo(1, 2, 3)`.
@@ -56,7 +56,7 @@ pub enum LogRecord {
         /// Function object/name, e.g., `%Image`. We trim the leading `%`.
         method: String,
         /// Positional arguments to the function.
-        arguments: JSValue,
+        arguments: Vec<JSValue>,
     },
 
     /// `g`: Getting property value, e.g., `foo.bar`.
@@ -145,7 +145,7 @@ impl TryFrom<&str> for LogRecord {
                     .next()
                     .ok_or(LogRecordErr::NoFunctionCallReceiver)?
                     .into();
-                let arguments = parts.next().map_or(JSValue::Undefined, Into::into);
+                let arguments = parts.map(Into::into).collect();
                 Ok(LogRecord::FunctionCall {
                     offset,
                     method,
@@ -165,7 +165,7 @@ impl TryFrom<&str> for LogRecord {
                     .ok_or(LogRecordErr::NoConstructionCallMethod)?
                     .trim_start_matches('%')
                     .into();
-                let arguments = parts.next().map_or(JSValue::Undefined, Into::into);
+                let arguments = parts.map(Into::into).collect();
                 Ok(LogRecord::ConstructionCall {
                     offset,
                     method,

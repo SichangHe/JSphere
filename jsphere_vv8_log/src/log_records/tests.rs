@@ -20,9 +20,9 @@ fn log_record_parsing() {
     let actual = "!?".try_into().unwrap();
     assert_eq!(expected, actual);
 
-    let arguments = JSValue::String(
+    let arguments = vec![JSValue::String(
         "eyJtZXRob2QiOiJQYWdlLmZyYW1lU3RvcHBlZExvYWRpbmciLCJwYXJhbXMiOnsiZnJhbWVJZCI6IjQxMTNDMTY3NDA0REYxOUQ3MUI5NjdDMEYwMTA2NjNGIn0sIn Nlc3Npb25JZCI6IjgwRTg0QUM5N0JDMjA1NTQ2RkQ2QUQ5MTQ2NzEyRkQxIn0=".into()
-        );
+        )];
     let expected = LogRecord::FunctionCall {
         offset: 27,
         method: "atob".into(),
@@ -37,7 +37,7 @@ fn log_record_parsing() {
         offset: 143517,
         method: "getSubscription".into(),
         receiver: JSValue::Object("847586,PushManager".into()),
-        arguments: JSValue::Undefined,
+        arguments: vec![],
     };
     let actual = "c143517:%getSubscription:{847586,PushManager}"
         .try_into()
@@ -47,7 +47,7 @@ fn log_record_parsing() {
     let expected = LogRecord::ConstructionCall {
         offset: 36193,
         method: "MutationObserver".into(),
-        arguments: JSValue::Lambda,
+        arguments: vec![JSValue::Lambda],
     };
     let actual = "n36193:%MutationObserver:<anonymous>".try_into().unwrap();
     assert_eq!(expected, actual);
@@ -55,7 +55,7 @@ fn log_record_parsing() {
     let expected = LogRecord::ConstructionCall {
         offset: 23,
         method: "Image".into(),
-        arguments: JSValue::Undefined,
+        arguments: vec![],
     };
     let actual = "n23:%Image".try_into().unwrap();
     assert_eq!(expected, actual);
