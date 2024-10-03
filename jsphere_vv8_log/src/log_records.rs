@@ -41,8 +41,9 @@ pub enum LogRecord {
     FunctionCall {
         /// Character offset within the script, e.g., 27 or -1.
         offset: i32,
-        /// Function object/name, e.g., `%atob`. We trim the leading `%`.
+        /// Function object/name, e.g., `%atob`.
         method: String,
+        is_user_fn: bool,
         /// Receiver (`this` value), e.g., `{729551,Window}`.
         receiver: JSValue,
         /// Positional arguments to the function.
@@ -53,8 +54,9 @@ pub enum LogRecord {
     ConstructionCall {
         /// Character offset within the script, e.g., 23.
         offset: i32,
-        /// Function object/name, e.g., `%Image`. We trim the leading `%`.
+        /// Function object/name, e.g., `Image`.
         method: String,
+        is_user_fn: bool,
         /// Positional arguments to the function.
         arguments: Vec<JSValue>,
     },
@@ -136,11 +138,11 @@ impl TryFrom<&str> for LogRecord {
                     .ok_or(LogRecordErr::NoFunctionCallOffset)?
                     .parse()
                     .map_err(|_| LogRecordErr::InvalidFunctionCallOffset)?;
-                let method = parts
-                    .next()
-                    .ok_or(LogRecordErr::NoFunctionCallMethod)?
-                    .trim_start_matches('%')
-                    .into();
+                let method_w_prefix = parts.next().ok_or(LogRecordErr::NoFunctionCallMethod)?;
+                let (method, is_user_fn) = match method_w_prefix.strip_prefix('%') {
+                    Some(method) => (method.into(), false),
+                    None => (method_w_prefix.into(), true),
+                };
                 let receiver = parts
                     .next()
                     .ok_or(LogRecordErr::NoFunctionCallReceiver)?
@@ -149,6 +151,7 @@ impl TryFrom<&str> for LogRecord {
                 Ok(LogRecord::FunctionCall {
                     offset,
                     method,
+                    is_user_fn,
                     receiver,
                     arguments,
                 })
@@ -160,15 +163,16 @@ impl TryFrom<&str> for LogRecord {
                     .ok_or(LogRecordErr::NoConstructionCallOffset)?
                     .parse()
                     .map_err(|_| LogRecordErr::InvalidConstructionCallOffset)?;
-                let method = parts
-                    .next()
-                    .ok_or(LogRecordErr::NoConstructionCallMethod)?
-                    .trim_start_matches('%')
-                    .into();
+                let method_w_prefix = parts.next().ok_or(LogRecordErr::NoConstructionCallMethod)?;
+                let (method, is_user_fn) = match method_w_prefix.strip_prefix('%') {
+                    Some(method) => (method.into(), false),
+                    None => (method_w_prefix.into(), true),
+                };
                 let arguments = parts.map(Into::into).collect();
                 Ok(LogRecord::ConstructionCall {
                     offset,
                     method,
+                    is_user_fn,
                     arguments,
                 })
             }
