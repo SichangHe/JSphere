@@ -16,7 +16,7 @@
             - [x] Figure out Playwright.
     - [x] Prevent being blocked by USC OIT: Ask John/ add link to
         research description page in `User-Agent`.
-- [ ] Make Playwright and monkey testing work.
+- [x] Make Playwright and monkey testing work.
     - Mounting: write directly to `headless_browser/target/` on host.
         - Need sysadmin capability & root in Docker to
             run Playwright & create directory, or else spurious error.
@@ -40,9 +40,14 @@
     - [x] Visit 3 + 9 clicked pages like Snyder did.
     - [x] Some secondary URLs' host name vary by `www.` prefix, e.g.,
         google.com.
+    - Split out each visit to separate browser page, so that
+        each VV8 log can be split by when gremlins is injected into "loading"
+        vs "interacting".
+    - [x] Save space: remove `user_data/` after all trials.
 - [ ] Analyze API call traces & try heuristics.
     - [ ] Crawl only 100 first
-    - [ ] Separate site load & interaction
+    - [ ] Separate site load & interaction: split by gremlins injection in
+        VV8 log.
     - [ ] Figure out frontend interaction/ DOM element generation API
         classification
 
@@ -50,7 +55,7 @@ Deferred:
 
 - Would like
     - [ ] Separate out the 5 trials.
-    - [ ] Save space: remove `user_data/` after all trials; compress logs.
+    - [ ] Save space: compress logs.
     - [ ] Proper logging.
     - [ ] Checkpointing and resuming.
 - Just thoughts
