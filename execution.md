@@ -44,12 +44,25 @@
         each VV8 log can be split by when gremlins is injected into "loading"
         vs "interacting".
     - [x] Save space: remove `user_data/` after all trials.
-- [ ] Analyze API call traces & try heuristics.
-    - [ ] Crawl only 100 first
-    - [ ] Separate site load & interaction: split by gremlins injection in
-        VV8 log.
-    - [ ] Figure out frontend interaction/ DOM element generation API
-        classification
+    - [x] Crawl only 100 first
+
+## Analyze API call traces
+
+VV8 creates a log file per thread, roughly equivalent to
+a browser page we create plus some junk background workers.
+Each of `$N/vv8-*.log` contains:
+
+- Before gremlins injection:
+    - JS contexts created & their source code.
+    - API calls in each context.
+        - Guaranteed not for interactions.
+- After gremlins injection:
+    - All of the above, but may be for interactions.
+
+- [ ] Separate site load & interaction: split by gremlins injection in
+    VV8 log.
+- [ ] Figure out frontend interaction/ DOM element generation API
+    classification
 
 Deferred:
 
