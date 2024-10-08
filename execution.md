@@ -59,8 +59,11 @@ Each of `$N/vv8-*.log` contains:
 - After gremlins injection:
     - All of the above, but may be for interactions.
 
-- [ ] Separate site load & interaction: split by gremlins injection in
-    VV8 log.
+- [ ] Separate site load & interaction
+    - [x] Make single gremlins injection split each VV8 log into a part w/o
+        interaction and a part w/ interaction: separate browser page for
+        each load.
+    - [ ] When aggregating record, split by gremlins injection in VV8 log.
 - [ ] Figure out frontend interaction/ DOM element generation API
     classification
 
