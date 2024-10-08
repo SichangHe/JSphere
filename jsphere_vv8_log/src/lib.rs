@@ -4,6 +4,7 @@
 //! for the specification of the log file format.
 
 use std::{
+    collections::HashMap,
     fs::{self, DirEntry, File},
     io::{self, BufRead, BufReader},
     path::Path,
