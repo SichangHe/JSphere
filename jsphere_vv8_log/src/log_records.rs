@@ -6,7 +6,7 @@ pub enum LogRecord {
     /// `~`: (Possibly) a new isolate context, a namespace for e.g. script IDs.
     IsolateContext {
         /// Isolate address that is unique per-process, e.g., `0x2a3800370000`.
-        address: u64,
+        address: i64,
     },
 
     /// `@`: (Possibly) a new `window.origin` value of
@@ -22,7 +22,7 @@ pub enum LogRecord {
         /// The new script's ID, e.g., 5.
         id: i32,
         /// Either the new script's name in URL form as [JSValue::String], or
-        /// the parent script's ID as [JSValue::Number] in case of `eval`.
+        /// the parent script's ID as [JSValue::Int] in case of `eval`.
         /// E.g., `"chrome\://headless/headless_command.js"` or `""`.
         name: JSValue,
         /// The full script source, with unprintable and
@@ -99,7 +99,7 @@ impl TryFrom<&str> for LogRecord {
                 if !address_str.starts_with("0x") {
                     return Err(LogRecordErr::InvalidIsolateAddress);
                 }
-                let address = u64::from_str_radix(&address_str[2..], 16)
+                let address = i64::from_str_radix(&address_str[2..], 16)
                     .map_err(|_| LogRecordErr::InvalidHexNumber)?;
                 Ok(LogRecord::IsolateContext { address })
             }

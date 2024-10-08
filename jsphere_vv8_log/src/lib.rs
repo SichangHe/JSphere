@@ -16,6 +16,7 @@ use rayon::prelude::*;
 pub use record_lines::SplitRecordLine;
 use shame::prelude::*;
 
+pub mod aggregating;
 pub mod js_values;
 pub mod log_files;
 pub mod log_records;

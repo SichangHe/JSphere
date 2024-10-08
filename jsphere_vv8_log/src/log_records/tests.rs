@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn log_record_parsing() {
     let expected = LogRecord::IsolateContext {
-        address: u64::from_str_radix("2a3800370000", 16).unwrap(),
+        address: i64::from_str_radix("2a3800370000", 16).unwrap(),
     };
     let actual = "~0x2a3800370000".try_into().unwrap();
     assert_eq!(expected, actual);
