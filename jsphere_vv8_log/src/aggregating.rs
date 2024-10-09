@@ -52,6 +52,9 @@ impl RecordAggregate {
                 None
             }
 
+            // Ignore unsure execution contexts.
+            LogRecord::ExecutionContext { script_id } if script_id == ID_UNSURE => None,
+
             LogRecord::ExecutionContext { script_id } => {
                 self.current_script_id = script_id;
                 let script = self.current_script()?;

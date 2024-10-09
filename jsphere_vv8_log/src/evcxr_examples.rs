@@ -67,4 +67,13 @@ fn main() {
             }
         }
     }
+
+    // Aggregate API calls.
+    let mut aggregate = RecordAggregate::default();
+    for entry in &logs[2].records {
+        let (line, record) = entry.clone();
+        if let Err(err) = aggregate.add(line, record) {
+            println!("{line}: {err}");
+        }
+    }
 }
