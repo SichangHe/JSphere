@@ -72,7 +72,7 @@ fn main() {
     let mut aggregate = RecordAggregate::default();
     for entry in &logs[2].records {
         let (line, record) = entry.clone();
-        if let Err(err) = aggregate.add(line, record) {
+        if let Err(err) = aggregate.add(line as u32, record) {
             println!("{line}: {err}");
         }
     }
@@ -89,6 +89,6 @@ fn main() {
     }
 
     for (api_call, lines) in &aggregate.scripts[&23].api_calls {
-        println!("{} times: {api_call:?}", lines.len());
+        println!("{} times: {api_call:?}", lines.lines.len());
     }
 }

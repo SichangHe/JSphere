@@ -2,6 +2,7 @@
 //! See
 //! <https://github.com/SichangHe/wspr-ncsu--visiblev8/blob/master/tests/README.md>
 //! for the specification of the log file format.
+#![allow(clippy::len_without_is_empty)]
 
 use std::{
     collections::HashMap,

@@ -9,7 +9,7 @@ pub struct RecordAggregate {
 }
 
 impl RecordAggregate {
-    pub fn add(&mut self, line: usize, record: LogRecord) -> Result<()> {
+    pub fn add(&mut self, line: u32, record: LogRecord) -> Result<()> {
         let maybe_get_set = match record {
             LogRecord::IsolateContext { address } => {
                 debug!(line, "Ignoring isolate context {address:#x}");
@@ -91,9 +91,8 @@ impl RecordAggregate {
                         api_type: ApiType::Function,
                         this,
                         attr: Some(method),
-                        may_be_interaction: self.interaction_injected,
                     };
-                    let api_calls = &mut self.current_script()?.api_calls;api_calls.entry(api_call).or_default().push(line);
+                    self.push_api_call(api_call, line)?;
                 }
                 None
             }
@@ -110,9 +109,8 @@ impl RecordAggregate {
                     api_type: ApiType::Construction,
                     this: method,
                     attr: None,
-                    may_be_interaction: self.interaction_injected,
                 };
-                    let api_calls = &mut self.current_script()?.api_calls;api_calls.entry(api_call).or_default().push(line);
+                    self.push_api_call(api_call, line)?;
                 None
             },
 
@@ -147,13 +145,25 @@ impl RecordAggregate {
                         api_type,
                         this,
                         attr,
-                        may_be_interaction: self.interaction_injected,
                     };
-                    let api_calls = &mut self.current_script()?.api_calls;
-                    api_calls.entry(api_call).or_default().push(line);
+                    self.push_api_call(api_call, line)?;
                 }
             }
         }
+        Ok(())
+    }
+
+    fn push_api_call(&mut self, api_call: ApiCall, line: u32) -> Result<()> {
+        let may_interact = self.interaction_injected;
+        let lines = &mut *self
+            .current_script()?
+            .api_calls
+            .entry(api_call)
+            .or_default();
+        if may_interact && lines.i_may_interact.is_none() {
+            lines.i_may_interact = Some(lines.lines.len() as u32);
+        }
+        lines.lines.push(line);
         Ok(())
     }
 
@@ -169,25 +179,48 @@ impl RecordAggregate {
 #[derive(Clone, Debug, Default)]
 pub struct ScriptAggregate {
     /// Line number in the log file where the script's context appears.
-    line: usize,
+    line: u32,
     /// Indicates where the script came from.
     name: ScriptName,
     /// JS source code.
     source: String,
     injection_type: ScriptInjectionType,
     /// API calls made, and the lines where they were made.
-    api_calls: HashMap<ApiCall, Vec<usize>>,
+    api_calls: HashMap<ApiCall, CallLines>,
 }
 
 /// A browser JS API call.
 ///
 /// Arguments are ignored.
+#[pub_fields]
 #[derive_everything]
 pub struct ApiCall {
     api_type: ApiType,
     this: String,
     attr: Option<String>,
-    may_be_interaction: bool,
+}
+
+/// Lines where API calls were made.
+#[pub_fields]
+#[derive_everything]
+pub struct CallLines {
+    lines: Vec<u32>,
+    /// The index in `lines`, starting from which there may be interactions.
+    i_may_interact: Option<u32>,
+}
+
+impl CallLines {
+    pub fn len(&self) -> u32 {
+        self.lines.len() as u32
+    }
+
+    pub fn n_may_interact(&self) -> u32 {
+        self.i_may_interact.unwrap_or(0)
+    }
+
+    pub fn n_must_not_interact(&self) -> u32 {
+        self.len() - self.n_may_interact()
+    }
 }
 
 /// The type of API call.
