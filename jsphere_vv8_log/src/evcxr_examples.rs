@@ -76,4 +76,19 @@ fn main() {
             println!("{line}: {err}");
         }
     }
+
+    for (id, script) in &aggregate.scripts {
+        println!(
+            "{id} line#{} source~{}kB used {} APIs {:?} {:?}",
+            script.line,
+            script.source.len() / 1024,
+            script.api_calls.len(),
+            script.injection_type,
+            script.name,
+        );
+    }
+
+    for (api_call, lines) in &aggregate.scripts[&23].api_calls {
+        println!("{} times: {api_call:?}", lines.len());
+    }
 }
