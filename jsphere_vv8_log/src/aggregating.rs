@@ -33,7 +33,7 @@ impl RecordAggregate {
                 };
                 // NOTE: Hardcoding interaction script check for now.
                 let is_interaction =
-                    is_injected && source[..source.len().min(50)].contains("Gremlins horde");
+                    is_injected && source[..source.len().min(100)].contains("Gremlins horde");
                 let injection_type = match (is_interaction, is_injected) {
                     (true, _) => ScriptInjectionType::Interaction,
                     (_, true) => ScriptInjectionType::Injected,
