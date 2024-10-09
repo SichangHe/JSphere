@@ -66,10 +66,11 @@ impl RecordAggregate {
                 None
             }
 
-            // Ignore user function calls.
+            // Ignore user function calls or function calls with
+            // a placeholder offset.
             LogRecord::FunctionCall {
                 is_user_fn: true, ..
-            } => None,
+            } | LogRecord::FunctionCall { offset: -1, .. } => None,
 
             LogRecord::FunctionCall {
                 method, receiver, .. // Ignore arguments, etc. for now.
