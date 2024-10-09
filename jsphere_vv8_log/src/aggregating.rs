@@ -89,7 +89,7 @@ impl RecordAggregate {
                         attr: Some(method),
                         may_be_interaction: self.interaction_injected,
                     };
-                    self.current_script()?.api_calls.push(api_call);
+                    let api_calls = &mut self.current_script()?.api_calls;api_calls.entry(api_call).or_default().push(line);
                 }
                 None
             }
@@ -108,7 +108,7 @@ impl RecordAggregate {
                     attr: None,
                     may_be_interaction: self.interaction_injected,
                 };
-                self.current_script()?.api_calls.push(api_call);
+                    let api_calls = &mut self.current_script()?.api_calls;api_calls.entry(api_call).or_default().push(line);
                 None
             },
 
@@ -145,7 +145,8 @@ impl RecordAggregate {
                         attr,
                         may_be_interaction: self.interaction_injected,
                     };
-                    self.current_script()?.api_calls.push(api_call);
+                    let api_calls = &mut self.current_script()?.api_calls;
+                    api_calls.entry(api_call).or_default().push(line);
                 }
             }
         }
@@ -161,13 +162,17 @@ impl RecordAggregate {
 
 /// A script that was executed and its aggregate information.
 #[pub_fields]
-#[derive_enum_everything]
+#[derive(Debug, Clone)]
 pub struct ScriptAggregate {
+    /// Line number in the log file where the script's context appears.
     line: usize,
+    /// Indicates where the script came from.
     name: ScriptName,
+    /// JS source code.
     source: String,
     injection_type: ScriptInjectionType,
-    api_calls: Vec<ApiCall>,
+    /// API calls made, and the lines where they were made.
+    api_calls: HashMap<ApiCall, Vec<usize>>,
 }
 
 /// A browser JS API call.
