@@ -6,7 +6,8 @@ use super::*;
 #[derive_float_enum_everything]
 pub enum JSValue {
     String(String),
-    Number(f64),
+    Int(i64),
+    Float(f64),
     RegEx(String),
     Boolean(bool),
     Null,
@@ -56,7 +57,9 @@ impl From<&str> for JSValue {
                     // "{Object}"
                     parse_js_object(value).unwrap_or(JSValue::ObjectUnknown(-1))
                 } else if let Ok(n) = value.parse() {
-                    JSValue::Number(n)
+                    JSValue::Int(n)
+                } else if let Ok(n) = value.parse() {
+                    JSValue::Float(n)
                 } else if let Some(stripped) = value.strip_prefix("%") {
                     JSValue::Function {
                         name: unescape_colon(stripped),
