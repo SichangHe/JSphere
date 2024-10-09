@@ -10,6 +10,9 @@ use std::{
     path::Path,
 };
 
+pub use aggregating::{
+    ApiCall, ApiType, RecordAggregate, ScriptAggregate, ScriptInjectionType, ScriptName,
+};
 pub use js_values::JSValue;
 pub use log_files::{read_logs, LogFile, LogFileInfo};
 pub use log_records::{LogRecord, LogRecordErr, ID_UNSURE};

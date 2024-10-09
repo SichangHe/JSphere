@@ -1,7 +1,7 @@
 use super::*;
 
 #[pub_fields]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct RecordAggregate {
     scripts: HashMap<i32, ScriptAggregate>,
     current_script_id: i32,
@@ -162,7 +162,7 @@ impl RecordAggregate {
 
 /// A script that was executed and its aggregate information.
 #[pub_fields]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct ScriptAggregate {
     /// Line number in the log file where the script's context appears.
     line: usize,
