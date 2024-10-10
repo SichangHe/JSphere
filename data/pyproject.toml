@@ -5,7 +5,12 @@ description = "Internal"
 authors = [
     { name = "Steven Hé (Sīchàng)", email = "stevensichanghe@gmail.com" },
 ]
-dependencies = ["pandas>=2.2.3", "requests>=2.32.3", "pyarrow>=17.0.0"]
+dependencies = [
+    "pandas>=2.2.3",
+    "requests>=2.32.3",
+    "pyarrow>=17.0.0",
+    "matplotlib>=3.9.2",
+]
 readme = "README.md"
 requires-python = ">= 3.11"
 

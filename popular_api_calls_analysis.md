@@ -39,6 +39,19 @@ min        1.000000         0.000000  1.000000e+00  0.000000e+00      0.000087  
 max     9957.000000      7181.000000  6.542023e+06  3.267748e+06    100.000000          100.000000        100.000000           100.000000       100.000000
 ```
 
+## Call distribution
+
+From the CCDF of number of calls per API, we can see that 0.1% of APIs (18)
+are called over 1,000,000 times, massively outnumbering other APIs.
+There is also a 2-4 time gap between total API calls and
+API calls after interaction began, signalling a large number of
+API calls before interaction (precisely,
+45,109,934 before vs 69,625,413 after).
+
+![api_calls_cdf](https://github.com/user-attachments/assets/53ccaead-292a-47c9-a878-6d613024de19)
+
+Note: this graph uses the `total` and `interact` columns.
+
 ## Top 20 API calls overall
 
 As a rough look, we sample the top 20 API calls based on various metrics.

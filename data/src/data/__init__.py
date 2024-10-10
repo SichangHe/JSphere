@@ -3,8 +3,15 @@ from concurrent import futures
 from dataclasses import dataclass
 from typing import Iterable
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+
+plt.rcParams["axes.xmargin"] = 0
+plt.rcParams["axes.ymargin"] = 0
+plt.rcParams["font.size"] = 24
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
 
 
 @dataclass
