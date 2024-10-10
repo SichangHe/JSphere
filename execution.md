@@ -59,11 +59,27 @@ Each of `$N/vv8-*.log` contains:
 - After gremlins injection:
     - All of the above, but may be for interactions.
 
-- [ ] Separate site load & interaction
+Observations when manually inspecting aggregated logs for YouTube:
+
+- Strong indicators: popular APIs like `addEventListener` and `appendChild`
+    strongly indicate specific spheres.
+- API pollution: getting and setting custom attributes on `window`, etc.
+    are recorded, but they are not browser APIs.
+    `Function`s generally seem more useful because we can and
+    do filter out user-defined ones.
+- Useless information: getting and setting from `window`, calling `Array`,
+    etc. generally means nothing.
+    API types (function, get, etc.) also seem useless once we consider `this`
+    and `attr`.
+- Difficult scripts: some scripts only call a few APIs, so
+    they are difficult to classify.
+
+- [x] Separate site load & interaction
     - [x] Make single gremlins injection split each VV8 log into a part w/o
         interaction and a part w/ interaction: separate browser page for
         each load.
-    - [ ] When aggregating record, split by gremlins injection in VV8 log.
+    - [x] When aggregating record, split by gremlins injection in VV8 log.
+- [ ] Find anchor APIs, the most popular APIs overall and per script.
 - [ ] Figure out frontend interaction/ DOM element generation API
     classification
 
