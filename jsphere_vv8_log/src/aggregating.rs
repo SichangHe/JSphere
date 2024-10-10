@@ -221,7 +221,8 @@ pub struct ApiCall {
 
 impl ApiCall {
     /// Whether the call is likely a browser API call, judging by its name.
-    /// Names are checked to be alphanumeric, optionally with dots and spaces.
+    /// Names are checked to be alphanumeric, optionally with dots and spaces,
+    /// with at most 3 consecutive numbers.
     /// `this` needs to be at least 3 characters long; `attr` needs to be at
     /// least 2 characters.
     pub fn likely_browser_api(&self) -> bool {
@@ -236,7 +237,7 @@ impl ApiCall {
 }
 
 fn match_browser_api_name(name: &str) -> bool {
-    regex_is_match!(r"^[A-Za-z0-9\. ]+$", name)
+    regex_is_match!(r"^([A-Za-z\. ]+[0-9]{0,3})+$", name)
 }
 
 /// Lines where API calls were made.

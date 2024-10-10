@@ -127,7 +127,8 @@ fn main() {
     // Scan over all logs and find popular API calls.
     #[derive(Copy, Clone, Debug, Default)]
     struct CallCounts {
-        count: u32,
+        appear_in: u32,
+        appear_in_may_interact: u32,
         total: u32,
         may_interact: u32,
         out_of_total: u32,
@@ -174,13 +175,14 @@ fn main() {
                                     let len = lines.len();
                                     let n_may_interact = lines.n_may_interact();
                                     let counts = api_calls.entry(api_call).or_default();
-                                    counts.count += 1;
+                                    counts.appear_in += 1;
                                     counts.total += len;
                                     counts.may_interact += n_may_interact;
                                     counts.out_of_total += total_calls;
                                     counts.out_of_may_interact += total_may_interact;
                                     counts.acc_per_total += (len as f64) / (total_calls as f64);
                                     if total_may_interact > 0 {
+                                        counts.appear_in_may_interact += 1;
                                         counts.acc_per_may_interact +=
                                             (n_may_interact as f64) / (total_may_interact as f64);
                                     }
@@ -194,7 +196,7 @@ fn main() {
     }
     {
         let mut file = BufWriter::new(File::create("data/api_calls.csv").unwrap());
-        file.write_all(b"api_type,this,attr,total,interact,%total/total,%interact/interact,avg%total/script,avg%interact/script\n")
+        file.write_all(b"api_type,this,attr,appear,appear_interact,total,interact,%total/total,%interact/interact,avg%total/script,avg%interact/script\n")
             .unwrap();
         for (
             ApiCall {
@@ -203,7 +205,8 @@ fn main() {
                 attr,
             },
             CallCounts {
-                count,
+                appear_in,
+                appear_in_may_interact,
                 total,
                 may_interact,
                 out_of_total,
@@ -215,12 +218,12 @@ fn main() {
         {
             writeln!(
                 file,
-                "{api_type:?},{this},{},{total},{may_interact},{},{},{},{}",
+                "{api_type:?},{this},{},{appear_in},{appear_in_may_interact},{total},{may_interact},{},{},{},{}",
                 attr.as_deref().unwrap_or(""),
                 (total as f64) * 100.0 / (out_of_total as f64),
                 (may_interact as f64) * 100.0 / (out_of_may_interact as f64),
-                acc_per_total * 100.0 / (count as f64),
-                acc_per_may_interact * 100.0 / (count as f64),
+                acc_per_total * 100.0 / (appear_in as f64),
+                acc_per_may_interact * 100.0 / (appear_in as f64),
             )
             .unwrap();
         }
