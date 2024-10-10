@@ -164,7 +164,9 @@ fn main() {
                         }
                     }
                     for script in aggregate.scripts.into_values() {
-                        if matches!(script.injection_type, ScriptInjectionType::Not) {
+                        if matches!(script.injection_type, ScriptInjectionType::Not)
+                            && script.source != "window.history.back()"
+                        {
                             if let Some((total_calls, total_may_interact)) = script
                                 .api_calls
                                 .values()
