@@ -83,9 +83,22 @@ impl RecordAggregate {
                             false => Some(name),
                         }
                     }
-                    JSValue::Lambda => None, // Ignore lambda calls.
-                    _ => bail!("{line}: Unexpected function call receiver: {receiver:?}"),
+                    // Ignore internal calls or calls of user-defined functions.
+                    JSValue::Lambda
+                    | JSValue::V8Specific
+                    | JSValue::ObjectUnknown(_)
+                    | JSValue::ObjectLiteral { .. }
+                    | JSValue::Unsure => None,
+                    // Record empty string for static functions.
+                    JSValue::String(_)
+                    | JSValue::Int(_)
+                    | JSValue::Float(_)
+                    | JSValue::RegEx(_)
+                    | JSValue::Boolean(_)
+                    | JSValue::Null
+                    | JSValue::Undefined => Some("".into()),
                 };
+
                 if let Some(this) = this {
                     let api_call = ApiCall {
                         api_type: ApiType::Function,
