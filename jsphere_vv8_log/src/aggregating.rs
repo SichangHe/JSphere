@@ -110,7 +110,7 @@ impl RecordAggregate {
                     this: method,
                     attr: None,
                 };
-                    self.push_api_call(api_call, line)?;
+                self.push_api_call(api_call, line)?;
                 None
             },
 

@@ -68,9 +68,16 @@ fn main() {
         }
     }
 
+    let i_log = logs
+        .iter()
+        .enumerate()
+        .max_by_key(|(_, LogFile { records, .. })| records.len())
+        .map(|(i, _)| i)
+        .unwrap();
+
     // Aggregate API calls.
     let mut aggregate = RecordAggregate::default();
-    for entry in &logs[2].records {
+    for entry in &logs[i_log].records {
         let (line, record) = entry.clone();
         if let Err(err) = aggregate.add(line as u32, record) {
             println!("{line}: {err}");
@@ -88,7 +95,16 @@ fn main() {
         );
     }
 
-    for (api_call, lines) in &aggregate.scripts[&23].api_calls {
-        println!("{} times: {api_call:?}", lines.lines.len());
+    for (id, script) in &aggregate.scripts {
+        for (api_call, lines) in &aggregate.scripts[&14].api_calls {
+            let n_may_interact = lines.n_may_interact();
+            if n_may_interact > 0 {
+                println!(
+                    "{id}: {}/{} times: {api_call:?}",
+                    n_may_interact,
+                    lines.len()
+                );
+            }
+        }
     }
 }
