@@ -5,5 +5,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
+lazy-regex.workspace = true
 rayon.workspace = true
 shame.workspace = true

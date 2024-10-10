@@ -15,6 +15,7 @@ pub use aggregating::{
     ApiCall, ApiType, RecordAggregate, ScriptAggregate, ScriptInjectionType, ScriptName,
 };
 pub use js_values::JSValue;
+use lazy_regex::regex_is_match;
 pub use log_files::{read_logs, LogFile, LogFileInfo};
 pub use log_records::{LogRecord, LogRecordErr, ID_UNSURE};
 use rayon::prelude::*;

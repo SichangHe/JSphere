@@ -89,14 +89,18 @@ impl RecordAggregate {
                     | JSValue::ObjectUnknown(_)
                     | JSValue::ObjectLiteral { .. }
                     | JSValue::Unsure => None,
-                    // Record empty string for static functions.
+
                     JSValue::String(_)
                     | JSValue::Int(_)
                     | JSValue::Float(_)
                     | JSValue::RegEx(_)
                     | JSValue::Boolean(_)
                     | JSValue::Null
-                    | JSValue::Undefined => Some("".into()),
+                    | JSValue::Undefined => if method != "Function" {
+                        Some("".into()) // Record empty string for static functions.
+                    } else {
+                        None // Ignore placeholder calls on `Function`.
+                    }
                 };
 
                 if let Some(this) = this {
@@ -167,16 +171,18 @@ impl RecordAggregate {
     }
 
     fn push_api_call(&mut self, api_call: ApiCall, line: u32) -> Result<()> {
-        let may_interact = self.interaction_injected;
-        let lines = &mut *self
-            .current_script()?
-            .api_calls
-            .entry(api_call)
-            .or_default();
-        if may_interact && lines.i_may_interact.is_none() {
-            lines.i_may_interact = Some(lines.lines.len() as u32);
+        if api_call.likely_browser_api() {
+            let may_interact = self.interaction_injected;
+            let lines = self
+                .current_script()?
+                .api_calls
+                .entry(api_call)
+                .or_default();
+            if may_interact && lines.i_may_interact.is_none() {
+                lines.i_may_interact = Some(lines.lines.len() as u32);
+            }
+            lines.lines.push(line);
         }
-        lines.lines.push(line);
         Ok(())
     }
 
@@ -213,6 +219,26 @@ pub struct ApiCall {
     attr: Option<String>,
 }
 
+impl ApiCall {
+    /// Whether the call is likely a browser API call, judging by its name.
+    /// Names are checked to be alphanumeric, optionally with dots and spaces.
+    /// `this` needs to be at least 3 characters long; `attr` needs to be at
+    /// least 2 characters.
+    pub fn likely_browser_api(&self) -> bool {
+        let Self { this, attr, .. } = self;
+        this.len() >= 3
+            && match_browser_api_name(this)
+            && match attr {
+                Some(attr) => attr.len() >= 2 && match_browser_api_name(attr),
+                None => true,
+            }
+    }
+}
+
+fn match_browser_api_name(name: &str) -> bool {
+    regex_is_match!(r"^[A-Za-z0-9\. ]+$", name)
+}
+
 /// Lines where API calls were made.
 #[pub_fields]
 #[derive_everything]
@@ -228,11 +254,11 @@ impl CallLines {
     }
 
     pub fn n_may_interact(&self) -> u32 {
-        self.i_may_interact.unwrap_or(0)
+        self.len() - self.n_must_not_interact()
     }
 
     pub fn n_must_not_interact(&self) -> u32 {
-        self.len() - self.n_may_interact()
+        self.i_may_interact.unwrap_or(self.len())
     }
 }
 

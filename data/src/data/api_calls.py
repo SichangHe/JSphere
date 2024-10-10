@@ -31,3 +31,14 @@ df[df["api_type"] == "Set"].nlargest(20, "%total/total")  # type: ignore[reportA
 df[df["api_type"] == "Set"].nlargest(20, "%interact/interact")  # type: ignore[reportArgumentType]
 df[df["api_type"] == "Set"].nlargest(20, "avg%total/script")  # type: ignore[reportArgumentType]
 df[df["api_type"] == "Set"].nlargest(20, "avg%interact/script")  # type: ignore[reportArgumentType]
+
+df_raw = df
+_ = df_raw
+df = df.dropna()
+this_pattern = r"^[A-Za-z0-9\. ]{3,}$"
+attr_pattern = r"^[A-Za-z0-9\. ]{2,}$"
+filtered_df = df[
+    ~df["this"].str.match(this_pattern) | ~df["attr"].str.match(attr_pattern)
+][["api_type", "this", "attr"]]
+filtered_df = filtered_df.sort_values(by=["api_type", "this", "attr"])  # type: ignore[reportAttributeAccessIssue]
+filtered_df.to_csv("likely_non_browser_api.csv", index=False)
