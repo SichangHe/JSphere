@@ -48,6 +48,29 @@
 
 ## Analyze API call traces
 
+- [x] Separate site load & interaction
+    - [x] Make single gremlins injection split each VV8 log into a part w/o
+        interaction and a part w/ interaction: separate browser page for
+        each load.
+    - [x] When aggregating record, split by gremlins injection in VV8 log.
+- [ ] Find anchor APIs, the most popular APIs overall and per script.
+    - Filter out most internal, user-defined, and injected calls.
+    - Analysis of API popularity in `popular_api_calls_analysis.md`.
+        - Tail-heavy distribution.
+        - Many calls before interaction begin.
+        - DOM & event APIs dominate absolute counts.
+        - Popularity per script is useless.
+        - APIs called out in the proposal are somewhat popular.
+- [ ] Figure out frontend interaction/ DOM element generation API
+    classification
+    - `HTMLDocument.createElement`
+        before interaction is clearly **DOM element generation**.
+    - Various `addEventListener` calls are **frontend processing**.
+    - [ ] We only somewhat know what sphere a script belongs to, but
+        how do we know it does not belong to another sphere?
+
+### Log file interpretation
+
 VV8 creates a log file per thread, roughly equivalent to
 a browser page we create plus some junk background workers.
 Each of `$N/vv8-*.log` contains:
@@ -59,33 +82,31 @@ Each of `$N/vv8-*.log` contains:
 - After gremlins injection:
     - All of the above, but may be for interactions.
 
-Observations when manually inspecting aggregated logs for YouTube:
+### Observations when manually inspecting aggregated logs for YouTube
+
+Details in `youtube_scripts_api_calls_overview.md`.
 
 - Strong indicators: popular APIs like `addEventListener` and `appendChild`
     strongly indicate specific spheres.
-- API pollution: getting and setting custom attributes on `window`, etc.
-    are recorded, but they are not browser APIs.
+- API pollution: ~~getting and setting custom attributes on `window`, etc.
+    are recorded, but they are not browser APIs.~~
     `Function`s generally seem more useful because we can and
     do filter out user-defined ones.
-- Useless information: getting and setting from `window`, calling `Array`,
+    - Largely dealt with by filtering by API names (alphanumeric or space,
+        at least 3 characters for `this`, 2 characters for `attr`,
+        at most 3 consecutive number).
+- Useless information: ~~getting and setting from `window`, calling `Array`,
     etc. generally means nothing.
     API types (function, get, etc.) also seem useless once we consider `this`
-    and `attr`.
+    and `attr`.~~
+    - Just track anchor APIs and pick Function over Get for anchor APIs.
 - Difficult scripts: some scripts only call a few APIs, so
     they are difficult to classify.
-
-- [x] Separate site load & interaction
-    - [x] Make single gremlins injection split each VV8 log into a part w/o
-        interaction and a part w/ interaction: separate browser page for
-        each load.
-    - [x] When aggregating record, split by gremlins injection in VV8 log.
-- [ ] Find anchor APIs, the most popular APIs overall and per script.
-- [ ] Figure out frontend interaction/ DOM element generation API
-    classification
 
 Deferred:
 
 - Would like
+    - [ ] Clean up the APIs better.
     - [ ] Separate out the 5 trials.
     - [ ] Save space: compress logs.
     - [ ] Proper logging.
