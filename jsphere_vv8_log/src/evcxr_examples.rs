@@ -10,7 +10,11 @@ use crate as jsphere_vv8_log;
 // */
 use jsphere_vv8_log::*;
 use shame::prelude::*;
-use std::time::Instant;
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    time::Instant,
+};
 
 fn main() {
     init_tracing();
@@ -95,16 +99,25 @@ fn main() {
         );
     }
 
-    for (id, script) in &aggregate.scripts {
-        for (api_call, lines) in &aggregate.scripts[&14].api_calls {
-            let n_may_interact = lines.n_may_interact();
-            if n_may_interact > 0 {
-                println!(
-                    "{id}: {}/{} times: {api_call:?}",
-                    n_may_interact,
-                    lines.len()
-                );
+    {
+        let mut file = BufWriter::new(File::create("data/youtube_script_api_calls.csv").unwrap());
+        file.write_all(b"script_id,api_type,this,attr,total,interact\n")
+            .unwrap();
+        for (id, script) in &aggregate.scripts {
+            for (api_call, lines) in &script.api_calls {
+                writeln!(
+                    file,
+                    "{},{:?},{},{},{},{}",
+                    id,
+                    api_call.api_type,
+                    api_call.this,
+                    api_call.attr.as_deref().unwrap_or(""),
+                    lines.lines.len(),
+                    lines.n_may_interact(),
+                )
+                .unwrap();
             }
         }
+        file.flush().unwrap();
     }
 }
