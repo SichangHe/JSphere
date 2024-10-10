@@ -506,7 +506,7 @@ Out[22]:
 18119  Function                Window  addEventListener    7166             5668   56988     12036      0.087308            0.031169          1.998809             0.587056        21.120236
 ```
 
-`HTMLDocument.createElement` indicates either **frontend processing** or
+`HTMLDocument.createElement` indicates either **UX enhancement** or
 **DOM element generation**.
 Since only 43% are called after interaction started, more than half of
 them are clearly **DOM element generation**.

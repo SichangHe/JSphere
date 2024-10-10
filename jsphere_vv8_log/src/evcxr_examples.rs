@@ -90,7 +90,10 @@ fn main() {
     }
 
     // Overview of aggregate API calls.
-    for (id, script) in &aggregate.scripts {
+    let mut ids = aggregate.scripts.keys().copied().collect::<Vec<_>>();
+    ids.sort_unstable();
+    for id in &ids {
+        let script = &aggregate.scripts[id];
         println!(
             "{id} line#{} source~{}kB used {} APIs {:?} {:?}",
             script.line,

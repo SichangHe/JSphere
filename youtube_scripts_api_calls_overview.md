@@ -20,7 +20,10 @@ for entry in &logs[i_log].records {
     }
 }
 
-for (id, script) in &aggregate.scripts {
+let mut ids = aggregate.scripts.keys().copied().collect::<Vec<_>>();
+ids.sort_unstable();
+for id in &ids {
+    let script = &aggregate.scripts[id];
     println!(
         "{id} line#{} source~{}kB used {} APIs {:?} {:?}",
         script.line,
@@ -31,53 +34,53 @@ for (id, script) in &aggregate.scripts {
     );
 }
 
-12 line#831 source~37kB used 46 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/spf.vflset/spf.js")
-21 line#482 source~77kB used 459 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/webcomponents-sd.vflset/webcomponents-sd.js")
+6 line#348 source~0kB used 0 APIs Not Url("https://www.youtube.com/")
 7 line#351 source~0kB used 2 APIs Not Url("https://www.youtube.com/")
-17 line#782 source~5kB used 7 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/www-i18n-constants-en_US.vflset/www-i18n-constants.js")
-25 line#947 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-34 line#1066 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-43 line#89498 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-50 line#92474 source~11kB used 5 APIs Injected Empty
-24 line#705 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-6 line#348 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-11 line#374 source~2kB used 15 APIs Not Url("https://www.youtube.com/")
-15 line#413 source~50kB used 37 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/web-animations-next-lite.min.vflset/web-animations-next-lite.min.js")
-22 line#595 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-19 line#717 source~9kB used 29 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/scheduler.vflset/scheduler.js")
+8 line#355 source~3kB used 6 APIs Not Url("https://www.youtube.com/")
 9 line#363 source~0kB used 5 APIs Not Url("https://www.youtube.com/")
+10 line#372 source~0kB used 0 APIs Not Url("https://www.youtube.com/")
+11 line#374 source~2kB used 14 APIs Not Url("https://www.youtube.com/")
+12 line#831 source~37kB used 44 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/spf.vflset/spf.js")
+13 line#951 source~14kB used 19 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/network.vflset/network.js")
+14 line#1112 source~8466kB used 1147 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/desktop_polymer.vflset/desktop_polymer.js")
+15 line#413 source~50kB used 37 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/web-animations-next-lite.min.vflset/web-animations-next-lite.min.js")
+16 line#591 source~5kB used 1 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/intersection-observer.min.vflset/intersection-observer.min.js")
+17 line#782 source~5kB used 1 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/www-i18n-constants-en_US.vflset/www-i18n-constants.js")
+18 line#796 source~11kB used 17 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/www-tampering.vflset/www-tampering.js")
+19 line#717 source~9kB used 28 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/scheduler.vflset/scheduler.js")
 20 line#467 source~2kB used 8 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/custom-elements-es5-adapter.vflset/custom-elements-es5-adapter.js")
-13 line#951 source~14kB used 21 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/network.vflset/network.js")
+21 line#482 source~77kB used 168 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/webcomponents-sd.vflset/webcomponents-sd.js")
+22 line#595 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+23 line#607 source~445kB used 6 APIs Not Url("https://www.youtube.com/")
+24 line#705 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+25 line#947 source~0kB used 0 APIs Not Url("https://www.youtube.com/")
+26 line#986 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
 27 line#998 source~0kB used 3 APIs Not Url("https://www.youtube.com/")
+28 line#1009 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+30 line#1021 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
 31 line#1036 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
 32 line#1048 source~0kB used 2 APIs Not Url("https://www.youtube.com/")
 33 line#1054 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-36 line#1090 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-14 line#1112 source~8466kB used 2362 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/desktop_polymer.vflset/desktop_polymer.js")
-61 line#95117 source~227kB used 135 APIs Injected Eval { parent_script_id: 50 }
-65 line#260337 source~277kB used 214 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/www-searchbox.vflset/www-searchbox.js")
-47 line#89775 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-46 line#89728 source~0kB used 14 APIs Not Url("https://www.youtube.com/")
-58 line#94996 source~0kB used 4 APIs Injected Eval { parent_script_id: 50 }
-64 line#95189 source~0kB used 1 APIs Interaction Eval { parent_script_id: 50 }
-56 line#94977 source~0kB used 4 APIs Injected Eval { parent_script_id: 50 }
-8 line#355 source~3kB used 6 APIs Not Url("https://www.youtube.com/")
-41 line#89054 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-28 line#1009 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-42 line#89187 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-10 line#372 source~0kB used 0 APIs Not Url("https://www.youtube.com/")
-55 line#94972 source~0kB used 0 APIs Injected Empty
-45 line#89653 source~0kB used 4 APIs Not Url("https://www.youtube.com/")
-49 line#89863 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-44 line#89581 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-16 line#591 source~5kB used 1 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/intersection-observer.min.vflset/intersection-observer.min.js")
-48 line#89858 source~0kB used 0 APIs Not Url("https://www.youtube.com/")
-23 line#607 source~445kB used 6 APIs Not Url("https://www.youtube.com/")
-26 line#986 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
-18 line#796 source~11kB used 18 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/www-tampering.vflset/www-tampering.js")
-30 line#1021 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+34 line#1066 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
 35 line#1078 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+36 line#1090 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
 37 line#1101 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+41 line#89054 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+42 line#89187 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+43 line#89498 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+44 line#89581 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+45 line#89653 source~0kB used 4 APIs Not Url("https://www.youtube.com/")
+46 line#89728 source~0kB used 14 APIs Not Url("https://www.youtube.com/")
+47 line#89775 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+48 line#89858 source~0kB used 0 APIs Not Url("https://www.youtube.com/")
+49 line#89863 source~0kB used 1 APIs Not Url("https://www.youtube.com/")
+50 line#92474 source~11kB used 5 APIs Injected Empty
+55 line#94972 source~0kB used 0 APIs Injected Empty
+56 line#94977 source~0kB used 4 APIs Injected Eval { parent_script_id: 50 }
+58 line#94996 source~0kB used 4 APIs Injected Eval { parent_script_id: 50 }
+61 line#95117 source~227kB used 126 APIs Injected Eval { parent_script_id: 50 }
+64 line#95189 source~0kB used 0 APIs Interaction Eval { parent_script_id: 50 }
+65 line#260337 source~277kB used 202 APIs Not Url("https://www.youtube.com/s/desktop/72b8c307/jsbin/www-searchbox.vflset/www-searchbox.js")
 ```
 
 ## Selected scripts inspection
@@ -97,24 +100,23 @@ for (api_call, lines) in &aggregate.scripts[&18].api_calls {
     );
 }
 
-0/7 times: ApiCall { api_type: Get, this: "Window", attr: Some("navigator") }
+0/2 times: ApiCall { api_type: Get, this: "Window", attr: Some("Symbol") }
+0/4 times: ApiCall { api_type: Get, this: "Window", attr: Some("yt") }
+0/1 times: ApiCall { api_type: Get, this: "Navigator", attr: Some("userAgentData") }
 0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Object") }
 0/6 times: ApiCall { api_type: Get, this: "Navigator", attr: Some("userAgent") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("WeakMap") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Math") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Set") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Array") }
 0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("execScript") }
-0/1 times: ApiCall { api_type: Function, this: "Navigator", attr: Some("get userAgentData") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("window") }
-0/4 times: ApiCall { api_type: Get, this: "Window", attr: Some("yt") }
-0/2 times: ApiCall { api_type: Get, this: "Window", attr: Some("Symbol") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("CLOSURE_FLAGS") }
-0/1 times: ApiCall { api_type: Get, this: "Navigator", attr: Some("userAgentData") }
 0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("String") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("window") }
+0/7 times: ApiCall { api_type: Get, this: "Window", attr: Some("navigator") }
+0/1 times: ApiCall { api_type: Function, this: "Navigator", attr: Some("get userAgentData") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("WeakMap") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Array") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Set") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Math") }
 0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("ytbin") }
-0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Map") }
 0/1 times: ApiCall { api_type: Set, this: "Window", attr: Some("ytbin") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Map") }
 ```
 
 ---
@@ -128,7 +130,7 @@ These are mainly event-related APIs for **frontend processing** and APIs for
 
 ```rust
 for (api_call, lines) in &aggregate.scripts[&14].api_calls {
-    if lines.len() > 2000 {
+    if lines.len() > 1000 {
         println!(
             "{}/{} times: {api_call:?}",
             lines.n_may_interact(),
@@ -137,26 +139,29 @@ for (api_call, lines) in &aggregate.scripts[&14].api_calls {
     }
 }
 
-2/2480 times: ApiCall { api_type: Get, this: "Event", attr: Some("target") }
-146/6449 times: ApiCall { api_type: Get, this: "DocumentFragment", attr: Some("children") }
-662/22409 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("usePatchedLifecycles") }
-3025/3031 times: ApiCall { api_type: Get, this: "c", attr: Some("polymerController") }
-26/21780 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("isConnected") }
+21747/22409 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("usePatchedLifecycles") }
+21740/21792 times: ApiCall { api_type: Function, this: "HTMLDivElement", attr: Some("querySelectorAll") }
+10185/10187 times: ApiCall { api_type: Function, this: "DocumentFragment", attr: Some("appendChild") }
+2433/2434 times: ApiCall { api_type: Get, this: "Event", attr: Some("type") }
+43621/45032 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("tagName") }
+7139/7143 times: ApiCall { api_type: Function, this: "HTMLBodyElement", attr: Some("appendChild") }
+10185/10226 times: ApiCall { api_type: Get, this: "DocumentFragment", attr: Some("isConnected") }
+21754/21780 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("isConnected") }
+6303/6449 times: ApiCall { api_type: Get, this: "DocumentFragment", attr: Some("children") }
+3786/3803 times: ApiCall { api_type: Function, this: "DocumentFragment", attr: Some("get children") }
+2478/2480 times: ApiCall { api_type: Get, this: "Event", attr: Some("pageY") }
+7139/7143 times: ApiCall { api_type: Get, this: "HTMLBodyElement", attr: Some("isConnected") }
 0/8817 times: ApiCall { api_type: Get, this: "Window", attr: Some("Reflect") }
-2/2480 times: ApiCall { api_type: Get, this: "Event", attr: Some("pageX") }
-1/2434 times: ApiCall { api_type: Get, this: "Event", attr: Some("type") }
-0/10717 times: ApiCall { api_type: Function, this: "HTMLBodyElement", attr: Some("removeChild") }
-41/10226 times: ApiCall { api_type: Get, this: "DocumentFragment", attr: Some("isConnected") }
-2/2480 times: ApiCall { api_type: Get, this: "Event", attr: Some("pageY") }
-52/21792 times: ApiCall { api_type: Function, this: "HTMLDivElement", attr: Some("querySelectorAll") }
-17/3803 times: ApiCall { api_type: Function, this: "DocumentFragment", attr: Some("get children") }
-1/2065 times: ApiCall { api_type: Get, this: "Event", attr: Some("keyCode") }
-4/7143 times: ApiCall { api_type: Function, this: "HTMLBodyElement", attr: Some("appendChild") }
-2859/2863 times: ApiCall { api_type: Get, this: "c", attr: Some("loggingStatus") }
-1411/45032 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("tagName") }
-2/10187 times: ApiCall { api_type: Function, this: "DocumentFragment", attr: Some("appendChild") }
-4/7143 times: ApiCall { api_type: Get, this: "HTMLBodyElement", attr: Some("isConnected") }
+2478/2480 times: ApiCall { api_type: Get, this: "Event", attr: Some("target") }
+2478/2480 times: ApiCall { api_type: Get, this: "Event", attr: Some("pageX") }
+2064/2065 times: ApiCall { api_type: Get, this: "Event", attr: Some("keyCode") }
+10717/10717 times: ApiCall { api_type: Function, this: "HTMLBodyElement", attr: Some("removeChild") }
 ```
+
+Interestingly, most of these calls are done after interaction began,
+probably during YouTube's navigation-less page switching.
+I.e., YouTube does not load a new page when you click a link, but
+instead swaps out the content of the current page and changes the URL.
 
 ---
 
