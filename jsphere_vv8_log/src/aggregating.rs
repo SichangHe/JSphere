@@ -16,7 +16,10 @@ impl RecordAggregate {
                 None
             }
 
-            LogRecord::WindowOrigin { value } => {debug!(line, ?value, "Ignoring window.origin"); None},
+            LogRecord::WindowOrigin { value } => {
+                debug!(line, ?value, "Ignoring window.origin");
+                None
+            }
 
             LogRecord::ScriptProvenance { id, name, source } => {
                 let name = name.try_into()?;
@@ -44,7 +47,7 @@ impl RecordAggregate {
                     name,
                     source,
                     injection_type,
-                    api_calls: Default::default(),
+                    ..Default::default()
                 };
                 if let Some(prev_script) = self.scripts.insert(id, script) {
                     bail!("Overwrote script {id}: {prev_script:?}");
@@ -70,10 +73,20 @@ impl RecordAggregate {
             // a placeholder offset.
             LogRecord::FunctionCall {
                 is_user_fn: true, ..
-            } | LogRecord::FunctionCall { offset: -1, .. } => None,
+            }
+            | LogRecord::FunctionCall { offset: -1, .. }
+            | LogRecord::ConstructionCall {
+                is_user_fn: true, ..
+            } => {
+                self.current_script()?.n_filtered_call += 1;
+                None
+            }
 
             LogRecord::FunctionCall {
-                method, receiver, .. // Ignore arguments, etc. for now.
+                // Ignore arguments, etc. for now.
+                method,
+                receiver,
+                ..
             } => {
                 let this = match receiver {
                     JSValue::Object { constructor, .. } => Some(constructor),
@@ -83,12 +96,12 @@ impl RecordAggregate {
                             false => Some(name),
                         }
                     }
-                    // Ignore internal calls or calls of user-defined functions.
+
                     JSValue::Lambda
                     | JSValue::V8Specific
                     | JSValue::ObjectUnknown(_)
                     | JSValue::ObjectLiteral { .. }
-                    | JSValue::Unsure => None,
+                    | JSValue::Unsure => None, // Ignore internal calls or calls of user-defined functions.
 
                     JSValue::String(_)
                     | JSValue::Int(_)
@@ -96,10 +109,12 @@ impl RecordAggregate {
                     | JSValue::RegEx(_)
                     | JSValue::Boolean(_)
                     | JSValue::Null
-                    | JSValue::Undefined => if method != "Function" {
-                        Some("".into()) // Record empty string for static functions.
-                    } else {
-                        None // Ignore placeholder calls on `Function`.
+                    | JSValue::Undefined => {
+                        if method != "Function" {
+                            Some("".into()) // Record empty string for static functions.
+                        } else {
+                            None // Ignore placeholder calls on `Function`.
+                        }
                     }
                 };
 
@@ -110,17 +125,16 @@ impl RecordAggregate {
                         attr: Some(method),
                     };
                     self.push_api_call(api_call, line)?;
+                } else {
+                    self.current_script()?.n_filtered_call += 1;
                 }
                 None
             }
 
-            // Ignore user construction calls.
             LogRecord::ConstructionCall {
-                is_user_fn: true, ..
-            } => None,
-
-            LogRecord::ConstructionCall {
-                method,.. // Ignore arguments, etc. for now.
+                // Ignore arguments, etc. for now.
+                method,
+                ..
             } => {
                 let api_call = ApiCall {
                     api_type: ApiType::Construction,
@@ -129,18 +143,14 @@ impl RecordAggregate {
                 };
                 self.push_api_call(api_call, line)?;
                 None
-            },
+            }
 
             LogRecord::GetProperty {
-                object,
-                property,
-                ..
+                object, property, ..
             } => Some((ApiType::Get, object, property)),
 
-            | LogRecord::SetProperty {
-                object,
-                property,
-                ..
+            LogRecord::SetProperty {
+                object, property, ..
             } => Some((ApiType::Set, object, property)),
         };
 
@@ -151,7 +161,7 @@ impl RecordAggregate {
                 JSValue::ObjectLiteral { .. } => None, // Ignore object literals.
                 _ => bail!("{line}: Unexpected get/set on object: {object:?}"),
             };
-            if let Some(this) = this {
+            let maybe_this_attr = if let Some(this) = this {
                 let attr = match property {
                     JSValue::String(attr) => Some(attr),
                     // Ignore getting/setting user-defined or internal values.
@@ -161,31 +171,35 @@ impl RecordAggregate {
                     | JSValue::Unsure => None,
                     _ => bail!("{line}: Unexpected get/set property: {property:?}"),
                 };
-                if attr.is_some() {
-                    let api_call = ApiCall {
-                        api_type,
-                        this,
-                        attr,
-                    };
-                    self.push_api_call(api_call, line)?;
-                }
+                attr.map(|attr| (this, attr))
+            } else {
+                None
+            };
+            if let Some((this, attr)) = maybe_this_attr {
+                let api_call = ApiCall {
+                    api_type,
+                    this,
+                    attr: Some(attr),
+                };
+                self.push_api_call(api_call, line)?;
+            } else {
+                self.current_script()?.n_filtered_call += 1
             }
         }
         Ok(())
     }
 
     fn push_api_call(&mut self, api_call: ApiCall, line: u32) -> Result<()> {
+        let may_interact = self.interaction_injected;
+        let current_script = self.current_script()?;
         if api_call.likely_browser_api() {
-            let may_interact = self.interaction_injected;
-            let lines = self
-                .current_script()?
-                .api_calls
-                .entry(api_call)
-                .or_default();
+            let lines = current_script.api_calls.entry(api_call).or_default();
             if may_interact && lines.i_may_interact.is_none() {
                 lines.i_may_interact = Some(lines.lines.len() as u32);
             }
             lines.lines.push(line);
+        } else {
+            current_script.n_filtered_call += 1;
         }
         Ok(())
     }
@@ -210,6 +224,8 @@ pub struct ScriptAggregate {
     injection_type: ScriptInjectionType,
     /// API calls made, and the lines where they were made.
     api_calls: HashMap<ApiCall, CallLines>,
+    /// API calls that are filtered out.
+    n_filtered_call: u32,
 }
 
 /// A browser JS API call.

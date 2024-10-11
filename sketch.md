@@ -60,6 +60,7 @@ Why do websites need JS in the first place?
     - Style application
 - UX enhancements (maybe replaceable by CSS)
     - Animations and effects
+    - Font loading
 - Extensional features (bloated and hard to replace)
     - Authentication and authorization (or SSO)
     - Third-party integrations

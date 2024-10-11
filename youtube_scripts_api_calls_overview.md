@@ -186,3 +186,64 @@ for (api_call, lines) in &aggregate.scripts[&23].api_calls {
 0/2 times: ApiCall { api_type: Get, this: "Window", attr: Some("ytcfg") }
 0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("yt") }
 ```
+
+---
+
+`https://www.youtube.com/s/desktop/72b8c307/jsbin/network.vflset/network.js`
+only calls a few APIs, but hits the ones we are interested in for
+**frontend processing**, **DOM element generation**, and
+**extensional features**.
+It seems to contain a portion of [the structured page fragments (SPF)
+library](https://youtube.github.io/spfjs/) used for
+dynamic content fetching and rendering.
+
+```rust
+for (api_call, lines) in &aggregate.scripts[&13].api_calls {
+    println!(
+        "{}/{} times: {api_call:?}",
+        lines.n_may_interact(),
+        lines.len()
+    );
+}
+
+0/2 times: ApiCall { api_type: Function, this: "Window", attr: Some("addEventListener") }
+0/2 times: ApiCall { api_type: Get, this: "Window", attr: Some("Symbol") }
+0/1 times: ApiCall { api_type: Function, this: "Window", attr: Some("postMessage") }
+0/4 times: ApiCall { api_type: Get, this: "Window", attr: Some("removeEventListener") }
+0/2 times: ApiCall { api_type: Get, this: "Window", attr: Some("spf") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Array") }
+0/2 times: ApiCall { api_type: Get, this: "Window", attr: Some("postMessage") }
+0/1 times: ApiCall { api_type: Get, this: "HTMLDivElement", attr: Some("style") }
+0/1 times: ApiCall { api_type: Get, this: "HTMLDocument", attr: Some("createElement") }
+0/2 times: ApiCall { api_type: Function, this: "Window", attr: Some("removeEventListener") }
+0/1 times: ApiCall { api_type: Function, this: "HTMLDocument", attr: Some("createElement") }
+0/4 times: ApiCall { api_type: Get, this: "Window", attr: Some("addEventListener") }
+0/1 times: ApiCall { api_type: Get, this: "Performance", attr: Some("timing") }
+0/1 times: ApiCall { api_type: Function, this: "Performance", attr: Some("get timing") }
+0/1 times: ApiCall { api_type: Get, this: "Window", attr: Some("Math") }
+0/1 times: ApiCall { api_type: Set, this: "Window", attr: Some("spf") }
+0/2 times: ApiCall { api_type: Get, this: "MessageEvent", attr: Some("data") }
+0/1 times: ApiCall { api_type: Get, this: "Performance", attr: Some("now") }
+0/3 times: ApiCall { api_type: Get, this: "Window", attr: Some("performance") }
+```
+
+---
+
+Script with ID `27` on line `#998` only loads fonts (**UX enhancements**).
+
+```rust
+for (api_call, lines) in &aggregate.scripts[&27].api_calls {
+    println!(
+        "{}/{} times: {api_call:?}",
+        lines.n_may_interact(),
+        lines.len()
+    );
+}
+
+0/2 times: ApiCall { api_type: Function, this: "FontFaceSet", attr: Some("load") }
+0/3 times: ApiCall { api_type: Get, this: "FontFaceSet", attr: Some("load") }
+0/4 times: ApiCall { api_type: Get, this: "HTMLDocument", attr: Some("fonts") }
+
+println!("{}", &aggregate.scripts[&27].source);
+if (document.fonts && document.fonts.load) {document.fonts.load("400 10pt Roboto", ""); document.fonts.load("500 10pt Roboto", "");}
+```

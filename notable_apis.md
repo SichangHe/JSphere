@@ -160,9 +160,9 @@ Out of 400 most popular APIs:
     `CSSStyleDeclaration.setProperty`
     before interaction begins indicate **DOM element generation**.
 - Function `removeAttribute`, `matchMedia`, `removeChild`,
-    `requestAnimationFrame`, `cancelAnimationFrame` and Set `hidden`,
-    `disabled` indicate **UX enhancement**.
-- `Performance` and `PerformanceTiming` are **extensional features**.
+    `requestAnimationFrame`, `cancelAnimationFrame`, `FontFaceSet.load` and
+    Set `hidden`, `disabled` indicate **UX enhancement**.
+- `Performance`, `PerformanceTiming` are **extensional features**.
 
 Intermediate conclusions:
 

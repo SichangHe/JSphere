@@ -127,6 +127,8 @@ fn main() {
         file.flush().unwrap();
     }
 
+    println!("{}", &aggregate.scripts[&27].source);
+
     fn for_each_log(mut callback: impl FnMut(LogFile)) {
         for dir_entry_result in fs::read_dir("headless_browser/target/").unwrap() {
             let dir_entry = dir_entry_result.unwrap();
