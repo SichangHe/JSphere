@@ -153,10 +153,24 @@ Out of 400 most popular APIs:
 10978      Function             HTMLDivElement          removeAttribute     960              905    42597     28256      0.141140            0.149708          0.946574             0.483958        66.333310
 ```
 
-- Get `.*Event`, `Location` `HTMLInputElement.value` and Function `addEventListener` indicate **frontend processing** (maybe UX enhancement?).
-- Function `createElement`, `createElementNS`, `appendChild`, `CSSStyleDeclaration.setProperty` before interaction begins indicate **DOM element generation**.
-- Function `removeAttribute`, `matchMedia`, `removeChild`, `requestAnimationFrame`, `cancelAnimationFrame` and Set `hidden`, `disabled` indicate **UX enhancement**.
+- Get `.*Event`, `Location` (some attributes), `HTMLInputElement.value` and
+    Function `addEventListener` indicate **frontend processing**
+    (maybe UX enhancement?).
+- Function `createElement`, `createElementNS`, `appendChild`,
+    `CSSStyleDeclaration.setProperty`
+    before interaction begins indicate **DOM element generation**.
+- Function `removeAttribute`, `matchMedia`, `removeChild`,
+    `requestAnimationFrame`, `cancelAnimationFrame` and Set `hidden`,
+    `disabled` indicate **UX enhancement**.
 - `Performance` and `PerformanceTiming` are **extensional features**.
+
+Intermediate conclusions:
+
+- `XMLHttpRequest` (and `fetch`): send/fetch data from server, one of:
+    - Form submission, CRUD → **frontend processing**.
+    - Auth, tracking, telemetry → **extensional features**.
+    - Load data onto page → **DOM element generation**
+        (but will be detected through other API calls)?
 
 TODO: What do these mean?
 
@@ -167,4 +181,3 @@ TODO: What do these mean?
 - `DOMTokenList`: store/retrieve info on node, but then what?
 - `IntersectionObserverEntry`
 - `getBoundingClientRect`
-- `XMLHttpRequest`: AJAX request, but then what?
