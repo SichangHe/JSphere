@@ -236,12 +236,15 @@ fn main() {
         {
             writeln!(
                 file,
-                "{api_type:?},{this},{},{appear_in},{appear_in_may_interact},{total},{may_interact},{},{},{},{}",
-                attr.as_deref().unwrap_or(""),
-                (total as f64) * 100.0 / (out_of_total as f64),
-                (may_interact as f64) * 100.0 / (out_of_may_interact as f64),
-                acc_per_total * 100.0 / (appear_in as f64),
-                acc_per_may_interact * 100.0 / (appear_in as f64),
+                "{api_type:?},{this},{attr},{appear_in},{appear_in_may_interact},{total},\
+                 {may_interact},{percent_total_total},{percent_interact_interact},\
+                 {avg_percent_total_script},{avg_percent_interact_script}",
+                attr = attr.as_deref().unwrap_or(""),
+                percent_total_total = (total as f64) * 100.0 / (out_of_total as f64),
+                percent_interact_interact =
+                    (may_interact as f64) * 100.0 / (out_of_may_interact as f64),
+                avg_percent_total_script = acc_per_total * 100.0 / (appear_in as f64),
+                avg_percent_interact_script = acc_per_may_interact * 100.0 / (appear_in as f64),
             )
             .unwrap();
         }

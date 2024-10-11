@@ -15,9 +15,10 @@ Results are in `data/api_calls.csv` and analyzed in
     after interaction started.
 - `total`: How many times the API call is made.
 - `interact`: How many times the API call is made after interaction started.
-- `%total/total`: The percentage out of all API calls.
+- `%total/total`: The percentage out of all API calls in
+    the scripts the API appear in.
 - `%interact/interact`: The percentage out of
-    all API calls after interaction.
+    all API calls after interaction in the scripts the API appear in.
 - `avg%total/script`: The average percentage per script.
 - `avg%interact/script`: The average percentage per script after interaction.
 - `%interact/total`: The percentage of calls after interaction out of
