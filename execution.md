@@ -102,6 +102,10 @@ Details in `youtube_scripts_api_calls_overview.md`.
     - Just track anchor APIs and pick Function over Get for anchor APIs.
 - Difficult scripts: some scripts only call a few APIs, so
     they are difficult to classify.
+    - [ ] Do we care about every script or just big ones or just ones that
+        call many APIs?
+    - [ ] Many scripts are in the HTML, so how to
+        aggregate their stats over the 5 trials?
 
 Deferred:
 

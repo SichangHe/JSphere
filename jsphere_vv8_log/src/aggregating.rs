@@ -154,7 +154,11 @@ impl RecordAggregate {
             if let Some(this) = this {
                 let attr = match property {
                     JSValue::String(attr) => Some(attr),
-                    JSValue::Int(_) | JSValue::Float(_) | JSValue::Unsure => None, // Ignore numbers or internal values.
+                    // Ignore getting/setting user-defined or internal values.
+                    JSValue::Object { .. }
+                    | JSValue::Int(_)
+                    | JSValue::Float(_)
+                    | JSValue::Unsure => None,
                     _ => bail!("{line}: Unexpected get/set property: {property:?}"),
                 };
                 if attr.is_some() {
