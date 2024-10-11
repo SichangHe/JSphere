@@ -127,6 +127,45 @@ fn main() {
         file.flush().unwrap();
     }
 
+    fn for_each_log(mut callback: impl FnMut(LogFile)) {
+        for dir_entry_result in fs::read_dir("headless_browser/target/").unwrap() {
+            let dir_entry = dir_entry_result.unwrap();
+            let subdomain_dir = dir_entry.path();
+            for trial in 0..5 {
+                let trial_dir = subdomain_dir.join(trial.to_string());
+                if trial_dir.exists() && trial_dir.is_dir() {
+                    println!("Scanning `{}`", trial_dir.to_string_lossy());
+                    let logs = read_logs(&trial_dir).unwrap();
+                    for log in logs {
+                        callback(log);
+                    }
+                }
+            }
+        }
+    }
+    fn for_each_aggregate(mut callback: impl FnMut(RecordAggregate)) {
+        for_each_log(|log| {
+            let LogFileInfo {
+                timestamp,
+                pid,
+                tid,
+                thread_name,
+            } = &log.info;
+            println!(
+                "[{timestamp} {pid} {tid} {thread_name}] {} records {} read errors",
+                log.records.len(),
+                log.read_errs.len()
+            );
+            let mut aggregate = RecordAggregate::default();
+            for (line, record) in log.records {
+                if let Err(err) = aggregate.add(line as u32, record) {
+                    println!("{line}: {err}");
+                }
+            }
+            callback(aggregate);
+        })
+    }
+
     // Scan over all logs and find popular API calls.
     #[derive(Copy, Clone, Debug, Default)]
     struct CallCounts {
@@ -140,65 +179,37 @@ fn main() {
         acc_per_may_interact: f64,
     }
     let mut api_calls = HashMap::<ApiCall, CallCounts>::with_capacity(2048);
-    for dir_entry_result in fs::read_dir("headless_browser/target/").unwrap() {
-        let dir_entry = dir_entry_result.unwrap();
-        let subdomain_dir = dir_entry.path();
-        for trial in 0..5 {
-            let trial_dir = subdomain_dir.join(trial.to_string());
-            if trial_dir.exists() && trial_dir.is_dir() {
-                println!("Scanning `{}`", trial_dir.to_string_lossy());
-                let logs = read_logs(&trial_dir).unwrap();
-                for log in logs {
-                    let LogFileInfo {
-                        timestamp,
-                        pid,
-                        tid,
-                        thread_name,
-                    } = &log.info;
-                    println!(
-                        "[{timestamp} {pid} {tid} {thread_name}] {} records {} read errors",
-                        log.records.len(),
-                        log.read_errs.len()
-                    );
-                    let mut aggregate = RecordAggregate::default();
-                    for (line, record) in log.records {
-                        if let Err(err) = aggregate.add(line as u32, record) {
-                            println!("{line}: {err}");
-                        }
-                    }
-                    for script in aggregate.scripts.into_values() {
-                        if matches!(script.injection_type, ScriptInjectionType::Not)
-                            && script.source != "window.history.back()"
-                        {
-                            if let Some((total_calls, total_may_interact)) = script
-                                .api_calls
-                                .values()
-                                .map(|lines| (lines.len(), lines.n_may_interact()))
-                                .reduce(|(a, b), (c, d)| (a + c, b + d))
-                            {
-                                for (api_call, lines) in script.api_calls {
-                                    let len = lines.len();
-                                    let n_may_interact = lines.n_may_interact();
-                                    let counts = api_calls.entry(api_call).or_default();
-                                    counts.appear_in += 1;
-                                    counts.total += len;
-                                    counts.may_interact += n_may_interact;
-                                    counts.out_of_total += total_calls;
-                                    counts.out_of_may_interact += total_may_interact;
-                                    counts.acc_per_total += (len as f64) / (total_calls as f64);
-                                    if total_may_interact > 0 {
-                                        counts.appear_in_may_interact += 1;
-                                        counts.acc_per_may_interact +=
-                                            (n_may_interact as f64) / (total_may_interact as f64);
-                                    }
-                                }
-                            }
+    for_each_aggregate(|aggregate| {
+        for script in aggregate.scripts.into_values() {
+            if matches!(script.injection_type, ScriptInjectionType::Not)
+                && script.source != "window.history.back()"
+            {
+                if let Some((total_calls, total_may_interact)) = script
+                    .api_calls
+                    .values()
+                    .map(|lines| (lines.len(), lines.n_may_interact()))
+                    .reduce(|(a, b), (c, d)| (a + c, b + d))
+                {
+                    for (api_call, lines) in script.api_calls {
+                        let len = lines.len();
+                        let n_may_interact = lines.n_may_interact();
+                        let counts = api_calls.entry(api_call).or_default();
+                        counts.appear_in += 1;
+                        counts.total += len;
+                        counts.may_interact += n_may_interact;
+                        counts.out_of_total += total_calls;
+                        counts.out_of_may_interact += total_may_interact;
+                        counts.acc_per_total += (len as f64) / (total_calls as f64);
+                        if total_may_interact > 0 {
+                            counts.appear_in_may_interact += 1;
+                            counts.acc_per_may_interact +=
+                                (n_may_interact as f64) / (total_may_interact as f64);
                         }
                     }
                 }
             }
         }
-    }
+    });
     {
         let mut file = BufWriter::new(File::create("data/api_calls.csv").unwrap());
         file.write_all(b"api_type,this,attr,appear,appear_interact,total,interact,%total/total,%interact/interact,avg%total/script,avg%interact/script\n")
