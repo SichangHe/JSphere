@@ -1,6 +1,7 @@
 # Notable APIs
 
-Out of 400 most popular APIs:
+Out of 678 most popular APIs, which takes up 90% of all API calls in
+the top 100 sites:
 
 ```py
            api_type                       this                     attr  appear  appear_interact    total  interact  %total/total  %interact/interact  avg%total/script  avg%interact/script  %interact/total
@@ -56,7 +57,6 @@ Out of 400 most popular APIs:
 911        Function                HTMLElement             getAttribute     902              860   117772     31042      0.206437            0.074248          0.942646             0.938351        26.357708
 12704      Function                    Storage                  setItem    2530             2151   117494    100433      0.229494            0.285617          1.399357             0.855013        85.479259
 4182            Get                      Event                  touches     104              104   117488    117488      1.273323            1.823082          4.985049             5.382803       100.000000
-3753            Get             HTMLDivElement    getBoundingClientRect    1300             1148   115034     89611      0.252748            0.299641          1.880810             2.221885        77.899578
 3222            Get                      Event                   button     237              228   115014    114410      0.373357            0.467717          1.213677             1.483833        99.474847
 8221            Get                      Event              pointerType     215              211   113740    113504      0.392012            0.482340          1.327292             1.639816        99.792509
 18              Get                      Event                 charCode     234              234   111544    110954      0.343765            0.432244          1.156061             1.442831        99.471061
@@ -66,7 +66,6 @@ Out of 400 most popular APIs:
 15619      Function               HTMLDocument            querySelector    5256             3878   109894     70588      0.143162            0.159666          5.420111             2.722504        64.232806
 14249           Get                HTMLElement                 contains     156              155   109845      6882      0.529747            0.077596          1.327992             0.179596         6.265192
 16323           Get        CSSStyleDeclaration                 position     341              315   106935     93720      0.345195            0.415523          0.474251             0.340467        87.642026
-2370            Get               HTMLDocument         addEventListener    6238             5288   106708     34235      0.119114            0.059167          1.832010             0.636335        32.082880
 4579            Get  PerformanceResourceTiming                     name     459              421   104968     48263      0.501391            0.351048          7.462511             6.226703        45.978774
 11476      Function           DocumentFragment              appendChild     555              540   103875     94235      0.567692            0.809485          2.425293             3.739579        90.719615
 17561           Get             HTMLDivElement      removeEventListener     269              261   102308     93036      0.367874            0.461578          0.433881             0.630124        90.937170
@@ -108,7 +107,6 @@ Out of 400 most popular APIs:
 8987            Get                    DOMRect                    right     721              696    72803     18396      0.448942            0.269434          0.867479             1.108576        25.268189
 17217           Get                     Window               matchMedia    1611             1379    72404     20964      0.157922            0.062416          2.640280             2.069632        28.954201
 9493            Set                      Event                     flow     121              121    72147     57173      0.262724            0.259411          0.292955             0.308683        79.245152
-4787            Get           HTMLImageElement    getBoundingClientRect     471              462    71338     58793      0.581605            0.671657          0.709196             0.731832        82.414702
 3085            Get                      Event                  offsetX     155              155    70920     70340      0.249699            0.317938          0.758509             0.929270        99.182177
 4424            Get                      Event                  offsetY     155              155    70920     70340      0.249699            0.317938          0.758509             0.929270        99.182177
 14697           Get              HTMLLIElement            querySelector     324              316    68679     57442      0.438484            0.410091          1.165981             0.755493        83.638376
@@ -151,18 +149,139 @@ Out of 400 most popular APIs:
 10485      Function                Performance               get timing    1518             1263    42977     34680      0.093326            0.108573          2.111314             0.486240        80.694325
 8749       Function            HTMLBodyElement         querySelectorAll     909              897    42696     40672      0.086075            0.131413          0.442494             0.518009        95.259509
 10978      Function             HTMLDivElement          removeAttribute     960              905    42597     28256      0.141140            0.149708          0.946574             0.483958        66.333310
+9128       Function                     Window    requestAnimationFrame    1655             1422    42244     28852      0.092087            0.097062          1.884883             3.626479        68.298457
+8299            Get        CSSStyleDeclaration                  display     737              706    39290     23448      0.106862            0.085491          0.902827             1.160609        59.679308
+14494      Function               HTMLDocument         addEventListener    5870             5040    38962     10686      0.045599            0.019454          1.434622             0.627379        27.426723
+9252            Get               HTMLDocument           createTextNode    1377             1101    38610     13895      0.081862            0.041612          0.448151             0.128047        35.988086
+1971            Get             HTMLDivElement             insertBefore     605              435    38586     20373      0.186160            0.143721          2.028594             0.351760        52.798943
+12639           Get                   Location                 pathname    3308             3049    38557     22143      0.073938            0.063340          5.189143             6.232416        57.429261
+8396            Get              HTMLLIElement                    style     560              405    37454     20411      0.592363            0.288392          5.040646             1.269598        27.796764
+14663      Function           HTMLImageElement    getBoundingClientRect     471              462    37376     26681      0.304719            0.304806          0.494410             0.521456        71.385381
+9416            Get                 MouseEvent                   button     651              651    37270     37270      0.081775            0.105410          0.203340             0.320155       100.000000
+6941            Get                       Text         querySelectorAll     109              109    37203      9394      1.316163            0.468775          2.026148             0.726001        25.250652
+2968            Set                       Text              textContent      42               41    37094     23641      1.142186            0.933173          0.917371             0.731892        63.732679
+12725           Get                SVGGElement             setAttribute     181               94    36915     34399      1.276700            1.692134          0.734407             0.935771        93.184342
+17687           Get         HTMLHeadingElement              textContent     515              491    36591     22860      0.363449            0.418207          1.356123             0.986070        62.474379
+1907            Get                 MouseEvent            relatedTarget     551              551    36528     36528      0.090811            0.121204          0.181478             0.322789       100.000000
+10573           Get            HTMLSpanElement         querySelectorAll     294              290    36423      3483      0.141920            0.025951          0.638319             0.257111         9.562639
+10180           Get          SVGAnimatedString                  animVal     141              141    35733         0      1.063953            0.000000          1.073527             0.000000         0.000000
+14038      Function              HTMLLIElement                  matches     212              212    35613     27566      0.307302            0.276173          0.174845             0.209069        77.404319
+9460       Function          HTMLScriptElement                 contains      50               50    34822      2789      0.291435            0.115110          0.290610             0.102494         8.009304
+1408       Function       IntersectionObserver                  observe    1207             1148    34729     10292      0.115662            0.055461          1.237426             0.623971        29.635175
+8866            Get                      Event           preventDefault     152              146    33383     32313      0.361916            0.420887          1.060576             2.027285        96.794776
+6798            Get                      Event            currentTarget     245              228    32970     31656      0.213604            0.257495          0.752055             1.005232        96.014559
+231             Get           HTMLImageElement         addEventListener     593              543    32948     13187      0.164906            0.109288          0.794287             0.199816        40.023674
+16132           Get                 MouseEvent                 shiftKey     568              568    32948     32948      0.081890            0.107583          0.210033             0.304548       100.000000
+3772       Function                HTMLElement         addEventListener     750              739    32724      2545      0.183205            0.022435          1.564308             1.332341         7.777167
+16218           Get            DOMRectReadOnly                    width     171              152    32313     29120      0.920164            1.404839          1.141764             1.228964        90.118528
+11062           Get                      Event             composedPath     113              108    32060     31658      0.506599            0.618031          0.903666             1.284913        98.746101
+4198            Get          HTMLButtonElement         addEventListener    1479             1202    31731      4233      0.076390            0.014662          1.316896             0.835040        13.340267
+1721            Get            HTMLFormElement                 nodeName     211              209    31631     25358      0.086438            0.085160          0.221656             0.229548        80.168189
+3350            Get           HTMLInputElement                  checked     346              334    31629     30890      0.325307            0.469699          0.799651             0.794651        97.663537
+9717       Function               HTMLDocument           createTextNode    1347             1071    31621     10393      0.067451            0.031229          0.436073             0.127475        32.867398
+16017      Function          HTMLScriptElement         querySelectorAll     265              264    31596      3200      0.122425            0.022725          0.449440             0.213413        10.127864
+15776           Get                      Event               eventPhase     314              303    31579     29878      0.163133            0.214638          0.534467             0.701922        94.613509
+17500           Get             HTMLDivElement               scrollLeft     179              173    31301     15018      0.176875            0.124601          1.615388             0.642169        47.979298
+3282            Get            DOMRectReadOnly                   height     171              151    30922     28292      0.907513            1.425795          0.429273             0.414457        91.494729
+719             Get                     Crypto          getRandomValues    1541             1225    30435      3165      0.170737            0.033795          1.865329             0.867292        10.399211
+15518           Get                HTMLElement                    style     549              489    30418     25567      0.105885            0.125329          1.493825             0.611387        84.052206
+8459            Get          HTMLAnchorElement      removeEventListener     163              163    30074     26586      0.212811            0.252762         10.830490            33.543656        88.401942
+5743            Get                      Event                isTrusted     296              286    29859     28557      0.231935            0.348898          0.525885             0.706710        95.639506
+13864           Get               HTMLDocument   getElementsByClassName    1339             1087    29724      9286      0.081348            0.035449          1.980805             0.892173        31.240748
+553        Function             HTMLDivElement             insertBefore     590              435    29696     15125      0.137121            0.100618          1.936143             0.295648        50.932786
+11456           Set        CSSStyleDeclaration                  display    2158             1870    29629     20599      0.057507            0.064276          1.980954             1.334224        69.523102
+11506           Get                      Event                 composed     198              193    29307     28905      0.412240            0.484833          1.555166             2.268116        98.628314
+13010           Set        CSSStyleDeclaration                   height    1003              833    29251     24464      0.069698            0.081981          0.304656             0.070588        83.634748
+12834           Get                 MouseEvent                  metaKey     568              568    28631     28631      0.071161            0.093487          0.206934             0.300433       100.000000
+4164       Function            URLSearchParams                      get    1828             1560    28238     17025      0.108924            0.145465          2.392487             1.587353        60.291097
+13685           Get                 MouseEvent                    which     422              422    27894     27894      0.078999            0.110417          0.613775             0.847804       100.000000
+12006           Get          HTMLAnchorElement                 contains      78               77    27892      6093      0.214739            0.199062          0.406560             0.474514        21.844973
+8914            Get                 MouseEvent                   altKey     541              541    27876     27876      0.069528            0.091297          0.188469             0.273704       100.000000
+15714           Get          HTMLScriptElement                  matches      13               13    27112      8121      0.447334            0.144384          0.204745             0.068769        29.953526
+6813            Get          HTMLScriptElement            querySelector       5                5    27016      8111      0.470368            0.146231          0.487683             0.159742        30.022949
+10796           Get            HTMLHtmlElement               scrollLeft     686              674    26980     24978      0.066215            0.087673          0.352541             0.608070        92.579689
+5832            Get          HTMLAnchorElement         querySelectorAll     182              181    26790      7994      0.182795            0.191212          0.719168             0.296390        29.839492
+5335            Get                 ShadowRoot                     host      27               23    26450     18481      3.353093            3.789404          2.990668             2.523576        69.871456
+8265            Get                 MouseEvent                  screenX     432              431    26156     26155      0.074340            0.100463          0.187035             0.281187        99.996177
+2495            Get                 MouseEvent                  screenY     430              430    26154     26154      0.074335            0.100459          0.182993             0.279588       100.000000
+11802      Function               HTMLDocument          createElementNS     870              748    25562      7929      0.173085            0.106273          1.088253             0.170741        31.018700
+1271       Function           HTMLImageElement         addEventListener     585              539    25288     11160      0.128254            0.094256          0.826761             0.479900        44.131604
+8172            Set               HTMLDocument                   cookie    2810             2376    25002     15393      0.057419            0.058849          5.065215             0.855618        61.567075
+1117            Get              HTMLLIElement         querySelectorAll     428              283    24763      6135      0.117284            0.058253          0.788971             0.077840        24.774866
+10647           Get  PerformanceResourceTiming              responseEnd     271              247    23874      7791      0.312687            0.302471          1.978660             1.709044        32.633828
+4216            Get               MessageEvent                     data     908              677    23826      9579      0.240720            0.147865          5.398752             5.537861        40.203979
+1279       Function          HTMLAnchorElement                 contains      78               77    23764      5635      0.182958            0.184099          0.389154             0.470281        23.712338
+2717            Get                 MouseEvent              pointerType     210              210    23241     23241      0.082687            0.102711          0.464080             0.477471       100.000000
+14151           Get               HTMLDocument         scrollingElement     594              582    23040     21476      0.072746            0.086050          0.213598             0.306672        93.211806
+6381            Get                 MouseEvent                  offsetX     199              199    22993     22993      0.081879            0.104333          0.313116             0.427567       100.000000
+10351           Get                 MouseEvent                  offsetY     199              199    22993     22993      0.081879            0.104333          0.313116             0.427567       100.000000
+12434           Get        HTMLTextAreaElement                    value     142              138    22946     22587      0.084866            0.104089          1.192374             1.197698        98.435457
+16255      Function            HTMLBodyElement                 contains     370              207    22532     16616      0.078523            0.077264          0.180246             0.080905        73.744009
+1345            Get                 MouseEvent                  keyCode     238              238    22474     22474      0.080439            0.102588          0.282488             0.310556       100.000000
+13718           Get                 MouseEvent                 charCode     193              193    22411     22411      0.080467            0.102558          0.311932             0.327368       100.000000
+699             Get                HTMLElement              textContent     404              394    22233      3757      0.205046            0.063767          0.561368             0.158516        16.898304
+1513            Get                     Window                   origin    1289             1101    22169     14509      0.202095            0.240889          1.286647             1.650455        65.447246
+7132            Get           HTMLStyleElement         querySelectorAll      72               71    22038      1311      0.120812            0.015140          0.152180             0.047534         5.948816
+7770            Get                 MouseEvent           changedTouches     195              195    21964     21964      0.084084            0.106469          0.323369             0.343555       100.000000
+7877            Get            DOMRectReadOnly                      top     113              103    21890     20279      0.536787            0.543799          0.366536             0.480785        92.640475
+6873            Get                 MouseEvent                    state     182              182    21823     21823      0.085844            0.109151          0.329381             0.344476       100.000000
+15423           Get                 MouseEvent                      key     182              182    21823     21823      0.085844            0.109151          0.329381             0.344476       100.000000
+16195           Get                 MouseEvent                pointerId     182              182    21823     21823      0.085844            0.109151          0.329381             0.344476       100.000000
+13022           Get                     Window                   frames    1252             1002    21647      5991      0.324448            0.207435          1.437239             0.732157        27.675890
+6517            Get                HTMLElement         querySelectorAll     838              778    21615      8622      0.042891            0.026701          0.216786             0.176318        39.888966
+4622            Get                CustomEvent                   detail     525              494    21581     15168      0.351925            0.305029          1.007954             1.372400        70.284046
+8544            Get          HTMLButtonElement          removeAttribute     415              345    21581     17502      0.153523            0.185642          0.739158             0.096874        81.099115
+9282       Function          HTMLButtonElement         addEventListener    1475             1215    21572      3449      0.048451            0.011562          1.259833             0.811528        15.988318
+10098           Get                      Event                  bubbles     311              300    21248     19547      0.155065            0.231605          0.484210             0.652921        91.994541
+9949            Get                      Event               cancelable     304              293    21215     19514      0.155911            0.233246          0.495045             0.667662        91.982088
+258             Set        CSSStyleDeclaration                 position    1192              969    21109      2744      0.052430            0.009619          0.507048             0.181102        12.999195
+16455           Get                     Window                  scrollY     748              732    21054     20005      0.074004            0.097788          2.101091             4.300151        95.017574
+3841       Function          HTMLAnchorElement                  matches     428              421    20814     16177      0.090471            0.146241          0.495322             0.483386        77.721726
+382             Get            DOMRectReadOnly                     left      20               10    20755     19340      1.656417            1.796056          1.046280             1.309103        93.182366
+14538      Function          HTMLAnchorElement         querySelectorAll     192              191    20666      5916      0.122200            0.097969          0.640198             0.272638        28.626730
+1555            Get              HTMLLIElement         addEventListener     394              377    20635      1059      0.206049            0.015210          0.370146             0.058123         5.132057
+15370      Function             SVGPathElement             setAttribute     472              368    20615      7684      0.211360            0.153777          1.324606             0.119985        37.273830
+17625           Get            DOMRectReadOnly                   bottom      10                9    20314     19277      1.565912            1.689944          1.043303             1.630184        94.895146
+5853            Get            DOMRectReadOnly                    right       8                7    20299     19263      1.694730            1.794396          1.301227             2.033126        94.896300
+12959           Set        CSSStyleDeclaration                     left     565              532    20098      2004      0.078073            0.011633          0.940909             0.591199         9.971141
+4017       Function            HTMLSpanElement         querySelectorAll     304              300    20086      1848      0.071940            0.012095          0.336692             0.147938         9.200438
+13605      Function             HTMLDivElement              removeChild     937              886    19958      6750      0.065481            0.035759          0.432451             0.263485        33.821024
+4899            Get               CSSStyleRule             selectorText      98               95    19820       117      0.075323            0.000551          0.413574             0.001181         0.590313
+14550           Set        CSSStyleDeclaration                    width    1292             1097    19640      8521      0.065403            0.042337          1.446305             0.382616        43.385947
+1409            Get            HTMLSpanElement                  matches     119              118    19621     13586      0.095171            0.135756          0.060798             0.057475        69.242139
+8499            Get                SVGGElement              appendChild     185               98    19413       392      0.550612            0.014762          2.657822             0.131523         2.019265
+6959       Function                HTMLElement         querySelectorAll     844              784    19393      6851      0.036904            0.020121          0.208905             0.170334        35.327180
+8445       Function              HTMLLIElement         querySelectorAll     429              284    19386      4685      0.090873            0.043728          0.770231             0.074259        24.166925
+10151           Get            HTMLSpanElement            querySelector     195              150    19255     13171      0.165161            0.129837          1.334592             0.095666        68.403012
+4938            Get  PerformanceResourceTiming             transferSize     251              243    19084      7794      0.217156            0.208775          1.392484             0.983322        40.840495
+10597           Get          HTMLAnchorElement              appendChild     439              317    18979      6710      0.149446            0.082790          0.773147             0.377680        35.354866
+13911      Function                CSSRuleList                     item       5                5    18806     18806      1.929088            1.929088          1.933220             1.933220       100.000000
+2730            Get             MediaQueryList                  matches    1294             1115    18660      6449      0.108481            0.056959          2.218405             1.270101        34.560557
+1674            Get           DocumentFragment              appendChild     565              548    18600      8016      0.093284            0.063870          0.311641             0.220411        43.096774
+2046            Get        HTMLTextAreaElement                    style      98               98    18491     18281      0.078172            0.098089          1.132860             1.119545        98.864312
+2755            Get             XMLHttpRequest             responseText    1804             1432    18385     15141      0.042540            0.051085          0.746252             0.516296        82.355181
+16467           Get  PerformanceResourceTiming                 duration     263              238    18315      8300      0.179272            0.172481          0.596822             0.566587        45.318045
+6253            Get             SVGPathElement               attributes     198              197    18189      5025      0.211708            0.111967          0.309853             0.057502        27.626587
+10388           Get              HTMLLIElement              appendChild     171              164    18164      5593      0.272864            0.173562          0.932245             0.341723        30.791676
+1263            Get       HTMLParagraphElement              textContent     525              510    18148      8969      0.170347            0.173469          0.685390             0.522630        49.421424
+13664           Get             XMLHttpRequest                   status    1784             1454    18146     14144      0.037343            0.044292          1.521811             1.169566        77.945553
+13766      Function                    Storage                      key     140              133    18102     15314      0.069092            0.073161          1.802729             0.917468        84.598387
 ```
 
-- Get `.*Event`, `Location` (some attributes), `HTMLInputElement.value` and
-    Function `addEventListener` indicate **frontend processing**
-    (maybe UX enhancement?).
-- Function `createElement`, `createElementNS`, `appendChild`,
-    `CSSStyleDeclaration.setProperty`
+- Get `.*Event`, `Location` (some attributes),
+    `HTML(Input|TextArea)Element.(value|checked)` and
+    Function `addEventListener`, `getBoundingClientRect` and Set `textContent`
+    and anything on `URLSearchParams`, `DOMRect`, `DOMRectReadOnly`
+    indicate **frontend processing**.
+- Function `createElement`, `createElementNS`, `createTextNode`,
+    `appendChild`, `insertBefore`, `CSSStyleDeclaration.setProperty` and
+    Set `CSSStyleDeclaration`, `style`
     before interaction begins indicate **DOM element generation**.
 - Function `removeAttribute`, `matchMedia`, `removeChild`,
     `requestAnimationFrame`, `cancelAnimationFrame`, `FontFaceSet.load` and
     Set `hidden`, `disabled` indicate **UX enhancement**.
-- `Performance`, `PerformanceTiming` are **extensional features**.
+- `Performance`, `PerformanceTiming`, `PerformanceResourceTiming`
+    are **extensional features**.
 
 Intermediate conclusions:
 
@@ -175,9 +294,15 @@ Intermediate conclusions:
 TODO: What do these mean?
 
 - `querySelector[All]`, `getElement[s]By.*`: get a node, but then what?
-- `contains`: search for a node or string, but then what?
-- `DOMRect`
-- `Storage`: local storage, but then what?
+- `.*Element`'s `contains`, `matches`: search for a node or string, but then
+    what?
+- `Storage`, `HTMLDocument.cookie`: local storage, but then what?
 - `DOMTokenList`: store/retrieve info on node, but then what?
 - `IntersectionObserverEntry`
-- `getBoundingClientRect`
+- `ShadowRoot`
+- `SVGGraphicsElement` subclasses and canvas elements
+- `Crypto.getRandomValues`
+- `frames`: iframes
+- `scrollY`
+- `CSSStyleRule`, `CSSRuleList`
+- `MediaQueryList.matches`
