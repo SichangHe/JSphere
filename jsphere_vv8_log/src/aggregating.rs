@@ -78,7 +78,9 @@ impl RecordAggregate {
             | LogRecord::ConstructionCall {
                 is_user_fn: true, ..
             } => {
-                self.current_script()?.n_filtered_call += 1;
+                if let Ok(script) = self.current_script() {
+                    script.n_filtered_call += 1;
+                }
                 None
             }
 
