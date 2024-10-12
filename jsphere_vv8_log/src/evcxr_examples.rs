@@ -398,7 +398,8 @@ fn main() {
 
     {
         let mut file = BufWriter::new(File::create("data/script_features.csv").unwrap());
-        file.write_all(b"id,name,size,silent,sure_frontend_processing,sure_dom_element_generation,sure_ux_enhancement,sure_extensional_featuers,has_request,queries_element,uses_storage\n")
+        // Need to use tab because URLs may contain commas.
+        file.write_all(b"id\tname\tsize\tsilent\tsure_frontend_processing\tsure_dom_element_generation\tsure_ux_enhancement\tsure_extensional_featuers\thas_request\tqueries_element\tuses_storage\n")
             .unwrap();
         for ScriptFeatures {
             id,
@@ -412,14 +413,22 @@ fn main() {
             has_request,
             queries_element,
             uses_storage,
-        } in script_features
+        } in &script_features
         {
             writeln!(
                 file,
-                "{id},{name},{size},{silent},{sure_frontend_processing},\
-                 {sure_dom_element_generation},{sure_ux_enhancement},{sure_extensional_featuers},\
-                 {has_request},{queries_element},{uses_storage}",
+                "{id}\t{name}\t{size}\t{silent}\t{sure_frontend_processing}\t\
+                 {sure_dom_element_generation}\t{sure_ux_enhancement}\t{sure_extensional_featuers}\t\
+                 {has_request}\t{queries_element}\t{uses_storage}",
                 name = name.as_deref().unwrap_or(""),
+                silent = *silent as u8,
+                sure_frontend_processing = *sure_frontend_processing as u8,
+                sure_dom_element_generation = *sure_dom_element_generation as u8,
+                sure_ux_enhancement = *sure_ux_enhancement as u8,
+                sure_extensional_featuers = *sure_extensional_featuers as u8,
+                has_request = *has_request as u8,
+                queries_element = *queries_element as u8,
+                uses_storage = *uses_storage as u8,
             )
             .unwrap();
         }
