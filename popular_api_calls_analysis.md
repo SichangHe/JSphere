@@ -53,6 +53,14 @@ API calls before interaction (precisely,
 
 Note: this graph uses the `total` and `interact` columns.
 
+To find how many APIs need to be investigated to cover 90% of all API calls,
+we plot the CDF of the fractions of API calls vs fractions of APIs:
+
+![api_calls_cdf](https://github.com/user-attachments/assets/33d37479-a446-4ecc-b7b2-a7da703f3630)
+
+It takes 1.75% (318) APIs to cover 80% of all API calls, and 3.74% (678.0)
+APIs to cover 90%.
+
 ## Top 20 API calls overall
 
 As a rough look, we sample the top 20 API calls based on various metrics.
