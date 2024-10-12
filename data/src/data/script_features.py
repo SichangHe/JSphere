@@ -143,3 +143,43 @@ has_request                  0.270313 -0.200598                  0.425916       
 queries_element              0.262180 -0.420764                  0.504006                     0.529782             0.371204                   0.294791     0.377455         1.000000      0.359011
 uses_storage                 0.303291 -0.210220                  0.447577                     0.349092             0.287664                   0.366788     0.498098         0.359011      1.000000
 """
+
+# Count how many script are not in any "sure" category.
+sure_columns = [
+    "silent",
+    "sure_frontend_processing",
+    "sure_dom_element_generation",
+    "sure_ux_enhancement",
+    "sure_extensional_featuers",
+]
+no_sure_scripts = df[(df[sure_columns] == 0).all(axis=1)]
+size_no_sure_scripts = no_sure_scripts["size"].sum()
+print(
+    f"{len(no_sure_scripts)} scripts ({len(no_sure_scripts) * 100.0 / n_scripts:.2f}%) \
+are not in any 'sure' categories, \
+{size_no_sure_scripts / 1_000_000:.1f}MB ({size_no_sure_scripts * 100.0 / total_size:.2f}%)."
+)
+"""
+13148 scripts (32.77%) are not in any 'sure' categories, 221.1MB (6.93%).
+"""
+all_columns = [
+    "silent",
+    "sure_frontend_processing",
+    "sure_dom_element_generation",
+    "sure_ux_enhancement",
+    "sure_extensional_featuers",
+    "has_request",
+    "queries_element",
+    "uses_storage",
+]
+no_categories_scripts = df[(df[all_columns] == 0).all(axis=1)]
+size_no_categories_scripts = no_categories_scripts["size"].sum()
+print(
+    f"{len(no_categories_scripts)} scripts \
+({len(no_categories_scripts) * 100.0 / n_scripts:.2f}%) \
+are not in any categories at all, \
+{size_no_categories_scripts / 1_000_000:.1f}MB ({size_no_categories_scripts * 100.0 / total_size:.2f}%)."
+)
+"""
+10178 scripts (25.37%) are not in any categories at all, 179.7MB (5.63%).
+"""

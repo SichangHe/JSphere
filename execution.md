@@ -172,18 +172,22 @@ Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
 
 - Size: 9B~8.7MB, average 80kB, median 2.2kB.
 - No significant correlation between anything.
+- Coverage: 67% classified by count, 93% by size.
+- Coverage growth potential: 7% by count, 1% by size.
 
 | Feature                | Count | Percentage (%) | Size (MB) | Size Percentage (%) |
 | ---------------------- | ----- | -------------- | --------- | ------------------- |
 | Total Scripts          | 40116 | 100.00         | 3192.7    | -                   |
-| Silent Scripts         | 10260 | 25.58          | 28.1      | 0.88                |
 | Frontend Processing    | 14129 | 35.22          | 2864.3    | 89.72               |
 | DOM Element Generation | 8196  | 20.43          | 2248.9    | 70.44               |
 | UX Enhancement         | 4496  | 11.21          | 1840.7    | 57.65               |
 | Extensional Features   | 4915  | 12.25          | 1888.1    | 59.14               |
+| Silent Scripts         | 10260 | 25.58          | 28.1      | 0.88                |
 | Has Request            | 4205  | 10.48          | 1432.1    | 44.86               |
 | Queries Element        | 13640 | 34.00          | 2731.6    | 85.56               |
 | Uses Storage           | 4571  | 11.39          | 1641.0    | 51.40               |
+| No Sure Category       | 13148 | 32.77          | 221.1     | 6.93                |
+| No Category            | 10178 | 25.37          | 179.7     | 5.63                |
 
 | Feature Combination        | Frontend Processing | DOM Element Generation | UX Enhancement | Extensional Features | Has Request  | Queries Element | Uses Storage |
 | -------------------------- | ------------------- | ---------------------- | -------------- | -------------------- | ------------ | --------------- | ------------ |
