@@ -417,9 +417,9 @@ fn main() {
         {
             writeln!(
                 file,
-                "{id}\t{name}\t{size}\t{silent}\t{sure_frontend_processing}\t\
-                 {sure_dom_element_generation}\t{sure_ux_enhancement}\t{sure_extensional_featuers}\t\
-                 {has_request}\t{queries_element}\t{uses_storage}",
+                "{id}\t{name}\t{size}\t{silent}\t{sure_frontend_processing}\\
+                 t{sure_dom_element_generation}\t{sure_ux_enhancement}\\
+                 t{sure_extensional_featuers}\t{has_request}\t{queries_element}\t{uses_storage}",
                 name = name.as_deref().unwrap_or(""),
                 silent = *silent as u8,
                 sure_frontend_processing = *sure_frontend_processing as u8,
