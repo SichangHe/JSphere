@@ -53,21 +53,27 @@
         interaction and a part w/ interaction: separate browser page for
         each load.
     - [x] When aggregating record, split by gremlins injection in VV8 log.
-- [ ] Find anchor APIs, the most popular APIs overall and per script.
+- [x] Find anchor APIs, the most popular APIs overall and per script.
     - Filter out most internal, user-defined, and injected calls.
     - Analysis of API popularity in `popular_api_calls_analysis.md`.
-        - Tail-heavy distribution.
+        - Tail-heavy distribution: It takes 1.75% (318) APIs to cover 80% of
+            all API calls, and 3.74% (678.0) APIs to cover 90%.
+            ![api_calls_cdf](https://github.com/user-attachments/assets/33d37479-a446-4ecc-b7b2-a7da703f3630)
         - Many calls before interaction begin.
         - DOM & event APIs dominate absolute counts.
         - Popularity per script is useless.
         - APIs called out in the proposal are somewhat popular.
+    - Pick manually among 678 APIs that make up 90% of calls, details in
+        `notable_apis.md`.
 - [ ] Figure out frontend interaction/ DOM element generation API
     classification
     - `HTMLDocument.createElement`
         before interaction is clearly **DOM element generation**.
     - Various `addEventListener` calls are **frontend processing**.
-    - [ ] We only somewhat know what sphere a script belongs to, but
+    - More potential heuristics in `notable_apis.md`.
+    - [ ] We only somewhat know what spheres a script belongs to, but
         how do we know it does not belong to another sphere?
+        - We can probably only claim we detect which sphere.
 
 ### Log file interpretation
 
