@@ -166,6 +166,34 @@ all API calls in the top 100 sites, we spot "anchor" APIs (list in
 - `Crypto.getRandomValues`
 - `frames`: iframes
 
+#### Classification results
+
+Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
+
+- Size: 9B~8.7MB, average 80kB, median 2.2kB.
+- No significant correlation between anything.
+
+| Feature                | Count | Percentage (%) | Size (MB) | Size Percentage (%) |
+| ---------------------- | ----- | -------------- | --------- | ------------------- |
+| Total Scripts          | 40116 | 100.00         | 3192.7    | -                   |
+| Silent Scripts         | 10260 | 25.58          | 28.1      | 0.88                |
+| Frontend Processing    | 14129 | 35.22          | 2864.3    | 89.72               |
+| DOM Element Generation | 8196  | 20.43          | 2248.9    | 70.44               |
+| UX Enhancement         | 4496  | 11.21          | 1840.7    | 57.65               |
+| Extensional Features   | 4915  | 12.25          | 1888.1    | 59.14               |
+| Has Request            | 4205  | 10.48          | 1432.1    | 44.86               |
+| Queries Element        | 13640 | 34.00          | 2731.6    | 85.56               |
+| Uses Storage           | 4571  | 11.39          | 1641.0    | 51.40               |
+
+| Feature Combination        | Frontend Processing | DOM Element Generation | UX Enhancement | Extensional Features | Has Request  | Queries Element | Uses Storage |
+| -------------------------- | ------------------- | ---------------------- | -------------- | -------------------- | ------------ | --------------- | ------------ |
+| **DOM Element Generation** | 6602 (16.46%)       | -                      | 3125 (7.79%)   | 2703 (6.74%)         | 2338 (5.83%) | 6846 (17.07%)   | 2728 (6.80%) |
+| **UX Enhancement**         | 3840 (9.57%)        | 3125 (7.79%)           | -              | 1844 (4.60%)         | 1459 (3.64%) | 3754 (9.36%)    | 1669 (4.16%) |
+| **Extensional Features**   | 4229 (10.54%)       | 2703 (6.74%)           | 1844 (4.60%)   | -                    | 1755 (4.37%) | 3508 (8.74%)    | 2093 (5.22%) |
+| **Has Request**            | 3981 (9.92%)        | 2338 (5.83%)           | 1459 (3.64%)   | 1755 (4.37%)         | -            | 3627 (9.04%)    | 2424 (6.04%) |
+| **Queries Element**        | 9379 (23.38%)       | 6846 (17.07%)          | 3754 (9.36%)   | 3508 (8.74%)         | 3627 (9.04%) | -               | 3722 (9.28%) |
+| **Uses Storage**           | 4335 (10.81%)       | 2728 (6.80%)           | 1669 (4.16%)   | 2093 (5.22%)         | 2424 (6.04%) | 3722 (9.28%)    | -            |
+
 ## Deferred
 
 - Would like
