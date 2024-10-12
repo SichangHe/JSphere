@@ -128,3 +128,43 @@ ax.grid(which="both")
 ax.legend(fontsize=30, loc="best")
 fig.savefig("api_calls_cdf.png", bbox_inches="tight")
 fig.show()
+
+# Notable attr
+df = df_raw
+df = df.nlargest(678, "total")
+attrs = set(
+    df[(df["api_type"] == "Get") & (df["this"].str.match(".*Event$"))].sort_values(  # type: ignore[reportCallIssue]
+        by="total"
+    )["attr"]
+)
+print("|".join(f'"{e}"' for e in attrs))
+"""
+"state"|"keyCode"|"pointerType"|"which"|"bubbles"|"clientY"|"target"|"key"|"charCode"|"clientX"|"pointerId"|"currentTarget"|"isTrusted"|"propertyName"|"preventDefault"|"offsetY"|"cancelable"|"changedTouches"|"composed"|"screenX"|"button"|"composedPath"|"metaKey"|"pageY"|"ctrlKey"|"touches"|"detail"|"shiftKey"|"type"|"offsetX"|"pageX"|"eventPhase"|"timeStamp"|"screenY"|"altKey"|"data"|"relatedTarget"|"defaultPrevented"
+"""
+attrs = set(
+    df[(df["api_type"] == "Get") & (df["this"] == "Location")].sort_values(  # type: ignore[reportCallIssue]
+        by="total"
+    )["attr"]
+)
+print("|".join(f'"{e}"' for e in attrs))
+"""
+"pathname"|"hash"|"href"|"hostname"|"search"|"constructor"
+"""
+thises = set(
+    df[(df["api_type"] == "Function") & (df["attr"] == "addEventListener")].sort_values(  # type: ignore[reportCallIssue]
+        by="total"
+    )["this"]
+)
+print("|".join(f'"{e}"' for e in thises))
+"""
+"HTMLDivElement"|"HTMLButtonElement"|"HTMLElement"|"HTMLDocument"|"HTMLImageElement"|"HTMLAnchorElement"|"Window"
+"""
+thises = set(
+    df[(df["api_type"] == "Function") & (df["attr"] == "getBoundingClientRect")].sort_values(  # type: ignore[reportCallIssue]
+        by="total"
+    )["this"]
+)
+print("|".join(f'"{e}"' for e in thises))
+"""
+"HTMLDivElement"|"HTMLImageElement"|"HTMLAnchorElement"
+"""

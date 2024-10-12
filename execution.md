@@ -113,7 +113,60 @@ Details in `youtube_scripts_api_calls_overview.md`.
     - [ ] Many scripts are in the HTML, so how to
         aggregate their stats over the 5 trials?
 
-Deferred:
+### Classification heuristics
+
+By manually inspecting the 678 most popular APIs that make up 90% of
+all API calls in the top 100 sites, we spot "anchor" APIs (list in
+`notable_apis.md`).
+
+#### Certain indicators
+
+- **Frontend processing**
+    - Get `.*Event`, `Location` (some attributes),
+        `HTML(Input|TextArea)Element.(value|checked)`
+    - Function `addEventListener`, `getBoundingClientRect`
+    - Set `textContent` and anything on `URLSearchParams`, `DOMRect`,
+        `DOMRectReadOnly`
+- **DOM element generation**, before interaction begins
+    - Function `createElement`, `createElementNS`, `createTextNode`,
+        `appendChild`, `insertBefore`, `CSSStyleDeclaration.setProperty`
+    - Set `CSSStyleDeclaration`, `style`
+- **UX enhancement**
+    - Function `removeAttribute`, `matchMedia`, `removeChild`,
+        `requestAnimationFrame`, `cancelAnimationFrame`, `FontFaceSet.load`,
+        `MediaQueryList.matches`
+    - Set `hidden`, `disabled`
+- **Extensional features**
+    - `Performance`, `PerformanceTiming`, `PerformanceResourceTiming`,
+        `Navigator.sendBeacon`
+
+#### Intermediate indicators
+
+- `XMLHttpRequest` (and `Window.fetch`): send/fetch data from server, one of:
+    - Form submission, CRUD → **frontend processing**.
+    - Auth, tracking, telemetry → **extensional features**.
+    - Load data onto page → **DOM element generation**
+        (but will be detected through other API calls)?
+- `SVGGraphicsElement` subclasses and canvas elements: graphics for
+    **UX enhancement**, but you can render them and send SVG, so
+    maybe **DOM element generation**?
+- `CSSStyleRule`, `CSSRuleList`: **UX enhancement** or
+    **DOM element generation**.
+- `Window.scrollY`: **UX enhancement** or **frontend processing**.
+
+#### Uncertain indicators
+
+- `querySelector[All]`, `getElement[s]By.*`: get a node, but then what?
+- `.*Element`'s `contains`, `matches`: search for a node or string, but then
+    what?
+- `Storage`, `HTMLDocument.cookie`: local storage, but then what?
+- `DOMTokenList`: store/retrieve info on node, but then what?
+- `IntersectionObserverEntry`: viewport and visibility, but then what?
+- `ShadowRoot`: web components, but then what?
+- `Crypto.getRandomValues`
+- `frames`: iframes
+
+## Deferred
 
 - Would like
     - [ ] Clean up the APIs better.

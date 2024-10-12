@@ -145,8 +145,8 @@ fn main() {
             }
         }
     }
-    fn for_each_aggregate(mut callback: impl FnMut(RecordAggregate)) {
-        for_each_log(|log| {
+    fn for_each_filtered_script(mut callback: impl FnMut(i32, ScriptAggregate)) {
+        for_each_log(|mut log| {
             let LogFileInfo {
                 timestamp,
                 pid,
@@ -164,7 +164,14 @@ fn main() {
                     println!("{line}: {err}");
                 }
             }
-            callback(aggregate);
+            for (id, script) in aggregate.scripts {
+                // Filter out injected scripts.
+                if matches!(script.injection_type, ScriptInjectionType::Not)
+                    && script.source != "window.history.back()"
+                {
+                    callback(id, script);
+                }
+            }
         })
     }
 
@@ -181,33 +188,27 @@ fn main() {
         acc_per_may_interact: f64,
     }
     let mut api_calls = HashMap::<ApiCall, CallCounts>::with_capacity(2048);
-    for_each_aggregate(|aggregate| {
-        for script in aggregate.scripts.into_values() {
-            if matches!(script.injection_type, ScriptInjectionType::Not)
-                && script.source != "window.history.back()"
-            {
-                if let Some((total_calls, total_may_interact)) = script
-                    .api_calls
-                    .values()
-                    .map(|lines| (lines.len(), lines.n_may_interact()))
-                    .reduce(|(a, b), (c, d)| (a + c, b + d))
-                {
-                    for (api_call, lines) in script.api_calls {
-                        let len = lines.len();
-                        let n_may_interact = lines.n_may_interact();
-                        let counts = api_calls.entry(api_call).or_default();
-                        counts.appear_in += 1;
-                        counts.total += len;
-                        counts.may_interact += n_may_interact;
-                        counts.out_of_total += total_calls;
-                        counts.out_of_may_interact += total_may_interact;
-                        counts.acc_per_total += (len as f64) / (total_calls as f64);
-                        if total_may_interact > 0 {
-                            counts.appear_in_may_interact += 1;
-                            counts.acc_per_may_interact +=
-                                (n_may_interact as f64) / (total_may_interact as f64);
-                        }
-                    }
+    for_each_filtered_script(|_, script| {
+        if let Some((total_calls, total_may_interact)) = script
+            .api_calls
+            .values()
+            .map(|lines| (lines.len(), lines.n_may_interact()))
+            .reduce(|(a, b), (c, d)| (a + c, b + d))
+        {
+            for (api_call, lines) in script.api_calls {
+                let len = lines.len();
+                let n_may_interact = lines.n_may_interact();
+                let counts = api_calls.entry(api_call).or_default();
+                counts.appear_in += 1;
+                counts.total += len;
+                counts.may_interact += n_may_interact;
+                counts.out_of_total += total_calls;
+                counts.out_of_may_interact += total_may_interact;
+                counts.acc_per_total += (len as f64) / (total_calls as f64);
+                if total_may_interact > 0 {
+                    counts.appear_in_may_interact += 1;
+                    counts.acc_per_may_interact +=
+                        (n_may_interact as f64) / (total_may_interact as f64);
                 }
             }
         }
@@ -249,5 +250,178 @@ fn main() {
             .unwrap();
         }
         file.flush().unwrap();
+    }
+
+    // Classify each script by heuristics.
+    #[derive(Clone, Debug, Default)]
+    struct ScriptFeatures {
+        id: i32,
+        name: Option<String>,
+        size: usize,
+        silent: bool,
+        sure_frontend_processing: bool,
+        sure_dom_element_generation: bool,
+        sure_ux_enhancement: bool,
+        sure_extensional_featuers: bool,
+        has_request: bool,
+        queries_element: bool,
+        uses_storage: bool,
+    }
+    let mut script_features = Vec::<ScriptFeatures>::with_capacity(8192);
+    for_each_filtered_script(|id, script| {
+        let ScriptAggregate {
+            line,
+            name,
+            source,
+            injection_type: _,
+            api_calls,
+            n_filtered_call,
+        } = script;
+        let mut features = ScriptFeatures {
+            id,
+            size: source.len(),
+            silent: api_calls.is_empty() && n_filtered_call == 0,
+            ..ScriptFeatures::default()
+        };
+        if let ScriptName::Url(name) = name {
+            features.name = Some(name);
+        }
+        for (
+            ApiCall {
+                api_type,
+                this,
+                attr,
+            },
+            lines,
+        ) in api_calls
+        {
+            match (api_type, (this.as_str(), attr.as_deref())) {
+                // Frontend processing.
+                (
+                    ApiType::Get,
+                    (
+                        this,
+                        Some(
+                            "state" | "keyCode" | "pointerType" | "which" | "bubbles" | "clientY"
+                            | "target" | "key" | "charCode" | "clientX" | "pointerId"
+                            | "currentTarget" | "isTrusted" | "propertyName" | "preventDefault"
+                            | "offsetY" | "cancelable" | "changedTouches" | "composed" | "screenX"
+                            | "button" | "composedPath" | "metaKey" | "pageY" | "ctrlKey"
+                            | "touches" | "detail" | "shiftKey" | "type" | "offsetX" | "pageX"
+                            | "eventPhase" | "timeStamp" | "screenY" | "altKey" | "data"
+                            | "relatedTarget" | "defaultPrevented",
+                        ),
+                    ),
+                ) if this.ends_with("Event") => features.sure_frontend_processing = true,
+                (
+                    ApiType::Get,
+                    ("Location", Some("pathname" | "hash" | "href" | "hostname" | "search"))
+                    | ("HTMLInputElement" | "HTMLTextAreaElement", Some("value" | "checked")),
+                )
+                | (ApiType::Function, (_, Some("addEventListener")))
+                | (
+                    ApiType::Set,
+                    (_, Some("textContent"))
+                    | ("URLSearchParams" | "DOMRect" | "DOMRectReadOnly", Some(_)),
+                ) => features.sure_frontend_processing = true,
+
+                // DOM element generation.
+                (
+                    ApiType::Function,
+                    (
+                        _,
+                        Some(
+                            "createElement" | "createElementNS" | "createTextNode" | "appendChild"
+                            | "insertBefore",
+                        ),
+                    )
+                    | ("CSSStyleDeclaration", Some("setProperty")),
+                )
+                | (ApiType::Set, ("CSSStyleDeclaration", _) | (_, Some("style")))
+                    if lines.n_must_not_interact() > 0 =>
+                {
+                    features.sure_dom_element_generation = true
+                }
+
+                // UX enhancement.
+                (
+                    ApiType::Function,
+                    (
+                        _,
+                        Some(
+                            "removeAttribute"
+                            | "matchMedia"
+                            | "removeChild"
+                            | "requestAnimationFrame"
+                            | "cancelAnimationFrame",
+                        ),
+                    )
+                    | ("FontFaceSet", Some("load"))
+                    | ("MediaQueryList", Some("matches")),
+                )
+                | (ApiType::Set, (_, Some("hidden" | "disabled"))) => {
+                    features.sure_ux_enhancement = true
+                }
+
+                // Extensional features.
+                (
+                    ApiType::Function,
+                    ("Performance" | "PerformanceTiming" | "PerformanceResourceTiming", _)
+                    | ("Navigator", Some("sendBeacon")),
+                    // TODO: This list can be extended much more.
+                ) => features.sure_extensional_featuers = true,
+
+                // Requests.
+                (ApiType::Function, ("XMLHttpRequest", _) | ("Window", Some("fetch"))) => {
+                    features.has_request = true
+                }
+
+                // Queries element.
+                (ApiType::Get, (_, Some(attr)))
+                    if attr.starts_with("querySelector")
+                        || attr.starts_with("getElementBy")
+                        || attr.starts_with("getElementsBy") =>
+                {
+                    features.queries_element = true
+                }
+
+                // Uses storage.
+                (ApiType::Function, ("Storage", _) | ("HTMLDocument", Some("cookie"))) => {
+                    features.uses_storage = true
+                }
+
+                _ => {}
+            }
+        }
+        script_features.push(features);
+    });
+
+    {
+        let mut file = BufWriter::new(File::create("data/script_features.csv").unwrap());
+        file.write_all(b"id,name,size,silent,sure_frontend_processing,sure_dom_element_generation,sure_ux_enhancement,sure_extensional_featuers,has_request,queries_element,uses_storage\n")
+            .unwrap();
+        for ScriptFeatures {
+            id,
+            name,
+            size,
+            silent,
+            sure_frontend_processing,
+            sure_dom_element_generation,
+            sure_ux_enhancement,
+            sure_extensional_featuers,
+            has_request,
+            queries_element,
+            uses_storage,
+        } in script_features
+        {
+            writeln!(
+                file,
+                "{id},{name},{size},{silent},{sure_frontend_processing},\
+                 {sure_dom_element_generation},{sure_ux_enhancement},{sure_extensional_featuers},\
+                 {has_request},{queries_element},{uses_storage}",
+                name = name.as_deref().unwrap_or(""),
+            )
+            .unwrap();
+        }
     }
 }
