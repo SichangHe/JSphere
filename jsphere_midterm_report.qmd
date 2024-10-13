@@ -1,0 +1,63 @@
+---
+title: "Midterm Report for JSphere: Classification of The Use of JavaScript on The Web"
+subtitle: "Project B for CSci 651 by John Heidemann"
+author:
+    - name: Steven Hé (Sīchàng)
+    - name: "Mentor: Harsha V. Madhyastha"
+format:
+    html:
+        html-math-method: katex
+    pdf:
+        pdf-engine: latexmk
+        papersize: a4
+        margin-left: 1in
+        margin-right: 1in
+        margin-top: 1in
+        margin-bottom: 1in
+        indent: 2m
+        number-sections: true
+bibliography: main.bib
+csl: acm-sig-proceedings-long-author-list.csl
+---
+
+# Weekly Meeting Notes
+
+<!-- Provide a URL to your weekly meeting notes. These need to be accessible to the professor. -->
+Link to Weekly Meeting Notes: TODO: add this in private repo.
+
+# Introduction
+
+<!-- Provide an overview of the need you are addressing, what you are doing and plan to do, the novelty and new results of your work, and why this work is interesting to you personally. -->
+
+# Related Work
+
+<!-- Summarize prior work related to yours and describe how your work compares. Include complete citations to the prior work. -->
+
+# Discussion of Your Work
+
+## Goal
+
+<!-- Describe the goal of your project. -->
+
+## Methodology/Approach
+
+<!-- Explain the methodology or approach you are using in your project. -->
+
+## Data Collection
+
+<!-- Detail the data collection process. -->
+
+## Results
+
+<!-- Present any preliminary results you have obtained. If you have other results that are incomplete but expected for Project C, describe what you plan to do. -->
+
+# Next Steps for Research Project C
+
+<!-- Describe the next steps for Research Project C. Include a checklist of specific deliverables for Project C:
+- Continuing to meet once a week with your mentor
+- Continued weekly notes about your progress
+- Expected end results (code or experiments)
+- Project C report -->
+
+# References {.unnumbered}
+<!-- Include a bibliography with at least the citations from the related work section. -->
