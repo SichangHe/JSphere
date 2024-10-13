@@ -1,3 +1,5 @@
+import itertools
+
 import pandas as pd
 
 from data import CsvFile
@@ -8,6 +10,16 @@ script_features_csv = CsvFile(
 )
 
 df = pd.read_csv(script_features_csv.path, sep="\t", engine="pyarrow")
+all_columns = [
+    "silent",
+    "sure_frontend_processing",
+    "sure_dom_element_generation",
+    "sure_ux_enhancement",
+    "sure_extensional_featuers",
+    "has_request",
+    "queries_element",
+    "uses_storage",
+]
 
 df.describe()
 """
@@ -66,55 +78,37 @@ print(f"""{n_scripts} scripts in total ({total_size / 1_000_000:.1f}MB).
 """
 
 # Combinations.
-for name1, name2 in [
-    ("sure_frontend_processing", "sure_dom_element_generation"),
-    ("sure_frontend_processing", "sure_ux_enhancement"),
-    ("sure_frontend_processing", "sure_extensional_featuers"),
-    ("sure_frontend_processing", "has_request"),
-    ("sure_frontend_processing", "queries_element"),
-    ("sure_frontend_processing", "uses_storage"),
-    ("sure_dom_element_generation", "sure_ux_enhancement"),
-    ("sure_dom_element_generation", "sure_extensional_featuers"),
-    ("sure_dom_element_generation", "has_request"),
-    ("sure_dom_element_generation", "queries_element"),
-    ("sure_dom_element_generation", "uses_storage"),
-    ("sure_ux_enhancement", "sure_extensional_featuers"),
-    ("sure_ux_enhancement", "has_request"),
-    ("sure_ux_enhancement", "queries_element"),
-    ("sure_ux_enhancement", "uses_storage"),
-    ("sure_extensional_featuers", "has_request"),
-    ("sure_extensional_featuers", "queries_element"),
-    ("sure_extensional_featuers", "uses_storage"),
-    ("has_request", "queries_element"),
-    ("has_request", "uses_storage"),
-    ("queries_element", "uses_storage"),
-]:
-    n_both = df[(df[name1] == 1) & (df[name2] == 1)].shape[0]
+for name1, name2 in itertools.combinations(all_columns[1:], 2):
+    subset = df[(df[name1] == 1) & (df[name2] == 1)]
+    n_both = subset.shape[0]
+    size_subset = subset["size"].sum()
     print(
-        f"{n_both} ({n_both * 100.0 / n_scripts:.2f}%) scripts have both {name1} and {name2}."
+        f"{n_both} ({n_both * 100.0 / n_scripts:.2f}%) \
+scripts have both {name1} and {name2}. Size: {size_subset / 1_000_000:.1f}MB \
+({size_subset * 100.0 / total_size:.2f}%)"
     )
 """
-6602 (16.46%) scripts have both sure_frontend_processing and sure_dom_element_generation.
-3840 (9.57%) scripts have both sure_frontend_processing and sure_ux_enhancement.
-4229 (10.54%) scripts have both sure_frontend_processing and sure_extensional_featuers.
-3981 (9.92%) scripts have both sure_frontend_processing and has_request.
-9379 (23.38%) scripts have both sure_frontend_processing and queries_element.
-4335 (10.81%) scripts have both sure_frontend_processing and uses_storage.
-3125 (7.79%) scripts have both sure_dom_element_generation and sure_ux_enhancement.
-2703 (6.74%) scripts have both sure_dom_element_generation and sure_extensional_featuers.
-2338 (5.83%) scripts have both sure_dom_element_generation and has_request.
-6846 (17.07%) scripts have both sure_dom_element_generation and queries_element.
-2728 (6.80%) scripts have both sure_dom_element_generation and uses_storage.
-1844 (4.60%) scripts have both sure_ux_enhancement and sure_extensional_featuers.
-1459 (3.64%) scripts have both sure_ux_enhancement and has_request.
-3754 (9.36%) scripts have both sure_ux_enhancement and queries_element.
-1669 (4.16%) scripts have both sure_ux_enhancement and uses_storage.
-1755 (4.37%) scripts have both sure_extensional_featuers and has_request.
-3508 (8.74%) scripts have both sure_extensional_featuers and queries_element.
-2093 (5.22%) scripts have both sure_extensional_featuers and uses_storage.
-3627 (9.04%) scripts have both has_request and queries_element.
-2424 (6.04%) scripts have both has_request and uses_storage.
-3722 (9.28%) scripts have both queries_element and uses_storage.
+6602 (16.46%) scripts have both sure_frontend_processing and sure_dom_element_generation. Size: 2197.1MB (68.82%)
+3840 (9.57%) scripts have both sure_frontend_processing and sure_ux_enhancement. Size: 1821.5MB (57.05%)
+4229 (10.54%) scripts have both sure_frontend_processing and sure_extensional_featuers. Size: 1841.1MB (57.67%)
+3981 (9.92%) scripts have both sure_frontend_processing and has_request. Size: 1428.9MB (44.76%)
+9379 (23.38%) scripts have both sure_frontend_processing and queries_element. Size: 2648.1MB (82.94%)
+4335 (10.81%) scripts have both sure_frontend_processing and uses_storage. Size: 1633.2MB (51.15%)
+3125 (7.79%) scripts have both sure_dom_element_generation and sure_ux_enhancement. Size: 1613.2MB (50.53%)
+2703 (6.74%) scripts have both sure_dom_element_generation and sure_extensional_featuers. Size: 1562.9MB (48.95%)
+2338 (5.83%) scripts have both sure_dom_element_generation and has_request. Size: 1192.9MB (37.36%)
+6846 (17.07%) scripts have both sure_dom_element_generation and queries_element. Size: 2152.1MB (67.41%)
+2728 (6.80%) scripts have both sure_dom_element_generation and uses_storage. Size: 1362.7MB (42.68%)
+1844 (4.60%) scripts have both sure_ux_enhancement and sure_extensional_featuers. Size: 1440.5MB (45.12%)
+1459 (3.64%) scripts have both sure_ux_enhancement and has_request. Size: 1162.6MB (36.42%)
+3754 (9.36%) scripts have both sure_ux_enhancement and queries_element. Size: 1773.7MB (55.55%)
+1669 (4.16%) scripts have both sure_ux_enhancement and uses_storage. Size: 1278.9MB (40.06%)
+1755 (4.37%) scripts have both sure_extensional_featuers and has_request. Size: 1226.1MB (38.40%)
+3508 (8.74%) scripts have both sure_extensional_featuers and queries_element. Size: 1800.3MB (56.39%)
+2093 (5.22%) scripts have both sure_extensional_featuers and uses_storage. Size: 1372.2MB (42.98%)
+3627 (9.04%) scripts have both has_request and queries_element. Size: 1410.1MB (44.17%)
+2424 (6.04%) scripts have both has_request and uses_storage. Size: 1106.1MB (34.64%)
+3722 (9.28%) scripts have both queries_element and uses_storage. Size: 1596.9MB (50.02%)
 """
 
 # Does not seem to have strong correlations between features.
@@ -162,16 +156,6 @@ are not in any 'sure' categories, \
 """
 13148 scripts (32.77%) are not in any 'sure' categories, 221.1MB (6.93%).
 """
-all_columns = [
-    "silent",
-    "sure_frontend_processing",
-    "sure_dom_element_generation",
-    "sure_ux_enhancement",
-    "sure_extensional_featuers",
-    "has_request",
-    "queries_element",
-    "uses_storage",
-]
 no_categories_scripts = df[(df[all_columns] == 0).all(axis=1)]
 size_no_categories_scripts = no_categories_scripts["size"].sum()
 print(
