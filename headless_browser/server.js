@@ -280,32 +280,37 @@ async function visitUrl(context, url) {
             )
         }
         const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
-            const request = route.request()
-            const requestUrl = request.url().split("#")[0]
-            if (request.isNavigationRequest() && requestUrl !== url) {
-                // Block navigation and go back.
-                // This is somewhat unreliable—sometimes the browser goes back to
-                // `about:blank` or stops running Gremlins.
-                // We check this lower below ("noHorde").
-                const endMs = Date.now()
-                const elapsed = endMs - startMs
-                leftMs -= elapsed
-                console.log(
-                    "Blocked navigation: %s. Interacted for %d ms.",
-                    requestUrl,
-                    elapsed,
-                )
-                navigations.add(requestUrl)
-                // Delaying the response helps the browser settle down a lot.
-                afterDelay(async () => {
-                    await route.fulfill({
-                        body: "<script>window.history.back()</script>",
-                        contentType: "text/html",
-                    })
-                    startMs = Date.now()
-                }, 1000)
-            } else {
-                await route.continue()
+            try {
+                const request = route.request()
+                const requestUrl = request.url().split("#")[0]
+                if (request.isNavigationRequest() && requestUrl !== url) {
+                    // Block navigation and go back.
+                    // This is somewhat unreliable—sometimes the browser goes back to
+                    // `about:blank` or stops running Gremlins.
+                    // We check this lower below ("noHorde").
+                    const endMs = Date.now()
+                    const elapsed = endMs - startMs
+                    leftMs -= elapsed
+                    console.log(
+                        "Blocked navigation: %s. Interacted for %d ms.",
+                        requestUrl,
+                        elapsed,
+                    )
+                    navigations.add(requestUrl)
+                    // Delaying the response helps the browser settle down a lot.
+                    afterDelay(async () => {
+                        await route.fulfill({
+                            body: "<script>window.history.back()</script>",
+                            contentType: "text/html",
+                        })
+                        startMs = Date.now()
+                    }, 1000)
+                } else {
+                    await route.continue()
+                }
+            } catch (error) {
+                // Avoid crashing when the page is closed.
+                console.error(error)
             }
         })
         page.on("load", async (frame) => {
