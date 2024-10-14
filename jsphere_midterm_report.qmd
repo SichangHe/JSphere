@@ -28,110 +28,146 @@ Link to Weekly Meeting Notes: TODO: add this in private repo.
 # Introduction
 
 <!-- Provide an overview of the need you are addressing, what you are doing and plan to do, the novelty and new results of your work, and why this work is interesting to you personally. -->
-JavaScript (JS) plays a major role in content delivery on the modern Internet.
-For the median webpage, reports show that JS code amounts to
-around a quarter of the bytes transferred and JS execution time accounts for
-about half of the compute delay.
-Despite its significance, it remains understudied why this huge amount of
-JS code is used.
-While industry observations have argued that most of the JS is unnecessary,
-research efforts have instead focused on its security vulnerabilities,
-privacy invasions, or performance.
-The root cause of all JS issues remains unanswered: Why is so much JS used?
-How effective is JS in achieving these purposes?
 
-Better understanding of the use of JS will broadly benefit developers and
-users.
-Although JS was originally designed for beginner programmers to
-script interactive user experiences (UX), it has been adopted for a plethora of
-systems tasks, which may explain its high resource usage.
-For example, as the popularity of Single-Page Applications (SPAs) rose,
-many websites that could otherwise be served as
-static HTML instead ship entire SPA frameworks, fetch JSON data from
-the server, and convert them into DOM elements.
-If we can identify common use of JS, we may guide developers interested in
-optimizing their websites, improve general online browsing experience, and
-inform future utilization of the Internet for serving Web content.
+JavaScript (JS) plays a central role in modern web content delivery,
+accounting for approximately 25% of transferred bytes and 50% of
+compute delay for the median webpage [@httparchive2024web;
+@httparchive2024javascript; @goel2024sprinter].
+Despite its widespread use, the reasons behind the extensive utilization of
+JS remain understudied.
+While industry observations suggest much of
+this JS is unnecessary [@ceglowski2015website],
+research efforts have primarily focused on security vulnerabilities,
+privacy invasions, and performance issues [@snyder2016browser;
+@iqbal2021fingerprinting; @mardani2021horcrux].
+
+This project, JSphere, aims to classify the functionalities of JS code on
+top websites on the public Web. By understanding the common uses of JS,
+we can potentially guide developers in optimizing their websites,
+improve general online browsing experiences, and inform future utilization of
+the Internet for serving Web content.
+
+We propose to classify each JS file in the top 1000 websites into one or
+more of the following categories, which we call spheres:
+
+1. Frontend processing
+1. DOM element generation
+1. UX enhancement
+1. Extensional features
+1. Silent code
+
+Our approach involves analyzing JS browser API calls when interacting with
+these websites,
+using a modified Chromium browser called VisibleV8 [@jueckstock2019visiblev8].
+This work is personally interesting as
+it bridges the gap between theoretical understanding of web technologies and
+their practical implementation, potentially leading to more efficient and
+user-friendly web experiences.
 
 # Related Work
 
 <!-- Summarize prior work related to yours and describe how your work compares. Include complete citations to the prior work. -->
-Prior research has focused on various aspects of JS usage,
-including its security vulnerabilities, privacy invasions, and
-performance impacts. For instance, Snyder et al.
-have explored browser security issues [@snyder2020browser], while Iqbal et al.
-have investigated fingerprinting techniques [@iqbal2021fingerprinting].
-However, there is a gap in
-understanding the fundamental reasons behind the extensive use of JS on
-the web.
-Our work aims to fill this gap by classifying the functionalities of JS code on
-top websites and analyzing their impact on website performance.
 
-# Discussion of Your Work
+<!-- TODO: This cannot repeat the introduction. We need more content instead. -->
+
+Our work differs from these previous studies by
+providing a comprehensive classification of
+have functionalities across major websites.
+This classification aims to bridge the gap between performance analysis and
+feature usage studies, offering insights into why so
+much JavaScript is used and how effective it is in
+achieving its intended purposes.
+
+# JSphere
 
 ## Goal
 
 <!-- Describe the goal of your project. -->
-The goal of our project is to classify the functionalities of JS code on
-the top 1000 websites on the public Web. Specifically, we aim to
-categorize each JS file into one or more of the following spheres:
-frontend processing, DOM element generation, UX enhancement,
-extensional features, or silent.
-By analyzing JS browser API calls when interacting with these websites,
-we hope to provide insights into the common uses of JS and their impact on
-website performance.
 
-## Methodology/Approach
+The primary goal of JSphere is to classify the functionalities of
+JavaScript code on top websites on the public Web. Specifically, we aim to
+categorize each JS file in the top 1000 websites into one or more of
+the following spheres:
+<!-- TODO: This aim seems too specific. -->
+
+- Frontend processing (e.g., user interaction, form validation).
+- DOM element generation (including styling application).
+- UX enhancement (e.g., animations and effects).
+- Extensional features (e.g., authentication and analytics).
+- Silent code (code that does not call any JS APIs, likely never executed).
+
+By achieving this classification, we hope to
+provide insights into the common uses of JavaScript, which
+can inform developers, improve user experiences, and
+guide future web development practices.
+
+## Methods
 
 <!-- Explain the methodology or approach you are using in your project. -->
-Our approach leverages automated web crawling and API call trace analysis to
-understand the behavior of JavaScript on various websites.
-The methodology is divided into two main phases: Crawling and Analysis.
 
-### Crawling
+We leverage web crawling to collect API call logs, then analyze these logs to
+classify JS files on the top 1000 subdomains.
 
-We utilized Playwright, a modern web automation tool, to navigate and
-interact with web pages. The crawling process involved several critical steps.
-**Setup and Configuration.** Initially, we configured Playwright to run in
-a Docker container, ensuring a consistent environment.
-The container was set up with necessary permissions and configurations to
-handle file management and browser interactions efficiently.
+### Web Crawling
 
-**Log Parsing.** A custom log parser library written in Rust was developed to
-handle the log format generated by the tests.
-This parser was essential for extracting meaningful data from the logs.
+We visit and interact with webpages in a fashion used in [@snyder2016browser].
+For each subdomain, we visit the root page, 3 second-level linked webpages, and
+9 third-level webpages, repeating this process five times.
+After each webpage's `load` event fires, we conduct "chaos testing",
+randomly interacting with the webpage's elements for 30 seconds in total.
+During interactions, we block all page navigations by
+fulfilling such requests with an HTML page containing a single JS block to
+go back in history, and record this navigation attempt for the second- and
+third-level linked webpages.
+With the browser's back-forward cache enabled,
+we find this method reliably resumes the interaction, with
+infrequent glitches that we detect and solve by visiting the page again.
+We use Playwright to automate this browsing process and inject Gremlins.js for
+the chaos testing.
+<!-- TODO: Shall I talk about the client location? -->
 
-**Execution.** The crawler then visited each target website,
-performing a series of interactions using a monkey testing approach.
-Each site visit was split into separate browser pages to isolate the logs for
-different interaction phases.
+While loading and interacting with webpages,
+VisibleV8 records the API calls they make and provides logs for our analysis.
+VisibleV8 is a modified Chromium browser [@jueckstock2019visiblev8]; for
+each Chromium thread, it writes a log file that
+contains each script context and browser API call made in that
+context [@jueckstock2019visiblev8].
+We open a new page every time we visit a page to ensure all API calls in
+each log file before our injected interaction script are made during page
+loading.
 
-**Data Management.** Logs and
-other data were organized into directories based on the encoded URL of
-the site.
-Each trial generated specific logs, HAR files, and
-JSON files detailing the interactions and reachability of the site.
+We also collect the HTTP Archive (HAR) files for potential further analysis.
 
-### Analysis
+### Log Processing
 
-The analysis phase focused on
-interpreting the API call traces collected during the crawling phase.
+We parse the VisibleV8 logs to aggregate the API calls of each script context.
+A script context is either a standalone JavaScript file being executed,
+a script tag in an HTML file, or a script created using `eval()`.
+For each context, we group API calls made based on their API types, `this`
+values, and attributes accessed, e.g., a Get API on `Window`'s `scrollY`
+attribute, and count the presence of each API call group.
+Our custom Rust library powers this processing.
 
-**Log File Interpretation.** Each log file was analyzed to
-separate API calls made before and after the interaction phase.
-This distinction was crucial for understanding the behavior of
-scripts during different stages of page load and interaction.
+We divide API calls into two portions: calls made during page loading and
+calls made after interaction begin.
+This division helps us filter out API calls not made for interaction handling.
+We make this distinction based on when the browser enters a context of
+our injected interaction script in the log file.
 
-**API Call Aggregation.** We aggregated API calls to
-identify the most popular APIs overall and per script.
-This involved filtering out internal, user-defined, and injected calls to
-focus on significant browser APIs.
+Additional to the API call logs, we also collect the script sizes in bytes from
+their source code provided in the logs.
+The script sizes may be a more indicative metric than script counts because
+they better reflect the transferred bytes and the execution time of
+the scripts, which directly affect user experiences.
 
-**Classification.** We manually inspected the most popular APIs to
-classify them into categories such as Frontend Processing,
-DOM Element Generation, UX Enhancement, and Extensional Features.
-This classification helped in understanding the role of different scripts on
-the web pages.
+### Heuristics for Classification
+
+We count specific "anchor" APIs that strongly indicate specific spheres, and
+develop heuristics based on them to determine if
+a script context falls under a sphere.
+<!-- TODO: Describe the current heuristics. -->
+
+The current heuristics are subject to change.
 
 ## Data Collection
 
