@@ -74,6 +74,7 @@
     - [ ] We only somewhat know what spheres a script belongs to, but
         how do we know it does not belong to another sphere?
         - We can probably only claim we detect which sphere.
+- [ ] Split script to fine-grained!!
 
 ### Log file interpretation
 
@@ -178,6 +179,10 @@ Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
 - Coverage growth potential: 7% by count, 1% by size.
 - Half (1296.1MB, 40.60%) scripts by size fall into all sure categories.
     Count 1473 (3.67%).
+    - [ ] Look for bloated sites.
+    - [ ] What next if we can split it up?
+        - [ ] What user impact from size? Aggregate per page?
+        - [ ] Chrome execution time of script.
 
 | Feature                | Count | Percentage (%) | Size (MB) | Size Percentage (%) |
 | ---------------------- | ----- | -------------- | --------- | ------------------- |
@@ -209,7 +214,7 @@ Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
 | **Frontend Processing & UX Enhancement & Extensional Features**         | 1814 (4.52%)      | 1439.2MB (45.08%) |
 | **DOM Element Generation & UX Enhancement & Extensional Features**      | 1482 (3.69%)      | 1296.6MB (40.61%) |
 
-![script_size_cdf](https://github.com/user-attachments/assets/1c337d7e-68e5-4960-b381-ab625c79024c)
+![script_size_cdf](https://github.com/user-attachments/assets/193b415e-6209-4506-81fd-6f70972b458d)
 
 ## Deferred
 
