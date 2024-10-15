@@ -1,7 +1,10 @@
 import itertools
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from data import CsvFile
 
@@ -153,3 +156,70 @@ are not in any categories at all, \
 13148 scripts (32.77%) are not in any 'sure' categories, 221.1MB (6.93%).
 10178 scripts (25.37%) are not in any categories at all, 179.7MB (5.63%).
 """
+
+# Plot the distribution of script sizes.
+# Calculate cumulative weights for each category as fractions of all scripts
+total_scripts = len(df["size"])
+# All Scripts
+all_cdf_data = np.asarray(df["size"])
+all_cdf_order = np.argsort(all_cdf_data)
+all_cdf_data = all_cdf_data[all_cdf_order]
+all_cum_weights = (1 + np.arange(len(all_cdf_data))) / total_scripts
+all_cdf_data = np.concatenate((all_cdf_data, np.asarray((all_cdf_data[-1],))))
+all_cum_weights = np.concatenate((all_cum_weights, np.asarray((1,))))
+# Silent Scripts
+silent_cdf_data = np.asarray(df[df["silent"] == 1]["size"])
+silent_cdf_order = np.argsort(silent_cdf_data)
+silent_cdf_data = silent_cdf_data[silent_cdf_order]
+silent_cum_weights = (1 + np.arange(len(silent_cdf_data))) / total_scripts
+# Frontend Processing Scripts
+frontend_cdf_data = np.asarray(df[df["sure_frontend_processing"] == 1]["size"])
+frontend_cdf_order = np.argsort(frontend_cdf_data)
+frontend_cdf_data = frontend_cdf_data[frontend_cdf_order]
+frontend_cum_weights = (1 + np.arange(len(frontend_cdf_data))) / total_scripts
+# DOM Element Generation Scripts
+dom_cdf_data = np.asarray(df[df["sure_dom_element_generation"] == 1]["size"])
+dom_cdf_order = np.argsort(dom_cdf_data)
+dom_cdf_data = dom_cdf_data[dom_cdf_order]
+dom_cum_weights = (1 + np.arange(len(dom_cdf_data))) / total_scripts
+# UX Enhancement Scripts
+ux_cdf_data = np.asarray(df[df["sure_ux_enhancement"] == 1]["size"])
+ux_cdf_order = np.argsort(ux_cdf_data)
+ux_cdf_data = ux_cdf_data[ux_cdf_order]
+ux_cum_weights = (1 + np.arange(len(ux_cdf_data))) / total_scripts
+# Extensional Features Scripts
+extensional_cdf_data = np.asarray(df[df["sure_extensional_featuers"] == 1]["size"])
+extensional_cdf_order = np.argsort(extensional_cdf_data)
+extensional_cdf_data = extensional_cdf_data[extensional_cdf_order]
+extensional_cum_weights = (1 + np.arange(len(extensional_cdf_data))) / total_scripts
+fig: Figure
+ax: Axes
+fig, ax = plt.subplots(figsize=(16, 9))
+fig.tight_layout()
+ax.plot(all_cdf_data, all_cum_weights, linewidth=4, label="All Scripts")
+ax.plot(silent_cdf_data, silent_cum_weights, linewidth=4, label="Silent Scripts")
+ax.plot(
+    frontend_cdf_data,
+    frontend_cum_weights,
+    linewidth=4,
+    label="Frontend Processing Scripts",
+)
+ax.plot(
+    dom_cdf_data, dom_cum_weights, linewidth=4, label="DOM Element Generation"
+)
+ax.plot(ux_cdf_data, ux_cum_weights, linewidth=4, label="UX Enhancement")
+ax.plot(
+    extensional_cdf_data,
+    extensional_cum_weights,
+    linewidth=4,
+    label="Extensional Features",
+)
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_xlabel("Script Size (bytes)", fontsize=36)
+ax.set_ylabel("Cumulative Fraction of Scripts", fontsize=36)
+ax.tick_params(axis="both", labelsize=32)
+ax.grid()
+ax.legend(fontsize=30, loc="best")
+fig.savefig("script_size_cdf.png", bbox_inches="tight")
+fig.show()
