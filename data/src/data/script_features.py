@@ -87,12 +87,12 @@ print(f"""{n_scripts} scripts in total ({total_size / 1_000_000:.1f}MB).
 """
 
 # Combinations.
-for name1, name2 in itertools.combinations(all_columns[2:], 2):
+for name1, name2 in itertools.combinations(category_columns[1:], 2):
     subset = df[(df[name1] == 1) & (df[name2] == 1)]
-    n_both = subset.shape[0]
+    n_all = subset.shape[0]
     size_subset = subset["size"].sum()
     print(
-        f"{n_both} ({n_both * 100.0 / n_scripts:.2f}%) \
+        f"{n_all} ({n_all * 100.0 / n_scripts:.2f}%) \
 scripts have both {name1} and {name2}. Size: {size_subset / 1_000_000:.1f}MB \
 ({size_subset * 100.0 / total_size:.2f}%)"
     )
@@ -118,6 +118,36 @@ scripts have both {name1} and {name2}. Size: {size_subset / 1_000_000:.1f}MB \
 3627 (9.04%) scripts have both has_request and queries_element. Size: 1410.1MB (44.17%)
 2424 (6.04%) scripts have both has_request and uses_storage. Size: 1106.1MB (34.64%)
 3722 (9.28%) scripts have both queries_element and uses_storage. Size: 1596.9MB (50.02%)
+"""
+
+# 3-combinations.
+for name1, name2, name3 in itertools.combinations(sure_columns[1:], 3):
+    subset = df[(df[name1] == 1) & (df[name2] == 1) & (df[name3] == 1)]
+    n_all = subset.shape[0]
+    size_subset = subset["size"].sum()
+    print(
+        f"{n_all} ({n_all * 100.0 / n_scripts:.2f}%) \
+scripts have all {name1}, {name2}, and {name3}. Size: {size_subset / 1_000_000:.1f}MB \
+({size_subset * 100.0 / total_size:.2f}%)"
+    )
+"""
+2813 (7.01%) scripts have all sure_frontend_processing, sure_dom_element_generation, and sure_ux_enhancement. Size: 1604.9MB (50.27%)
+2679 (6.68%) scripts have all sure_frontend_processing, sure_dom_element_generation, and sure_extensional_featuers. Size: 1533.0MB (48.02%)
+1814 (4.52%) scripts have all sure_frontend_processing, sure_ux_enhancement, and sure_extensional_featuers. Size: 1439.2MB (45.08%)
+1482 (3.69%) scripts have all sure_dom_element_generation, sure_ux_enhancement, and sure_extensional_featuers. Size: 1296.6MB (40.61%)
+"""
+
+# 4-combination.
+subset = df[df[sure_columns[1:]].all(axis=1)]
+n_all = subset.shape[0]
+size_subset = subset["size"].sum()
+print(
+    f"{n_all} ({n_all * 100.0 / n_scripts:.2f}%) \
+scripts have all sure categories. Size: {size_subset / 1_000_000:.1f}MB \
+({size_subset * 100.0 / total_size:.2f}%)"
+)
+"""
+1473 (3.67%) scripts have all sure categories. Size: 1296.1MB (40.60%)
 """
 
 # Does not seem to have strong correlations between features.
@@ -204,9 +234,7 @@ ax.plot(
     linewidth=4,
     label="Frontend Processing Scripts",
 )
-ax.plot(
-    dom_cdf_data, dom_cum_weights, linewidth=4, label="DOM Element Generation"
-)
+ax.plot(dom_cdf_data, dom_cum_weights, linewidth=4, label="DOM Element Generation")
 ax.plot(ux_cdf_data, ux_cum_weights, linewidth=4, label="UX Enhancement")
 ax.plot(
     extensional_cdf_data,

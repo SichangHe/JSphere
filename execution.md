@@ -112,6 +112,7 @@ Details in `youtube_scripts_api_calls_overview.md`.
         call many APIs?
     - [ ] Many scripts are in the HTML, so how to
         aggregate their stats over the 5 trials?
+- [ ] Aggregate multiple runs of same scripts.
 
 ### Classification heuristics
 
@@ -171,9 +172,12 @@ all API calls in the top 100 sites, we spot "anchor" APIs (list in
 Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
 
 - Size: 9B~8.7MB, average 80kB, median 2.2kB.
+    - Many small scripts.
 - No significant correlation between anything.
 - Coverage: 67% classified by count, 93% by size.
 - Coverage growth potential: 7% by count, 1% by size.
+- Half (1296.1MB, 40.60%) scripts by size fall into all sure categories.
+    Count 1473 (3.67%).
 
 | Feature                | Count | Percentage (%) | Size (MB) | Size Percentage (%) |
 | ---------------------- | ----- | -------------- | --------- | ------------------- |
@@ -197,6 +201,13 @@ Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
 | **Has Request**            | 3981 (9.92%), 1428.9MB (44.76%)  | 2338 (5.83%), 1192.9MB (37.36%)  | 1459 (3.64%), 1162.6MB (36.42%) | 1755 (4.37%), 1226.1MB (38.40%) | -                               | -                               |
 | **Queries Element**        | 9379 (23.38%), 2648.1MB (82.94%) | 6846 (17.07%), 2152.1MB (67.41%) | 3754 (9.36%), 1773.7MB (55.55%) | 3508 (8.74%), 1800.3MB (56.39%) | 3627 (9.04%), 1410.1MB (44.17%) | -                               |
 | **Uses Storage**           | 4335 (10.81%), 1633.2MB (51.15%) | 2728 (6.80%), 1362.7MB (42.68%)  | 1669 (4.16%), 1278.9MB (40.06%) | 2093 (5.22%), 1372.2MB (42.98%) | 2424 (6.04%), 1106.1MB (34.64%) | 3722 (9.28%), 1596.9MB (50.02%) |
+
+| Feature Combination                                                     | Scripts Count (%) | Size (MB) (%)     |
+| ----------------------------------------------------------------------- | ----------------- | ----------------- |
+| **Frontend Processing & DOM Element Generation & UX Enhancement**       | 2813 (7.01%)      | 1604.9MB (50.27%) |
+| **Frontend Processing & DOM Element Generation & Extensional Features** | 2679 (6.68%)      | 1533.0MB (48.02%) |
+| **Frontend Processing & UX Enhancement & Extensional Features**         | 1814 (4.52%)      | 1439.2MB (45.08%) |
+| **DOM Element Generation & UX Enhancement & Extensional Features**      | 1482 (3.69%)      | 1296.6MB (40.61%) |
 
 ![script_size_cdf](https://github.com/user-attachments/assets/1c337d7e-68e5-4960-b381-ab625c79024c)
 
