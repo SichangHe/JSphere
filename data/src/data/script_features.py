@@ -1,16 +1,18 @@
 import itertools
 
+import numpy as np
 import pandas as pd
 
 from data import CsvFile
 
 script_features_csv = CsvFile(
-    "script_features.csv.gz",
-    "https://github.com/user-attachments/files/17351697/script_features.csv.gz",
+    "script_features2.csv.gz",
+    "https://github.com/user-attachments/files/17381468/script_features2.csv.gz",
 )
 
 df = pd.read_csv(script_features_csv.path, sep="\t", engine="pyarrow")
 all_columns = [
+    "total_call",
     "silent",
     "sure_frontend_processing",
     "sure_dom_element_generation",
@@ -20,18 +22,22 @@ all_columns = [
     "queries_element",
     "uses_storage",
 ]
+category_columns = all_columns[1:]
+sure_columns = all_columns[1:6]
+
+df["silent"] = (df["total_call"] <= 0).astype(np.int32)
 
 df.describe()
 """
-                 id          size        silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers   has_request  queries_element  uses_storage
-count  40116.000000  4.011600e+04  40116.000000              40116.000000                 40116.000000         40116.000000               40116.000000  40116.000000     40116.000000  40116.000000
-mean      74.541206  7.958582e+04      0.255758                  0.352204                     0.204308             0.112075                   0.122520      0.104821         0.340014      0.113945
-std      120.871663  3.303808e+05      0.436292                  0.477663                     0.403200             0.315463                   0.327889      0.306326         0.473719      0.317748
-min        3.000000  9.000000e+00      0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000
-25%       19.000000  3.340000e+02      0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000
-50%       43.000000  2.217000e+03      0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000
-75%       81.000000  3.211175e+04      1.000000                  1.000000                     0.000000             0.000000                   0.000000      0.000000         1.000000      0.000000
-max     1279.000000  8.669659e+06      1.000000                  1.000000                     1.000000             1.000000                   1.000000      1.000000         1.000000      1.000000
+                 id          size     total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers   has_request  queries_element  uses_storage        silent
+count  40116.000000  4.011600e+04   40116.000000              40116.000000                 40116.000000         40116.000000               40116.000000  40116.000000     40116.000000  40116.000000  40116.000000
+mean      74.541206  7.958582e+04     687.395054                  0.352204                     0.204308             0.112075                   0.122520      0.104821         0.340014      0.113945      0.255758
+std      120.871663  3.303808e+05    8439.449922                  0.477663                     0.403200             0.315463                   0.327889      0.306326         0.473719      0.317748      0.436292
+min        3.000000  9.000000e+00       0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000      0.000000
+25%       19.000000  3.340000e+02       0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000      0.000000
+50%       43.000000  2.217000e+03       5.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000      0.000000
+75%       81.000000  3.211175e+04      41.000000                  1.000000                     0.000000             0.000000                   0.000000      0.000000         1.000000      0.000000      1.000000
+max     1279.000000  8.669659e+06  538050.000000                  1.000000                     1.000000             1.000000                   1.000000      1.000000         1.000000      1.000000      1.000000
 """
 
 # Basic counts.
@@ -78,7 +84,7 @@ print(f"""{n_scripts} scripts in total ({total_size / 1_000_000:.1f}MB).
 """
 
 # Combinations.
-for name1, name2 in itertools.combinations(all_columns[1:], 2):
+for name1, name2 in itertools.combinations(all_columns[2:], 2):
     subset = df[(df[name1] == 1) & (df[name2] == 1)]
     n_both = subset.shape[0]
     size_subset = subset["size"].sum()
@@ -112,40 +118,22 @@ scripts have both {name1} and {name2}. Size: {size_subset / 1_000_000:.1f}MB \
 """
 
 # Does not seem to have strong correlations between features.
-df[  # type: ignore[reportCallIssue]
-    [
-        "size",
-        "silent",
-        "sure_frontend_processing",
-        "sure_dom_element_generation",
-        "sure_ux_enhancement",
-        "sure_extensional_featuers",
-        "has_request",
-        "queries_element",
-        "uses_storage",
-    ]
-].corr()
+df[["size"] + all_columns].corr()  # type: ignore[reportCallIssue]
 """
-                                 size    silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage
-size                         1.000000 -0.136351                  0.274836                     0.298781             0.354677                   0.344473     0.270313         0.262180      0.303291
-silent                      -0.136351  1.000000                 -0.432251                    -0.297049            -0.208269                  -0.219049    -0.200598        -0.420764     -0.210220
-sure_frontend_processing     0.274836 -0.432251                  1.000000                     0.480895             0.373300                   0.397579     0.425916         0.504006      0.447577
-sure_dom_element_generation  0.298781 -0.297049                  0.480895                     1.000000             0.432430                   0.320328     0.298486         0.529782      0.349092
-sure_ux_enhancement          0.354677 -0.208269                  0.373300                     0.432430             1.000000                   0.311650     0.254798         0.371204      0.287664
-sure_extensional_featuers    0.344473 -0.219049                  0.397579                     0.320328             0.311650                   1.000000     0.307705         0.294791      0.366788
-has_request                  0.270313 -0.200598                  0.425916                     0.298486             0.254798                   0.307705     1.000000         0.377455      0.498098
-queries_element              0.262180 -0.420764                  0.504006                     0.529782             0.371204                   0.294791     0.377455         1.000000      0.359011
-uses_storage                 0.303291 -0.210220                  0.447577                     0.349092             0.287664                   0.366788     0.498098         0.359011      1.000000
+                                 size  total_call    silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage
+size                         1.000000    0.243324 -0.136351                  0.274836                     0.298781             0.354677                   0.344473     0.270313         0.262180      0.303291
+total_call                   0.243324    1.000000 -0.047748                  0.089739                     0.139279             0.141431                   0.132914     0.108605         0.078656      0.112162
+silent                      -0.136351   -0.047748  1.000000                 -0.432251                    -0.297049            -0.208269                  -0.219049    -0.200598        -0.420764     -0.210220
+sure_frontend_processing     0.274836    0.089739 -0.432251                  1.000000                     0.480895             0.373300                   0.397579     0.425916         0.504006      0.447577
+sure_dom_element_generation  0.298781    0.139279 -0.297049                  0.480895                     1.000000             0.432430                   0.320328     0.298486         0.529782      0.349092
+sure_ux_enhancement          0.354677    0.141431 -0.208269                  0.373300                     0.432430             1.000000                   0.311650     0.254798         0.371204      0.287664
+sure_extensional_featuers    0.344473    0.132914 -0.219049                  0.397579                     0.320328             0.311650                   1.000000     0.307705         0.294791      0.366788
+has_request                  0.270313    0.108605 -0.200598                  0.425916                     0.298486             0.254798                   0.307705     1.000000         0.377455      0.498098
+queries_element              0.262180    0.078656 -0.420764                  0.504006                     0.529782             0.371204                   0.294791     0.377455         1.000000      0.359011
+uses_storage                 0.303291    0.112162 -0.210220                  0.447577                     0.349092             0.287664                   0.366788     0.498098         0.359011      1.000000
 """
 
 # Count how many script are not in any "sure" category.
-sure_columns = [
-    "silent",
-    "sure_frontend_processing",
-    "sure_dom_element_generation",
-    "sure_ux_enhancement",
-    "sure_extensional_featuers",
-]
 no_sure_scripts = df[(df[sure_columns] == 0).all(axis=1)]
 size_no_sure_scripts = no_sure_scripts["size"].sum()
 print(
@@ -153,10 +141,7 @@ print(
 are not in any 'sure' categories, \
 {size_no_sure_scripts / 1_000_000:.1f}MB ({size_no_sure_scripts * 100.0 / total_size:.2f}%)."
 )
-"""
-13148 scripts (32.77%) are not in any 'sure' categories, 221.1MB (6.93%).
-"""
-no_categories_scripts = df[(df[all_columns] == 0).all(axis=1)]
+no_categories_scripts = df[(df[category_columns] == 0).all(axis=1)]
 size_no_categories_scripts = no_categories_scripts["size"].sum()
 print(
     f"{len(no_categories_scripts)} scripts \
@@ -165,5 +150,6 @@ are not in any categories at all, \
 {size_no_categories_scripts / 1_000_000:.1f}MB ({size_no_categories_scripts * 100.0 / total_size:.2f}%)."
 )
 """
+13148 scripts (32.77%) are not in any 'sure' categories, 221.1MB (6.93%).
 10178 scripts (25.37%) are not in any categories at all, 179.7MB (5.63%).
 """

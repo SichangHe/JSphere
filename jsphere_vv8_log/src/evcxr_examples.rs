@@ -258,7 +258,7 @@ fn main() {
         id: i32,
         name: Option<String>,
         size: usize,
-        silent: bool,
+        total_call: u32,
         sure_frontend_processing: bool,
         sure_dom_element_generation: bool,
         sure_ux_enhancement: bool,
@@ -280,7 +280,7 @@ fn main() {
         let mut features = ScriptFeatures {
             id,
             size: source.len(),
-            silent: api_calls.is_empty() && n_filtered_call == 0,
+            total_call: api_calls.len() as u32 + n_filtered_call,
             ..ScriptFeatures::default()
         };
         if let ScriptName::Url(name) = name {
@@ -397,15 +397,15 @@ fn main() {
     });
 
     {
-        let mut file = BufWriter::new(File::create("data/script_features.csv").unwrap());
+        let mut file = BufWriter::new(File::create("data/script_features2.csv").unwrap());
         // Need to use tab because URLs may contain commas.
-        file.write_all(b"id\tname\tsize\tsilent\tsure_frontend_processing\tsure_dom_element_generation\tsure_ux_enhancement\tsure_extensional_featuers\thas_request\tqueries_element\tuses_storage\n")
+        file.write_all(b"id\tname\tsize\ttotal_call\tsure_frontend_processing\tsure_dom_element_generation\tsure_ux_enhancement\tsure_extensional_featuers\thas_request\tqueries_element\tuses_storage\n")
             .unwrap();
         for ScriptFeatures {
             id,
             name,
             size,
-            silent,
+            total_call,
             sure_frontend_processing,
             sure_dom_element_generation,
             sure_ux_enhancement,
@@ -417,11 +417,10 @@ fn main() {
         {
             writeln!(
                 file,
-                "{id}\t{name}\t{size}\t{silent}\t{sure_frontend_processing}\\
-                 t{sure_dom_element_generation}\t{sure_ux_enhancement}\\
-                 t{sure_extensional_featuers}\t{has_request}\t{queries_element}\t{uses_storage}",
+                "{id}\t{name}\t{size}\t{total_call}\t{sure_frontend_processing}\
+                 \t{sure_dom_element_generation}\t{sure_ux_enhancement}\
+                 \t{sure_extensional_featuers}\t{has_request}\t{queries_element}\t{uses_storage}",
                 name = name.as_deref().unwrap_or(""),
-                silent = *silent as u8,
                 sure_frontend_processing = *sure_frontend_processing as u8,
                 sure_dom_element_generation = *sure_dom_element_generation as u8,
                 sure_ux_enhancement = *sure_ux_enhancement as u8,
