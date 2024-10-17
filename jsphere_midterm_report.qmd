@@ -104,6 +104,7 @@ guide future web development practices.
 ## Methods
 
 <!-- Explain the methodology or approach you are using in your project. -->
+<!-- Detail the data collection process. -->
 
 We leverage web crawling to collect API call logs, then analyze these logs to
 classify JS files on the top 1000 subdomains.
@@ -111,17 +112,17 @@ classify JS files on the top 1000 subdomains.
 ### Web Crawling
 
 We visit and interact with webpages in a fashion used in [@snyder2016browser].
-For each subdomain, we visit the root page, 3 second-level linked webpages, and
+For each subdomain, we visit the root webpage, 3 second-level linked webpages,
 9 third-level webpages, repeating this process five times.
 After each webpage's `load` event fires, we conduct "chaos testing",
 randomly interacting with the webpage's elements for 30 seconds in total.
 During interactions, we block all page navigations by
-fulfilling such requests with an HTML page containing a single JS block to
+fulfilling such requests with an HTML webpage containing a single JS block to
 go back in history, and record this navigation attempt for the second- and
 third-level linked webpages.
 With the browser's back-forward cache enabled,
 we find this method reliably resumes the interaction, with
-infrequent glitches that we detect and solve by visiting the page again.
+infrequent glitches that we detect and solve by visiting the webpage again.
 We use Playwright to automate this browsing process and inject Gremlins.js for
 the chaos testing.
 <!-- TODO: Shall I talk about the client location? -->
@@ -132,11 +133,16 @@ VisibleV8 is a modified Chromium browser [@jueckstock2019visiblev8]; for
 each Chromium thread, it writes a log file that
 contains each script context and browser API call made in that
 context [@jueckstock2019visiblev8].
-We open a new page every time we visit a page to ensure all API calls in
+We open a new browser page every time we visit a webpage to
+ensure all API calls in
 each log file before our injected interaction script are made during page
 loading.
 
-We also collect the HTTP Archive (HAR) files for potential further analysis.
+We also collect the HTTP Archive (HAR) files and a list of reachable or
+visited webpages for potential further analysis.
+The HAR files contain detailed information about the network requests made.
+The list of reachable or
+visited webpages helps identify the links we clicked and webpages we visited.
 
 ### Log Processing
 
@@ -146,7 +152,9 @@ a script tag in an HTML file, or a script created using `eval()`.
 For each context, we group API calls made based on their API types, `this`
 values, and attributes accessed, e.g., a Get API on `Window`'s `scrollY`
 attribute, and count the presence of each API call group.
-Our custom Rust library powers this processing.
+Additionally, we filter out internal, user-defined, and
+injected calls using log information and API name filtering, so we can focus on
+browser API usage. Our custom Rust library powers this processing.
 
 We divide API calls into two portions: calls made during page loading and
 calls made after interaction begin.
@@ -160,7 +168,7 @@ The script sizes may be a more indicative metric than script counts because
 they better reflect the transferred bytes and the execution time of
 the scripts, which directly affect user experiences.
 
-### Heuristics for Classification
+### Heuristics for Classification {#sec-heuristics}
 
 We count specific "anchor" APIs that strongly indicate specific spheres, and
 develop heuristics based on them to determine if
@@ -169,21 +177,7 @@ a script context falls under a sphere.
 
 The current heuristics are subject to change.
 
-## Data Collection
-
-<!-- Detail the data collection process. -->
-Data collection was performed through
-an automated crawling process using Playwright.
-The crawler visited a predefined list of websites, performing interactions and
-capturing API call traces. The data collection process involved several steps.
-
-We selected the top 100 websites based on traffic and relevance to our study.
-The crawler simulated user interactions on each site,
-capturing API call traces during both the page load and interaction phases.
-The collected data, including logs, HAR files, and JSON files, were stored in
-a structured format for easy access and analysis.
-
-## Results
+## Initial Results
 
 <!--
 For Project B, you should have at least one preliminary result.
@@ -191,31 +185,99 @@ If you have other results that are incomplete but expected for Project C,
 you can also describe what you plan to do.
 -->
 
-### Preliminary Results
-
 <!-- Present any preliminary results you have obtained. If you have other results that are incomplete but expected for Project C, describe what you plan to do. -->
-Our preliminary results indicate a tail-heavy distribution of API calls, with
-a small percentage of APIs accounting for the majority of calls.
-Key findings include that it takes 1.75% (318) of APIs to cover 80% of
-all API calls, and 3.74% (678) of APIs to cover 90%.
-Many API calls occur before user interactions begin, with DOM and
-event APIs dominating the absolute counts.
-We identified several "anchor" APIs that strongly indicate specific behaviors,
-such as `addEventListener` for Frontend Processing and `createElement` for
+
+Our preliminary analysis of the top 100 subdomains revealed a small set of
+APIs dominating JavaScript usage, based on which
+we developed our initial sphere classification heuristics and
+got reasonable results.
+
+<!-- TODO: Script size distribution -->
+
+**Dominating APIs.** We find that 1.75% (318) of all observed APIs account for
+80% of all API calls and 3.74% (678) cover 90% of all API calls.
+This tail-heavy distribution suggests that a relatively small set of
+APIs dominates JavaScript usage on the web.
+
+![Cumulative distributed function of observed API calls by
+increasing fraction of APIs.](data/api_calls_cdf.png){width=80%}
+
+**"Anchor" APIs.** We manually inspected the top 678 APIs that make up 90% of
+all API calls and identified "anchor" APIs that
+strongly indicate specific spheres.
+For example, `addEventListener` for Frontend Processing and `createElement` for
 DOM Element Generation.
+Using these anchor APIs, we handcrafted the initial heuristics in
+@sec-heuristics to classify scripts into spheres.
+<!-- TODO: merge with above. -->
 
-### Expected Results
+<!-- TODO: Overview of the classification results. -->
+No significant correlation was found between script size and classification, or
+any of the spheres.
 
-We expect to further refine our classification heuristics and
-improve the accuracy of our script behavior analysis.
-Future work will involve developing more sophisticated heuristics to
-classify APIs into their respective categories with higher precision.
-We also plan to implement log compression and
-better data management techniques to handle large volumes of data efficiently.
-Additionally, we aim to expand the analysis to a larger set of websites and
-explore targeted event listener tests to complement our chaos testing approach.
-By continuing to refine our methodology and expand our dataset, we aim to
-provide a comprehensive understanding of JavaScript behavior across the web.
+**Single-Category Results.** We apply our heuristics to the 40,116 scripts from
+the top 100 subdomains, totaling 3,192.7 MB.
+@tbl-script-classification shows our heuristics successfully categorized 93% of
+scripts by size into at least one sphere (inverse of "No Sure Sphere"), though
+it is only 67% of scripts by count.
+<!-- TODO: Explain the table more. -->
+
+| Feature                | Count | Count (%) | Size (MB) | Size (%) |
+| ---------------------- | ----- | --------- | --------- | -------- |
+| Total Scripts          | 40116 | -         | 3192.7    | -        |
+| Frontend Processing    | 14129 | 35.22     | 2864.3    | 89.72    |
+| DOM Element Generation | 8196  | 20.43     | 2248.9    | 70.44    |
+| UX Enhancement         | 4496  | 11.21     | 1840.7    | 57.65    |
+| Extensional Features   | 4915  | 12.25     | 1888.1    | 59.14    |
+| Silent Scripts         | 10260 | 25.58     | 28.1      | 0.88     |
+| Has Request            | 4205  | 10.48     | 1432.1    | 44.86    |
+| Queries Element        | 13640 | 34.00     | 2731.6    | 85.56    |
+| Uses Storage           | 4571  | 11.39     | 1641.0    | 51.40    |
+| No Sure Sphere         | 13148 | 32.77     | 221.1     | 6.93     |
+| No Category            | 10178 | 25.37     | 179.7     | 5.63     |
+
+: Initial classification results for the top 100 subdomains: the script counts,
+sizes and their corresponding percentages out of the respective total.
+{#tbl-script-classification}
+
+**Script Size Distribution.** Script sizes range from 9 bytes to 8.7 MB.
+The average script size is 80 kB, with a median of 2.2 kB.
+
+<!-- TODO: Better caption. -->
+![Cumulative distribution fraction of all scripts and scripts in
+each sphere out of the total number of scripts in each category, as
+script size increases.](data/script_size_cdf.png){width=80%}
+
+**Multi-Sphere Scripts.** Many large scripts belong to multiple spheres.
+@tbl-2-sphere-scripts shows high overlap between and among spheres: if
+we pick any two spheres, we find around half of all scripts by size belong to
+those spheres.
+In fact, 1296.1MB of scripts (40.60% by size) fall into all sure spheres,
+although the count is only 1473 (3.67%).
+This suggests a small fraction of large scripts are responsible for
+most functionalities, and that the script file is not fine-grained enough to
+separate spheres for meaningful purposes.
+
+| Feature Combination        | Frontend Processing              | DOM Element Generation          | UX Enhancement                  |
+| -------------------------- | -------------------------------- | ------------------------------- | ------------------------------- |
+| **DOM Element Generation** | 6602 (16.46%), 2197.1MB (68.82%) | -                               | -                               |
+| **UX Enhancement**         | 3840 (9.57%), 1821.5MB (57.05%)  | 3125 (7.79%), 1613.2MB (50.53%) | -                               |
+| **Extensional Features**   | 4229 (10.54%), 1841.1MB (57.67%) | 2703 (6.74%), 1562.9MB (48.95%) | 1844 (4.60%), 1440.5MB (45.12%) |
+
+: Counts (with percentages in parentheses) and sizes (with percentages) of
+scripts that belong to two spheres. {#tbl-2-sphere-scripts}
+
+<!--
+| Feature Combination                                                     | Scripts Count (%) | Size (MB) (%)     |
+| ----------------------------------------------------------------------- | ----------------- | ----------------- |
+| **Frontend Processing & DOM Element Generation & UX Enhancement**       | 2813 (7.01%)      | 1604.9MB (50.27%) |
+| **Frontend Processing & DOM Element Generation & Extensional Features** | 2679 (6.68%)      | 1533.0MB (48.02%) |
+| **Frontend Processing & UX Enhancement & Extensional Features**         | 1814 (4.52%)      | 1439.2MB (45.08%) |
+| **DOM Element Generation & UX Enhancement & Extensional Features**      | 1482 (3.69%)      | 1296.6MB (40.61%) |
+
+: Counts (with percentages in parentheses) and sizes (with percentages) of
+scripts that belong to three spheres. {#tbl-3-sphere-scripts}
+-->
 
 # Next Steps for Research Project C
 
