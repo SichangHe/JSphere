@@ -75,7 +75,8 @@
         how do we know it does not belong to another sphere?
         - We can probably only claim we detect which sphere.
 - [ ] Split script to fine-grained!!
-    - [ ] `eval` per function?
+    - [ ] `eval` per ~~function~~ chunk of code.
+        - [ ] Need to `eval` each function before calling it.
 
 ### Log file interpretation
 

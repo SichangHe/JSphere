@@ -29,6 +29,7 @@ Link to Weekly Meeting Notes: TODO: add this in private repo.
 
 <!-- Provide an overview of the need you are addressing, what you are doing and plan to do, the novelty and new results of your work, and why this work is interesting to you personally. -->
 
+<!-- TODO: revise this generated text. -->
 JavaScript (JS) plays a central role in modern web content delivery,
 accounting for approximately 25% of transferred bytes and 50% of
 compute delay for the median webpage [@httparchive2024web;
@@ -59,6 +60,7 @@ more of the following categories, which we call spheres:
 Our approach involves analyzing JS browser API calls when interacting with
 these websites,
 using a modified Chromium browser called VisibleV8 [@jueckstock2019visiblev8].
+<!-- TODO: Write something decent about personal interest. -->
 This work is personally interesting as
 it bridges the gap between theoretical understanding of web technologies and
 their practical implementation, potentially leading to more efficient and
@@ -70,13 +72,13 @@ user-friendly web experiences.
 
 <!-- TODO: This cannot repeat the introduction. We need more content instead. -->
 
+<!-- TODO: Compare to prior work. -->
 Our work differs from these previous studies by
 providing a comprehensive classification of
 have functionalities across major websites.
 This classification aims to bridge the gap between performance analysis and
-feature usage studies, offering insights into why so
-much JavaScript is used and how effective it is in
-achieving its intended purposes.
+feature usage studies, offering insights into why so much JS is used and
+how effective it is in achieving its intended purposes.
 
 # JSphere
 
@@ -84,8 +86,8 @@ achieving its intended purposes.
 
 <!-- Describe the goal of your project. -->
 
-The primary goal of JSphere is to classify the functionalities of
-JavaScript code on top websites on the public Web. Specifically, we aim to
+The primary goal of JSphere is to classify the functionalities of JS code on
+top websites on the public Web. Specifically, we aim to
 categorize each JS file in the top 1000 websites into one or more of
 the following spheres:
 <!-- TODO: This aim seems too specific. -->
@@ -97,9 +99,8 @@ the following spheres:
 - Silent code (code that does not call any JS APIs, likely never executed).
 
 By achieving this classification, we hope to
-provide insights into the common uses of JavaScript, which
-can inform developers, improve user experiences, and
-guide future web development practices.
+provide insights into the common uses of JS, which can inform developers,
+improve user experiences, and guide future web development practices.
 
 ## Methods
 
@@ -140,15 +141,16 @@ loading.
 
 We also collect the HTTP Archive (HAR) files and a list of reachable or
 visited webpages for potential further analysis.
-The HAR files contain detailed information about the network requests made.
+The HAR files contain detailed information about the network requests made and
+the timing, which we can use for website performance comparisons.
 The list of reachable or
 visited webpages helps identify the links we clicked and webpages we visited.
 
 ### Log Processing
 
 We parse the VisibleV8 logs to aggregate the API calls of each script context.
-A script context is either a standalone JavaScript file being executed,
-a script tag in an HTML file, or a script created using `eval()`.
+A script context is either a standalone JS file being executed, a script tag in
+an HTML file, or a script created using `eval()`.
 For each context, we group API calls made based on their API types, `this`
 values, and attributes accessed, e.g., a Get API on `Window`'s `scrollY`
 attribute, and count the presence of each API call group.
@@ -187,17 +189,22 @@ you can also describe what you plan to do.
 
 <!-- Present any preliminary results you have obtained. If you have other results that are incomplete but expected for Project C, describe what you plan to do. -->
 
-Our preliminary analysis of the top 100 subdomains revealed a small set of
-APIs dominating JavaScript usage, based on which
-we developed our initial sphere classification heuristics and
-got reasonable results.
+For our initial results, we are mostly concerned with two aspects:
+validating our assumptions about a small set of
+browser APIs dominating all API usage (the 20/80 rule), and testing whether
+we can classify scripts into spheres based on these APIs.
+Our preliminary analysis of the top 100 subdomains confirmed the 20/80 rule of
+browser APIs, based on which
+we developed our initial classification heuristics; however,
+our initial classification results demonstrate that
+scripts are too large a unit to separate spheres effectively.
 
-<!-- TODO: Script size distribution -->
+### The 20/80 Rule of Browser APIs
 
 **Dominating APIs.** We find that 1.75% (318) of all observed APIs account for
 80% of all API calls and 3.74% (678) cover 90% of all API calls.
 This tail-heavy distribution suggests that a relatively small set of
-APIs dominates JavaScript usage on the web.
+APIs dominates JS usage on the web.
 
 ![Cumulative distributed function of observed API calls by
 increasing fraction of APIs.](data/api_calls_cdf.png){width=80%}
@@ -211,6 +218,8 @@ Using these anchor APIs, we handcrafted the initial heuristics in
 @sec-heuristics to classify scripts into spheres.
 <!-- TODO: merge with above. -->
 
+### Initial Classification Results
+
 <!-- TODO: Overview of the classification results. -->
 No significant correlation was found between script size and classification, or
 any of the spheres.
@@ -218,7 +227,7 @@ any of the spheres.
 **Single-Category Results.** We apply our heuristics to the 40,116 scripts from
 the top 100 subdomains, totaling 3,192.7 MB.
 @tbl-script-classification shows our heuristics successfully categorized 93% of
-scripts by size into at least one sphere (inverse of "No Sure Sphere"), though
+script bytes into at least one sphere (inverse of "No Sure Sphere"), though
 it is only 67% of scripts by count.
 <!-- TODO: Explain the table more. -->
 
@@ -243,20 +252,24 @@ sizes and their corresponding percentages out of the respective total.
 **Script Size Distribution.** Script sizes range from 9 bytes to 8.7 MB.
 The average script size is 80 kB, with a median of 2.2 kB.
 
+<!-- Corresponding to this in the proposal:
+Then, we plan to report the distributions of the number of bytes of
+JS files (bytes of JS) across the spheres. -->
 <!-- TODO: Better caption. -->
-![Cumulative distribution fraction of all scripts and scripts in
-each sphere out of the total number of scripts in each category, as
+![Cumulative fraction of all scripts and scripts in each sphere out of
+the total number of scripts in each category, as
 script size increases.](data/script_size_cdf.png){width=80%}
 
 **Multi-Sphere Scripts.** Many large scripts belong to multiple spheres.
 @tbl-2-sphere-scripts shows high overlap between and among spheres: if
 we pick any two spheres, we find around half of all scripts by size belong to
 those spheres.
-In fact, 1296.1MB of scripts (40.60% by size) fall into all sure spheres,
+In fact, 1296.1 MB of scripts (40.60% by size) fall into all sure spheres,
 although the count is only 1473 (3.67%).
-This suggests a small fraction of large scripts are responsible for
-most functionalities, and that the script file is not fine-grained enough to
-separate spheres for meaningful purposes.
+The all-sure-sphere scripts have sizes ranging from 7.1 kB to 8.7 MB,
+suggesting a small fraction of large scripts tightly couples multiple spheres.
+Therefore, classifying by each script file is not fine-grained enough to
+meaningfully separate spheres.
 
 | Feature Combination        | Frontend Processing              | DOM Element Generation          | UX Enhancement                  |
 | -------------------------- | -------------------------------- | ------------------------------- | ------------------------------- |
@@ -281,7 +294,46 @@ scripts that belong to three spheres. {#tbl-3-sphere-scripts}
 
 # Next Steps for Research Project C
 
-<!-- Describe the next steps for Research Project C. Include a checklist of specific deliverables for Project C:
+<!-- Describe the next steps for Research Project C. -->
+
+To meaningfully classify functionalities of JS on the Web, we need to focus on
+addressing two main challenges:
+
+1. How to grind down the granularity of classification unit to
+    separate different spheres?
+1. How to ensure high classification accuracy?
+
+Based on our improved sphere classifications, we will then analyze overall and
+per-website sphere distributions, and their relationships with
+scripts sizes and load times.
+
+## Classification Granularity Improvement
+
+## Heuristics Validation and Refinement
+
+<!-- TODO: Case studies on popular APIs to see what they are used for. -->
+
+## Aggregate and Correlation Analysis
+
+<!-- TODO: WIP -->
+We plan to expand our analysis to the full set of 1000 top websites.
+Additionally, to associate the JS sphere classifications with
+website performance…
+
+<!-- TODO: Address these:
+the sphere distributions across websites, and
+the overall JS-sphere relationships as a Venn diagram.
+Additionally, we may associate the bytes of JS per sphere with
+each webpage's page load time, including time to first byte and time to
+interactive. -->
+
+These additional analyses will provide a more comprehensive understanding of
+JS usage on the modern web and may reveal opportunities for optimization and
+improved development practices.
+
+## Checklist for Deliverables
+
+<!-- Include a checklist of specific deliverables for Project C:
 - Continuing to meet once a week with your mentor
 - Continued weekly notes about your progress
 - Expected end results (code or experiments)

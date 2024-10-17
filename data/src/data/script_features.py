@@ -146,8 +146,18 @@ print(
 scripts have all sure categories. Size: {size_subset / 1_000_000:.1f}MB \
 ({size_subset * 100.0 / total_size:.2f}%)"
 )
+print(subset.describe())
 """
 1473 (3.67%) scripts have all sure categories. Size: 1296.1MB (40.60%)
+                id          size     total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage  silent
+count  1473.000000  1.473000e+03    1473.000000                    1473.0                       1473.0               1473.0                     1473.0  1473.000000      1473.000000   1473.000000  1473.0
+mean     28.131704  8.799315e+05   10053.464358                       1.0                          1.0                  1.0                        1.0     0.609640         0.898846      0.658520     0.0
+std      59.519158  1.254164e+06   32078.781532                       0.0                          0.0                  0.0                        0.0     0.487997         0.301635      0.474367     0.0
+min       6.000000  7.129000e+03      48.000000                       1.0                          1.0                  1.0                        1.0     0.000000         0.000000      0.000000     0.0
+25%       9.000000  1.409900e+05     280.000000                       1.0                          1.0                  1.0                        1.0     0.000000         1.000000      0.000000     0.0
+50%      17.000000  3.568700e+05     780.000000                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
+75%      23.000000  1.054709e+06    3898.000000                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
+max    1055.000000  8.669659e+06  538050.000000                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
 """
 
 # Does not seem to have strong correlations between features.
