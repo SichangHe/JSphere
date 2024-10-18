@@ -16,6 +16,7 @@ format:
         margin-bottom: 1in
         indent: 2m
         number-sections: true
+        fig-pos: tb
 bibliography: main.bib
 csl: acm-sig-proceedings-long-author-list.csl
 ---
@@ -143,8 +144,8 @@ draw each JS script of the top 1000 popular websites into one or
 more following spheres:
 
 - **Frontend processing.** Client-side functionalities such as
-    user interaction,
-    form validation, and other domain-specific logic are essential JS purposes.
+    user interaction, form validation, and
+    other domain-specific logic are essential JS purposes.
 - **DOM element generation.** Instead of serving static HTML, many websites
     fetch JSON data from the server and convert them into DOM elements, and
     even apply styling after page load, shifting rendering workloads from
@@ -153,8 +154,9 @@ more following spheres:
     font loading improve the look and feel of the webpage, but
     may be replaceable by modern HTML and CSS features.
 - **Extensional features.** Authentication, tracking, and
-    hardware access are inessential to the core functionalities of webpages, but
-    often provides important extra features comparable to native applications.
+    hardware access are inessential to the core functionalities of webpages,
+    but often provides important extra features comparable to
+    native applications.
 - **Silent**: Some scripts do not call any JS APIs or mutate global state,
     essentially ineffective. These are likely never executed.
 
@@ -189,7 +191,6 @@ we find this method reliably resumes the interaction, with
 infrequent glitches that we detect and solve by visiting the webpage again.
 We use Playwright to automate this browsing process and inject Gremlins.js for
 the chaos testing.
-<!-- TODO: Shall I talk about the client location? -->
 
 While loading and interacting with webpages,
 VisibleV8 records the API calls they make and provides logs for our analysis.
@@ -238,9 +239,22 @@ the scripts, which directly affect user experiences.
 We count specific "anchor" APIs that strongly indicate specific spheres, and
 develop heuristics based on them to determine if
 a script context falls under a sphere.
-<!-- TODO: Describe the current heuristics. -->
+Although there are tens of thousands of browser APIs,
+prior studies observed an 20/80 rule of browser API usage, that
+only a fraction is popularly used [@snyder2016browser].
+Therefore, we expect to classify most scripts through a few popular APIs.
+We currently deploy the following heuristics, which are subject to change:
 
-The current heuristics are subject to change.
+- **Frontend processing** scripts
+    read event attributes, webpage location, or form elements.
+    We also identify they if they listen to events,
+    calculate bounding rectangles, or set text content.
+- **DOM element generation** is classified if the scripts create elements or
+    apply styles before interaction begins.
+- **UX enhancement** is assumed if the scripts remove or hide elements,
+    animate elements, query media type, or set font faces.
+- **Extensional features** are detected if
+    the scripts request performance data or send beacons.
 
 ## Initial Results
 
@@ -260,17 +274,19 @@ Our preliminary analysis of the top 100 subdomains confirmed the 20/80 rule of
 browser APIs, based on which
 we developed our initial classification heuristics; however,
 our initial classification results demonstrate that
-scripts are too large a unit to separate spheres effectively.
+script is too large a unit to separate spheres effectively.
 
 ### The 20/80 Rule of Browser APIs
 
 **Dominating APIs.** We find that 1.75% (318) of all observed APIs account for
-80% of all API calls and 3.74% (678) cover 90% of all API calls.
+80% of all API calls and 3.74% (678) of APIs cover 90% of all API calls, as
+demonstrated in @fig-api-calls-cdf.
 This tail-heavy distribution suggests that a relatively small set of
 APIs dominates JS usage on the web.
 
-![Cumulative distributed function of observed API calls by
-increasing fraction of APIs.](data/api_calls_cdf.png){width=80%}
+![Cumulative distribution function of observed API calls by
+increasing fraction of
+APIs.](data/api_calls_cdf.png){width=80% #fig-api-calls-cdf}
 
 **"Anchor" APIs.** We manually inspected the top 678 APIs that make up 90% of
 all API calls and identified "anchor" APIs that
@@ -279,24 +295,47 @@ For example, `addEventListener` for Frontend Processing and `createElement` for
 DOM Element Generation.
 Using these anchor APIs, we handcrafted the initial heuristics in
 @sec-heuristics to classify scripts into spheres.
-<!-- TODO: merge with above. -->
 
 ### Initial Classification Results
 
-<!-- TODO: Overview of the classification results. -->
-No significant correlation was found between script size and classification, or
-any of the spheres.
+We apply our heuristics to the 40,116 scripts from the top 100 subdomains,
+aggregate classification results, and correlate them with script sizes.
+In addition to the spheres,
+we also classify scripts into auxiliary categories (Has Request,
+Queries Element, Uses Storage) in the hope of discovering additional cues for
+classification.
+No significant correlation was found between script size and classification,
+the spheres, or any other pairs of metrics.
 
-**Single-Category Results.** We apply our heuristics to the 40,116 scripts from
-the top 100 subdomains, totaling 3,192.7 MB.
-@tbl-script-classification shows our heuristics successfully categorized 93% of
-script bytes into at least one sphere (inverse of "No Sure Sphere"), though
-it is only 67% of scripts by count.
-<!-- TODO: Explain the table more. -->
+**Single-Category Results.** We apply our heuristics to 40,116 scripts,
+totaling 3,192.7 MB, and report both how many scripts in each category (count)
+and how many megabytes they total (size).
+@tbl-script-classification shows our heuristics successfully categorized 93.0%
+of script bytes into at least one sphere (inverse of "No Sure Sphere"), though
+it is only 67.2% of scripts by count.
+This size coverage cannot be improve to over 94.4% even if
+we use the auxiliary categories (inverse of "No Category"), so
+we do not see any potential to significantly improvement coverage.
+Additionally, a quarter of scripts executed do not call any browser APIs or
+mutate global states, but they are only a tiny fraction of
+the total script size, meaning there are many small scripts that
+seemingly have no effects.
+
+The popularities of spheres are mildly surprising.
+Frontend processing is the most popular sphere, encompassing almost 90% of
+scripts, which may indicate that
+most scripts are doing essential client-side work.
+However,
+our heuristics is very relaxed toward classifying scripts into frontend
+processing, thus this can be a false positive.
+For example, a script primarily responsible for
+DOM element generation may listen for DOM load and then generate elements,
+which is Unfortunately classified as frontend processing.
+Other spheres also have surprisingly high popularities by size, which
+alludes to the peculiar script size distribution we discuss below.
 
 | Feature                | Count | Count (%) | Size (MB) | Size (%) |
 | ---------------------- | ----- | --------- | --------- | -------- |
-| Total Scripts          | 40116 | -         | 3192.7    | -        |
 | Frontend Processing    | 14129 | 35.22     | 2864.3    | 89.72    |
 | DOM Element Generation | 8196  | 20.43     | 2248.9    | 70.44    |
 | UX Enhancement         | 4496  | 11.21     | 1840.7    | 57.65    |
@@ -312,16 +351,18 @@ it is only 67% of scripts by count.
 sizes and their corresponding percentages out of the respective total.
 {#tbl-script-classification}
 
-**Script Size Distribution.** Script sizes range from 9 bytes to 8.7 MB.
-The average script size is 80 kB, with a median of 2.2 kB.
+**Script Size Distribution.** @fig-script-size-cdf shows the distribution of
+script sizes in all scripts and in scripts belonging to each sphere.
+Script sizes range from 9 bytes to 8.7 MB.
+The average script size is 80 kB, with a median of 2.2 kB,
+therefore there are many small scripts and a few large scripts, with
+the large scripts contributing to most of the total script size.
+Silent scripts are much smaller than other scripts, but scripts in
+each sphere have similar size distributions.
 
-<!-- Corresponding to this in the proposal:
-Then, we plan to report the distributions of the number of bytes of
-JS files (bytes of JS) across the spheres. -->
-<!-- TODO: Better caption. -->
-![Cumulative fraction of all scripts and scripts in each sphere out of
-the total number of scripts in each category, as
-script size increases.](data/script_size_cdf.png){width=80%}
+![Cumulative distribution function of script sizes among all scripts and
+scripts belonging to
+each sphere.](data/script_size_cdf.png){width=80% #fig-script-size-cdf}
 
 **Multi-Sphere Scripts.** Many large scripts belong to multiple spheres.
 @tbl-2-sphere-scripts shows high overlap between and among spheres: if
@@ -340,8 +381,8 @@ meaningfully separate spheres.
 | **UX Enhancement**         | 3840 (9.57%), 1821.5MB (57.05%)  | 3125 (7.79%), 1613.2MB (50.53%) | -                               |
 | **Extensional Features**   | 4229 (10.54%), 1841.1MB (57.67%) | 2703 (6.74%), 1562.9MB (48.95%) | 1844 (4.60%), 1440.5MB (45.12%) |
 
-: Counts (with percentages in parentheses) and sizes (with percentages) of
-scripts that belong to two spheres. {#tbl-2-sphere-scripts}
+: Counts (and percentages) and sizes (and percentages) of scripts that
+belong to two spheres. {#tbl-2-sphere-scripts}
 
 <!--
 | Feature Combination                                                     | Scripts Count (%) | Size (MB) (%)     |
