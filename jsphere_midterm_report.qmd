@@ -189,8 +189,8 @@ third-level linked webpages.
 With the browser's back-forward cache enabled,
 we find this method reliably resumes the interaction, with
 infrequent glitches that we detect and solve by visiting the webpage again.
-We use Playwright to automate this browsing process and inject Gremlins.js for
-the chaos testing.
+We use Playwright[^playwright] to automate this browsing process and
+inject Gremlins.js[^gremlins] for the chaos testing.
 
 While loading and interacting with webpages,
 VisibleV8 records the API calls they make and provides logs for our analysis.
@@ -293,10 +293,12 @@ all API calls and identified "anchor" APIs that
 strongly indicate specific spheres.
 For example, `addEventListener` for Frontend Processing and `createElement` for
 DOM Element Generation.
+Additionally, we manually inspected five scripts from YouTube to
+gain intuition on the purpose of several anchor APIs.
 Using these anchor APIs, we handcrafted the initial heuristics in
 @sec-heuristics to classify scripts into spheres.
 
-### Initial Classification Results
+### Initial Classification Results {#sec-class-results}
 
 We apply our heuristics to the 40,116 scripts from the top 100 subdomains,
 aggregate classification results, and correlate them with script sizes.
@@ -408,25 +410,56 @@ addressing two main challenges:
 1. How to ensure high classification accuracy?
 
 Based on our improved sphere classifications, we will then analyze overall and
-per-website sphere distributions, and their relationships with
-scripts sizes and load times.
+per-website sphere distributions on the full set of 1000 top websites, and
+associate their spheres with scripts sizes and load times, as described in
+@sec-goal.
 
 ## Classification Granularity Improvement
 
+Gaining more fine-grained classifications than per script file is crucial to
+understanding the popularity of each sphere, as shown in @sec-class-results.
+Unfortunately, our method of using the VisibleV8 browser limits us to
+the granularity of script contexts, which generally correspond to
+individual script file, so we cannot classify individual functions or
+statements with our current setup.
+However, script contexts may also correspond to scripts created using `eval()`,
+opening up the possibility of classifying smaller units.
+
+To grind down our classification granularity to below the script file level,
+we plan to break down large scripts into smaller `eval`
+blocks before they arrive at the browser.
+Specifically, we will intercept requests to JS scripts like we already do for
+preventing navigations, make the requests ourselves, modify the responses to
+include `eval` blocks as needed, and then fulfill the browser's requests with
+the modified responses.
+To preserve the scripts' functionalities, we need to insert the `eval`
+calls without breaking scopes or execution order (hoisting), which
+requires parsing each script and modifying its abstract syntax tree (AST).
+To avoid potential high overheads introduced by `eval`, we plan to
+only break down large scripts, and only create `eval` blocks of 1 kB or
+larger sizes.
+We hope this method can help us gain a more granular sphere classification.
+
 ## Heuristics Validation and Refinement
 
-<!-- TODO: Case studies on popular APIs to see what they are used for. -->
+Once we are able to classify smaller units, we will need to validate and
+refine our classification heuristics.
+To validate our heuristics, we will conduct random sampling on
+the websites we have already visited, manually inspect the scripts, and
+cross compare with our heuristics.
+We will need to conduct case studies on popular APIs to
+better understand the exact scenarios they are used for, and
+report any insights we find.
+Since JS scripts on the Web are minified and unreadable, we aim to
+manually label 100 scripts with the help of script URLs, comments,
+API call statistics, and language models.
 
-## Aggregate and Correlation Analysis
-
-<!-- TODO: WIP -->
-We plan to expand our analysis to the full set of 1000 top websites, and to
-associate the JS sphere classifications with website performance, as
-described in @sec-goal.
-
-These additional analyses will provide a more comprehensive understanding of
-JS usage on the modern web and may reveal opportunities for optimization and
-improved development practices.
+Our current heuristics already exhibit high coverage of script sizes, but
+also have obvious false positives and blind spots.
+For example, too many scripts are classified as frontend processing because
+they listen to events, and many extensional features are not classified because
+our heuristics does not include their APIs yet.
+Refining these deficits would improve our classification accuracy.
 
 ## Checklist for Deliverables
 
@@ -436,5 +469,25 @@ improved development practices.
 - Expected end results (code or experiments)
 - Project C report -->
 
+- Weekly meetings between Steven and Harsha.
+- Weekly progress notes in a Google Docs document. These notes will include:
+    - What Steven accomplished last week.
+    - Questions and problems Steven needs help with.
+    - What Steven plans to do next week.
+    - Comments from Harsha.
+
+    Each week, Steven will prepare these notes and send them to
+    Harsha the night before their meeting.
+    Steven will update the notes after the meeting with answers to
+    their questions and any revisions to their plan.
+- Code for web crawling, log processing, classification, and analysis.
+- Crawled data, logs, and intermediate data.
+- A 3-8 page Project C report and
+    an end-of-semester poster summarizing the progress of
+    the project at the end of the semester.
+
 # References {.unnumbered}
 <!-- Include a bibliography with at least the citations from the related work section. -->
+
+[^playwright]: <https://playwright.dev/>
+[^gremlins]: <https://github.com/marmelab/gremlins.js>
