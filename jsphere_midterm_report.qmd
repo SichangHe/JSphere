@@ -26,7 +26,7 @@ csl: acm-sig-proceedings-long-author-list.csl
 <!-- TODO: add this in private repo. -->
 Link to Weekly Meeting Notes: XXX.
 
-# Introduction
+# Introduction {#sec-intro}
 
 <!-- Provide an overview of the need you are addressing, what you are doing and plan to do, the novelty and new results of your work, and why this work is interesting to you personally. -->
 
@@ -68,35 +68,21 @@ As we alluded above, some functionalities are more suitable to
 be implemented on the client, while others are less essential or
 can be offloaded to the server.
 Based on this observation, we propose to classify each JS script into one or
-more of the following rough categories, which we call *spheres*:
-
-- **Frontend processing.** Client-side functionalities such as
-    user interaction,
-    form validation, and other domain-specific logic are essential JS purposes.
-- **DOM element generation.** Instead of serving static HTML, many websites
-    fetch JSON data from the server and convert them into DOM elements, and
-    even apply styling after page load, shifting rendering workloads from
-    the server to the client.
-- **UX enhancement.** Animations, effects, and
-    font loading improve the look and feel of the webpage, but
-    may be replaceable by modern HTML and CSS features.
-- **Extensional features.** Authentication, tracing, and
-    hardware access are inessential to the core functionalities of webpages, but
-    often provides important extra features comparable to native applications.
-- **Silent**: Some scripts do not call any JS APIs or mutate global state,
-    essentially ineffective. These are likely never executed.
+more categories, which we call *spheres*.
+We describe the spheres in @sec-goal, and
+discuss how we classify JS into these spheres.
 
 We analyze JS browser API calls to
 approximately classify them into the above spheres.
-While perfect classification is impossible because
-JS is a Turing-complete language,
-browser API calls reveal the effects each script has on the webpage.
+While perfect classification is generally impossible because
+JS is Turing-complete, browser API calls reveal the effects each script has on
+the webpage.
 Additionally, browser APIs usually have distinct and specific purposes.
 By observing which browser APIs a script calls when the webpage loads or
-is interacted, we can approximately infer its purpose.
-Thus, we visit and interact with webpages for the top 1000 popular domains to
-collect API call logs, then analyze these logs to
-classify their JS into spheres, as we detail in @sec-methods.
+is interacted with, we can approximately infer its purpose.
+Thus, we visit and interact with webpages, then
+analyze their browser API calls to classify their JS into spheres, as
+we detail in @sec-methods.
 
 This work is personally interesting to me because I have strong opinions on
 the trend of increasing JS usage on the Web. Although popular thoughts on
@@ -117,37 +103,67 @@ the reality of JS usage.
 
 <!-- Summarize prior work related to yours and describe how your work compares. Include complete citations to the prior work. -->
 
-<!-- TODO: This cannot repeat the introduction. We need more content instead. -->
+There have been many user-facing studies on JS.
+Researchers have studied how to detect privacy-invading or
+malicious intention in JS, such as tracking when
+user data flow towards the server [@li2018jsgraph],
+identifying browser APIs associated with advertisements and
+tracking [@snyder2016browser],
+identifying fingerprinting behaviors [@iqbal2021fingerprinting], and,
+most recently, detecting techniques for malicious code to
+evade observations [@pantelaios2024fv8].
+Besides privacy and security, researchers have also invented techniques to
+improve the performance bottlenecks brought by JS, such as
+speeding up webpage load time by executing JS in
+parallel [@mardani2021horcrux], or reducing JS execution during web crawling by
+imitating their effects on previously-visited webpages [@goel2024sprinter].
+These studies have provided insights into how to solve some of the issues of
+JS and improve user experiences.
 
-<!-- TODO: Compare to prior work. -->
-Our work differs from these previous studies by
-providing a comprehensive classification of
-have functionalities across major websites.
-This classification aims to bridge the gap between performance analysis and
-feature usage studies, offering insights into why so much JS is used and
-how effective it is in achieving its intended purposes.
+There are, however, no research focusing on identifying the purposes of
+general JS to the best of our knowledge.
+JSphere aims to bridge this gap of understanding about the use of JS in
+general.
+Instead of working around the JS issues, we aim to understand the root cause;
+instead of focusing on script intentions centering around privacy and security,
+we focus on the ordinary use of JS on webpages.
+By looking into the common use of ordinary JS, we hope to
+provide insights into avoiding JS issues in the first place and
+improving web browsing experiences.
 
 # JSphere
 
-## Goal
+## Goal {#sec-goal}
 
 <!-- Describe the goal of your project. -->
 
-The primary goal of JSphere is to classify the functionalities of JS code on
-top websites on the public Web. Specifically, we aim to
-categorize each JS file in the top 1000 websites into one or more of
-the following spheres:
-<!-- TODO: This aim seems too specific. -->
+Based on our observation in @sec-intro that
+some functionalities suit JS better than others, we aim to
+draw each JS script of the top 1000 popular websites into one or
+more following spheres:
 
-- Frontend processing (e.g., user interaction, form validation).
-- DOM element generation (including styling application).
-- UX enhancement (e.g., animations and effects).
-- Extensional features (e.g., authentication and analytics).
-- Silent code (code that does not call any JS APIs, likely never executed).
+- **Frontend processing.** Client-side functionalities such as
+    user interaction,
+    form validation, and other domain-specific logic are essential JS purposes.
+- **DOM element generation.** Instead of serving static HTML, many websites
+    fetch JSON data from the server and convert them into DOM elements, and
+    even apply styling after page load, shifting rendering workloads from
+    the server to the client.
+- **UX enhancement.** Animations, effects, and
+    font loading improve the look and feel of the webpage, but
+    may be replaceable by modern HTML and CSS features.
+- **Extensional features.** Authentication, tracking, and
+    hardware access are inessential to the core functionalities of webpages, but
+    often provides important extra features comparable to native applications.
+- **Silent**: Some scripts do not call any JS APIs or mutate global state,
+    essentially ineffective. These are likely never executed.
 
-By achieving this classification, we hope to
-provide insights into the common uses of JS, which can inform developers,
-improve user experiences, and guide future web development practices.
+Besides classifying scripts into spheres, we also aim to correlate them with
+website performance.
+We would like to see sphere distributions across websites,
+associating the JS sizes per sphere with each webpage's load time.
+We plan to visualize both the sphere distributions and its relationships with
+performance metrics.
 
 ## Methods {#sec-methods}
 
@@ -363,16 +379,9 @@ scripts sizes and load times.
 ## Aggregate and Correlation Analysis
 
 <!-- TODO: WIP -->
-We plan to expand our analysis to the full set of 1000 top websites.
-Additionally, to associate the JS sphere classifications with
-website performance…
-
-<!-- TODO: Address these:
-the sphere distributions across websites, and
-the overall JS-sphere relationships as a Venn diagram.
-Additionally, we may associate the bytes of JS per sphere with
-each webpage's page load time, including time to first byte and time to
-interactive. -->
+We plan to expand our analysis to the full set of 1000 top websites, and to
+associate the JS sphere classifications with website performance, as
+described in @sec-goal.
 
 These additional analyses will provide a more comprehensive understanding of
 JS usage on the modern web and may reveal opportunities for optimization and

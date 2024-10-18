@@ -39,3 +39,5 @@ Tracking JS w/ JS can be spotted.
 ## 👎 [UXJs: Tracking and Analyzing Web Usage Information With a Javascript Oriented Approach](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9020143), 2020 IEEE Access
 
 track user to analyze UX. poorly written.
+
+## [FV8: A Forced Execution JavaScript Engine for Detecting Evasive Techniques](https://arxiv.org/abs/2405.13175), 2024 USENIX Security
