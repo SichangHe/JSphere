@@ -1,0 +1,15 @@
+<html>
+The correct page.
+<script>
+    eval(`function firstEval(input) {
+    window.state = \`firstEval\` + input;
+}`);
+    eval(`function secondEval() {
+    window.state = "secondEval";
+}`)
+    window.state = "outside";
+    firstEval("input1");
+    eval(`firstEval("input2");secondEval();`);
+</script>
+
+</html>
