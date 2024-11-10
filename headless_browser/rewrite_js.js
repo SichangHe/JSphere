@@ -111,6 +111,7 @@ function rewriteStatements(statements, source) {
         totalLen += effectiveLen
         if (
             // TODO: Double check if these are the ones with hoisting.
+            // TODO: Import statements cannot be inside `eval` blocks.
             t === "ClassDeclaration" ||
             t === "FunctionDeclaration" ||
             t === "ImportDeclaration" ||
@@ -130,6 +131,7 @@ function rewriteStatements(statements, source) {
         let currentLen = 0
 
         // FIXME: Return statements cannot be inside `eval` blocks.
+        // FIXME: Only `var` in non-strict mode leaks out of `eval` blocks.
         for (const statement of rewritten.allStatements()) {
             if (
                 currentLen > 0 &&
