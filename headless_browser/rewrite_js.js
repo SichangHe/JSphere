@@ -110,20 +110,24 @@ function rewriteStatements(statements, source) {
         const rewrittenStatement = new RewrittenStatement(span, effectiveLen)
         totalLen += effectiveLen
         if (
-            // TODO: Double check if these are the ones with hoisting.
-            // TODO: Import statements cannot be inside `eval` blocks.
             t === "ClassDeclaration" ||
-            t === "FunctionDeclaration" ||
-            t === "ImportDeclaration" ||
-            t === "ExportDefaultDeclaration" ||
-            t === "ExportNamedDeclaration"
+            t === "FunctionDeclaration"
         ) {
             rewritten.hoisting.push(rewrittenStatement)
+        } else if (t === "ImportDeclaration") {
+            rewritten.imports.push(span)
+        } else if (
+            t === "ExportDefaultDeclaration" ||
+            t === "ExportNamedDeclaration" ||
+            t === "ExportAllDeclaration"
+        ) {
+            throw new ExportUnsupportedErr()
         } else {
             rewritten.regular.push(rewrittenStatement)
         }
     }
 
+    const importText = rewritten.imports.map((s) => s + "\n").join("")
     if (totalLen > MAX_EVAL_SIZE) {
         // Need to try split the script into `eval` blocks.
         const /**@type{RewrittenStatement[]}*/ currentEvalBlock = []
@@ -150,15 +154,20 @@ function rewriteStatements(statements, source) {
             evalBlocks.push(evalBlock)
         }
         const text = evalBlocks.join("")
-        return new RewrittenStatement(text, 0)
+        return new RewrittenStatement(importText + text, 0)
     } else {
         const text = rewritten
             .allStatements()
             .map((statement) => statement.text)
             .join("")
-        return new RewrittenStatement(text, totalLen)
+        return new RewrittenStatement(importText + text, totalLen)
     }
 }
+
+/**
+ * We cannot rewrite scripts that use `export` statements because they do not work in `eval`, hence this error.
+ */
+export class ExportUnsupportedErr extends Error {}
 
 /** Group rewritten statements into an `eval` block and clear the given array.
  * @param {RewrittenStatement[]} rStatementArr - Array of `rewrittenStatement`s to group into an `eval` block.
@@ -184,17 +193,23 @@ function escapeBackticksSlashes(s) {
 }
 
 /**
+ * @field {string[]} imports - `import` statements that must be outside any `eval`.
  * @field {RewrittenStatement[]} hoisting - Statements that are evaluated first.
  * @field {RewrittenStatement[]} regular - Regular statements.
  */
 export class RewrittenStatements {
     constructor() {
+        const /** @type {string[]} */ imports = []
+        this.imports = imports
         const /** @type {RewrittenStatement[]} */ hoisting = []
         this.hoisting = hoisting
         const /** @type {RewrittenStatement[]} */ regular = []
         this.regular = regular
     }
 
+    /**
+     * All hoisting and regular statements, but not `import` statements.
+     */
     allStatements() {
         // How to chain iterators??
         return this.hoisting.concat(this.regular)

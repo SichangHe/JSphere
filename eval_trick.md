@@ -27,13 +27,21 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
         We need to identify all of them and declare them at the top.
 
-- [ ] `return` statements cannot be inside `eval`.
+- [ ] `return` statements cannot return from inside `eval`.
 
     We wrap every `eval` in an immediately invoked function expression (IIFE)
     so that the `return`s are valid.
     We call the IIFE with `.call(this)` to preserve `this`.
     We then check the return value of `eval` and return early it if
     it is not `undefined`.
+
+- [x] `import` statements are not allowed inside `eval`.
+
+    We put them at the top of the script.
+
+- [x] `export` statements are not allowed inside `eval`.
+
+    We keep these scripts as is.
 
 - [ ] `break`, `continue` and `yield` statements may not be able to
     reach the correct outer scopes inside `eval`.

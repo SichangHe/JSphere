@@ -1,4 +1,5 @@
-//25 jsphere effectiveLen
+//54 jsphere effectiveLen
+import { dummy } from "dummy"
 (function(){eval(`function aa(a){var b=a+"                                                                                                                                                                                                                                                                                                                                                                                                                "
         return b}
 function bb(a){var b=a+"                                                                                                                                                                                                                                                                                                                                                                                                                "
