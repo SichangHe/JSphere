@@ -100,8 +100,7 @@ function rewriteStatements(statements, source) {
                 const bodyStart = bodyArr[0].start
                 const bodyEnd = bodyArr[bodyArr.length - 1].end
                 const header = source.slice(statement.start, bodyStart)
-                // FIXME: Sometimes we miss a closing brace.
-                const footer = source.slice(bodyEnd + 1, statement.end + 1)
+                const footer = source.slice(bodyEnd, statement.end)
                 span = `${header}${spanRewritten.text}${footer}`
                 effectiveLen =
                     header.length + spanRewritten.effectiveLen + footer.length
