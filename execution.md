@@ -76,11 +76,9 @@
         - We can probably only claim we detect which sphere.
 - [ ] Split script to fine-grained!!
     - [ ] `eval` per ~~function~~ chunk of 1kB code.
+        Details in `eval_trick.md`.
         - [Doable because VV8 keep separate execution
             context](https://github.com/SichangHe/JSphere/issues/2#issue-2620157064)
-        - [ ] Split statements in script using Acorn then stick together.
-            - [ ] Need to `eval` each function before calling it.
-            - If a function is too big, recursively split its body.
 
 ### Log file interpretation
 
