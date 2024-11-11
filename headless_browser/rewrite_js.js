@@ -6,11 +6,11 @@
  * @typedef {import("acorn").Options} Options
  * @typedef {import("acorn").Program} Program
  * @typedef {import("acorn").Statement} Statement
+ * @typedef {import("acorn").VariableDeclarator} VariableDeclarator
  * @typedef {import("playwright").Page} Page
  * @typedef {import("playwright").Route} Route
  */
 import { parse } from "acorn"
-import { simple } from "acorn-walk"
 import { pCall, pCallAsync } from "./helpers.js"
 
 const /**@type{Options}*/ parseOptions = {
@@ -59,36 +59,10 @@ export function rewriteJs(source) {
     if (rewritten instanceof Error) {
         return rewritten
     } else {
-        const vars = new Set()
-        findAllVar(program, vars)
-        // NOTE: Not counting `import` statements for now.
         return `${rewritten.header()}
 ${imports.join("\n")}
-var ${[...vars].join(",")}
 ${rewritten.text}`
     }
-}
-
-/**
- * @param {Program} program - AST of a JS script.
- * @param {Set<string>} vars - Variables found.
- */
-function findAllVar(program, vars) {
-    simple(program, {
-        VariableDeclaration(node) {
-            for (const decl of node.declarations) {
-                if (decl.id.type === "Identifier") {
-                    vars.add(decl.id.name)
-                }
-            }
-        },
-        FunctionDeclaration(node) {
-            if (node.id && node.id.type === "Identifier") {
-                vars.add(node.id.name)
-            }
-        },
-    })
-    return vars
 }
 
 /** Target maximum size per `eval` block is 1kB. */
@@ -167,11 +141,32 @@ function rewriteStatements(statements, source, imports) {
             t === "ExportAllDeclaration"
         ) {
             return new ExportUnsupportedErr()
+        } else if (t === "VariableDeclaration") {
+            const declarations =
+                statement.kind === "var" ? rewritten.vars : rewritten.lets
+            for (const decl of statement.declarations) {
+                if (decl.id.type === "Identifier") {
+                    declarations.add(decl.id.name)
+                }
+                if (decl.init) {
+                    const declSpan = source
+                        .slice(decl.start, decl.end + 1)
+                        .trimEnd()
+                    const declText = declSpan.endsWith(",")
+                        ? declSpan.slice(0, -1)
+                        : declSpan
+                    rewritten.regular.push(new RewrittenStatement(declText, 0))
+                }
+            }
         } else {
             rewritten.regular.push(rewrittenStatement)
         }
     }
 
+    const varDecls =
+        rewritten.vars.size > 0 ? `var ${[...rewritten.vars].join(",")}\n` : ""
+    const letDecls =
+        rewritten.lets.size > 0 ? `let ${[...rewritten.lets].join(",")}\n` : ""
     if (totalLen > MAX_EVAL_SIZE) {
         // Need to try split the script into `eval` blocks.
         let /**@type{RewrittenStatement[]}*/ currentEvalBlock = []
@@ -204,13 +199,13 @@ function rewriteStatements(statements, source, imports) {
         const effectiveLen = nestedBlocks
             .map((block) => block.effectiveLen)
             .reduce((a, b) => a + b)
-        return new RewrittenStatement(text, effectiveLen)
+        return new RewrittenStatement(varDecls + letDecls + text, effectiveLen)
     } else {
         const text = rewritten
             .allStatements()
             .map((statement) => statement.text)
             .join("\n")
-        return new RewrittenStatement(text, totalLen)
+        return new RewrittenStatement(varDecls + letDecls + text, totalLen)
     }
 }
 
@@ -248,6 +243,8 @@ function escapeBackticksSlashes(s) {
 /**
  * @field {RewrittenStatement[]} hoisting - Statements that are evaluated first.
  * @field {RewrittenStatement[]} regular - Regular statements.
+ * @field {Set<string>} vars - `var` declarations.
+ * @field {Set<string>} lets - `let` or `const` declarations.
  */
 export class RewrittenStatements {
     constructor() {
@@ -255,6 +252,10 @@ export class RewrittenStatements {
         this.hoisting = hoisting
         const /** @type {RewrittenStatement[]} */ regular = []
         this.regular = regular
+        const /** @type {Set<string>} */ vars = new Set()
+        this.vars = vars
+        const /** @type {Set<string>} */ lets = new Set()
+        this.lets = lets
     }
 
     /**

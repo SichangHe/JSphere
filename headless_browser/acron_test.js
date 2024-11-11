@@ -49,3 +49,6 @@ m)}else g=g.length==1?g[0]:{};za(a,b,c,g,!0)}`,
     parseOptions,
 )
 console.log("fnInFn:", JSON.stringify(fnInFn, null, 2), "\n")
+
+const multiVarDecl = parse(`var Ka=n.spf,Z`, parseOptions)
+console.log("multiVarDecl:", JSON.stringify(multiVarDecl, null, 2), "\n")

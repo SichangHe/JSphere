@@ -23,9 +23,16 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
     - [x] Top-level functions.
 
     We simply `eval` them first.
-    - [x] `var` declarations.
 
-        We need to identify all of them and declare them at the top.
+    - [x] Variable declarations.
+        Functions cannot capture variables declared in adjacent `eval`s, and
+        would capture the variable in the outer scope with
+        the same name instead, causing errors.
+
+        We identify all variable declarations in the current scope,
+        declare all of them first using `var` or `let`, then
+        make sure they are not declared again in the `eval` calls on
+        the same level.
 
 - [x] `return` statements cannot return from inside `eval`.
 

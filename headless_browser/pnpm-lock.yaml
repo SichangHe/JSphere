@@ -8,9 +8,6 @@ dependencies:
   acorn:
     specifier: ^8.14.0
     version: 8.14.0
-  acorn-walk:
-    specifier: ^8.3.4
-    version: 8.3.4
   gremlins.js:
     specifier: ^2.2.0
     version: 2.2.0
@@ -19,13 +16,6 @@ dependencies:
     version: 1.47.1
 
 packages:
-
-  /acorn-walk@8.3.4:
-    resolution: {integrity: sha512-ueEepnujpqee2o5aIYnvHU6C0A42MNdsIDeqy5BydrkuC5R1ZuUFnm27EeFJGoEHJQgn3uleRvmTXaJgfXbt4g==}
-    engines: {node: '>=0.4.0'}
-    dependencies:
-      acorn: 8.14.0
-    dev: false
 
   /acorn@8.14.0:
     resolution: {integrity: sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==}
