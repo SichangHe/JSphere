@@ -27,7 +27,7 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
         We need to identify all of them and declare them at the top.
 
-- [ ] `return` statements cannot return from inside `eval`.
+- [x] `return` statements cannot return from inside `eval`.
 
     We wrap every `eval` in an immediately invoked function expression (IIFE)
     so that the `return`s are valid.
@@ -56,7 +56,9 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
 - [ ] `await` does not work inside `eval`.
 
-    If a script uses `await`, we use an async IIFE and `await` on the `eval`.
+    We keep such portions of the script as is.
+
+    We could use an async IIFE and `await` on the `eval`.
 
 ## Inherent limitations
 

@@ -109,10 +109,7 @@ function rewriteStatements(statements, source) {
 
         const rewrittenStatement = new RewrittenStatement(span, effectiveLen)
         totalLen += effectiveLen
-        if (
-            t === "ClassDeclaration" ||
-            t === "FunctionDeclaration"
-        ) {
+        if (t === "ClassDeclaration" || t === "FunctionDeclaration") {
             rewritten.hoisting.push(rewrittenStatement)
         } else if (t === "ImportDeclaration") {
             rewritten.imports.push(span)
@@ -134,7 +131,6 @@ function rewriteStatements(statements, source) {
         const /**@type{string[]}*/ evalBlocks = []
         let currentLen = 0
 
-        // FIXME: Return statements cannot be inside `eval` blocks.
         // FIXME: Only `var` in non-strict mode leaks out of `eval` blocks.
         for (const statement of rewritten.allStatements()) {
             if (
@@ -182,7 +178,12 @@ function makeEvalBlock(rStatementArr) {
             break
         }
     }
-    return `eval(\`${content}\`);\n`
+    return `var __jsphereEvalRes = eval(\`(function(){
+${content}}).call(this)\`);
+if (__jsphereEvalRes !== undefined) {
+    return __jsphereEvalRes;
+}
+`
 }
 
 /**
