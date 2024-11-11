@@ -127,35 +127,42 @@ function rewriteStatements(statements, source) {
     const importText = rewritten.imports.map((s) => s + "\n").join("")
     if (totalLen > MAX_EVAL_SIZE) {
         // Need to try split the script into `eval` blocks.
-        const /**@type{RewrittenStatement[]}*/ currentEvalBlock = []
-        const /**@type{string[]}*/ evalBlocks = []
+        let /**@type{RewrittenStatement[]}*/ currentEvalBlock = []
+        const /**@type{RewrittenStatement[][]}*/ evalBlocks = []
         let currentLen = 0
 
-        // FIXME: Only `var` in non-strict mode leaks out of `eval` blocks.
         for (const statement of rewritten.allStatements()) {
             if (
                 currentLen > 0 &&
                 currentLen + statement.effectiveLen > MAX_EVAL_SIZE
             ) {
                 // Need to group existing block and start a new one.
-                const evalBlock = makeEvalBlock(currentEvalBlock)
+                evalBlocks.push(currentEvalBlock)
+                currentEvalBlock = []
                 currentLen = 0
-                evalBlocks.push(evalBlock)
             }
             currentEvalBlock.push(statement)
             currentLen += statement.effectiveLen
         }
         if (currentEvalBlock.length > 0) {
-            const evalBlock = makeEvalBlock(currentEvalBlock)
-            evalBlocks.push(evalBlock)
+            evalBlocks.push(currentEvalBlock)
         }
-        const text = evalBlocks.join("")
-        return new RewrittenStatement(importText + text, 0)
+
+        const nestedBlocks = evalBlocks.reduceRight((prevBlock, block) => {
+            const evalBlock = makeEvalBlock(prevBlock)
+            block.push(new RewrittenStatement(evalBlock, 0))
+            return block
+        })
+        const text = nestedBlocks.map((block) => block.text).join("\n")
+        const effectiveLen = nestedBlocks
+            .map((block) => block.effectiveLen)
+            .reduce((a, b) => a + b)
+        return new RewrittenStatement(importText + text, effectiveLen)
     } else {
         const text = rewritten
             .allStatements()
             .map((statement) => statement.text)
-            .join("")
+            .join("\n")
         return new RewrittenStatement(importText + text, totalLen)
     }
 }
@@ -170,8 +177,8 @@ export class ExportUnsupportedErr extends Error {}
  */
 function makeEvalBlock(rStatementArr) {
     const content = rStatementArr
-        .map((statement) => escapeBackticksSlashes(statement.text) + "\n")
-        .join("")
+        .map((statement) => escapeBackticksSlashes(statement.text))
+        .join("\n")
     while (true) {
         // There is no `Array.clear`??
         if (rStatementArr.pop() == undefined) {

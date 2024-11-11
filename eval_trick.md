@@ -48,7 +48,7 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
     We keep such portions of the script as is.
 
-- [ ] Variables created in `eval`
+- [x] Variables created in `eval`
     do not leak out unless they are declared with `var` in non-strict mode.
 
     We go deeper and deeper into nested `eval`s, so
@@ -63,3 +63,4 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 ## Inherent limitations
 
 - Performance: `eval` disables the JIT and forces slow variable lookups.
+- Bloat: deeply nested `eval`s cause mountains of backslashes.
