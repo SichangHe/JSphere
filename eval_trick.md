@@ -17,13 +17,13 @@ read-write access to all of the surrounding variables.
 
 In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
-- [ ] Hoisting: some constructs behave as if
+- [x] Hoisting: some constructs behave as if
     they are evaluated first before the script is run.
 
     - [x] Top-level functions.
 
     We simply `eval` them first.
-    - [ ] `var` declarations.
+    - [x] `var` declarations.
 
         We need to identify all of them and declare them at the top.
 

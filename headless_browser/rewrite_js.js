@@ -1,20 +1,23 @@
+// @ts-check
 /**
  * @typedef {import("acorn").ClassBody} ClassBody
  * @typedef {import("acorn").Expression} Expression
  * @typedef {import("acorn").ModuleDeclaration} ModuleDeclaration
+ * @typedef {import("acorn").Options} Options
  * @typedef {import("acorn").Program} Program
  * @typedef {import("acorn").Statement} Statement
  * @typedef {import("playwright").Page} Page
  * @typedef {import("playwright").Route} Route
  */
 import { parse } from "acorn"
+import { simple } from "acorn-walk"
 import { pCall, pCallAsync } from "./helpers.js"
 
-const parseOptions = {
-    ecmaVersion: "latest",
-    // NOTE: It seems module setting can also parse scripts.
-    sourceType: "module",
-}
+const /**@type{Options}*/ parseOptions = {
+        ecmaVersion: "latest",
+        // NOTE: It seems module setting can also parse scripts.
+        sourceType: "module",
+    }
 
 /**
  * @param {Page} page - The page to intercept JS requests on.
@@ -32,11 +35,11 @@ export async function overwriteResponseJs(route) {
     const response = await route.fetch()
     const fulfillOpts = { response }
     if (response.ok()) {
-        const text = pCallAsync(response.text)
+        const text = await pCallAsync(response.text)
         if (!(text instanceof Error)) {
             const rewritten = rewriteJs(text)
             if (!(rewritten instanceof Error)) {
-                fulfillOpts.body = rewritten.toString()
+                fulfillOpts.body = rewritten
             }
         }
     }
@@ -51,18 +54,53 @@ export function rewriteJs(source) {
     if (program instanceof Error) {
         return program
     }
-    const rewritten = rewriteStatements(program.body, source)
-    return rewritten
+    const /**@type {string[]}*/ imports = []
+    const rewritten = rewriteStatements(program.body, source, imports)
+    if (rewritten instanceof Error) {
+        return rewritten
+    } else {
+        const vars = new Set()
+        findAllVar(program, vars)
+        // NOTE: Not counting `import` statements for now.
+        return `${rewritten.header()}
+${imports.join("\n")}
+var ${[...vars].join(",")}
+${rewritten.text}`
+    }
+}
+
+/**
+ * @param {Program} program - AST of a JS script.
+ * @param {Set<string>} vars - Variables found.
+ */
+function findAllVar(program, vars) {
+    simple(program, {
+        VariableDeclaration(node) {
+            for (const decl of node.declarations) {
+                if (decl.id.type === "Identifier") {
+                    vars.add(decl.id.name)
+                }
+            }
+        },
+        FunctionDeclaration(node) {
+            if (node.id && node.id.type === "Identifier") {
+                vars.add(node.id.name)
+            }
+        },
+    })
+    return vars
 }
 
 /** Target maximum size per `eval` block is 1kB. */
 const MAX_EVAL_SIZE = 1000
 
+// TODO: `statements` should also deal w/ `Expression`s.
 /**
  * @param {(Statement | ModuleDeclaration)[]} statements - Statements in a program or function.
  * @param {string} source - Source code.
+ * @param {string[]} imports - `import` statements that must be at the top.
  */
-function rewriteStatements(statements, source) {
+function rewriteStatements(statements, source, imports) {
     const rewritten = new RewrittenStatements()
     let totalLen = 0
 
@@ -73,18 +111,21 @@ function rewriteStatements(statements, source) {
         let effectiveLen = span.length
         if (effectiveLen > MAX_EVAL_SIZE) {
             let /**@type{Statement[]}*/ bodyArr = []
-            const /**@type {Statement | Statement[] | ClassBody | undefined}*/ body =
+            const /**@type {Statement | Statement[] | ClassBody | undefined}*/ body = // @ts-ignore
                     statement.body
-            const /**@type {boolean | Expression | undefined}*/ expr =
-                    statement.expression
-            const /**@type {Expression | undefined}*/ callee = statement.callee
+            const /**@type {boolean | Expression | undefined}*/ expr = // @ts-ignore
+                    statement.expression // @ts-ignore
+            const /**@type {Expression | undefined}*/ callee = statement.callee // @ts-ignore
             const /**@type {Expression | undefined}*/ object = statement.object
             if (body == undefined) {
-                if (expr != undefined && !(expr instanceof Boolean)) {
+                if (expr != undefined && typeof expr !== "boolean") {
+                    // @ts-ignore
                     bodyArr = [expr]
                 } else if (callee != undefined) {
+                    // @ts-ignore
                     bodyArr = [callee]
                 } else if (object != undefined) {
+                    // @ts-ignore
                     bodyArr = [object]
                 }
             } else if (body instanceof Array) {
@@ -96,7 +137,14 @@ function rewriteStatements(statements, source) {
             }
 
             if (bodyArr.length > 0) {
-                const spanRewritten = rewriteStatements(bodyArr, source)
+                const spanRewritten = rewriteStatements(
+                    bodyArr,
+                    source,
+                    imports,
+                )
+                if (spanRewritten instanceof Error) {
+                    return spanRewritten
+                }
                 const bodyStart = bodyArr[0].start
                 const bodyEnd = bodyArr[bodyArr.length - 1].end
                 const header = source.slice(statement.start, bodyStart)
@@ -112,19 +160,18 @@ function rewriteStatements(statements, source) {
         if (t === "ClassDeclaration" || t === "FunctionDeclaration") {
             rewritten.hoisting.push(rewrittenStatement)
         } else if (t === "ImportDeclaration") {
-            rewritten.imports.push(span)
+            imports.push(span)
         } else if (
             t === "ExportDefaultDeclaration" ||
             t === "ExportNamedDeclaration" ||
             t === "ExportAllDeclaration"
         ) {
-            throw new ExportUnsupportedErr()
+            return new ExportUnsupportedErr()
         } else {
             rewritten.regular.push(rewrittenStatement)
         }
     }
 
-    const importText = rewritten.imports.map((s) => s + "\n").join("")
     if (totalLen > MAX_EVAL_SIZE) {
         // Need to try split the script into `eval` blocks.
         let /**@type{RewrittenStatement[]}*/ currentEvalBlock = []
@@ -157,13 +204,13 @@ function rewriteStatements(statements, source) {
         const effectiveLen = nestedBlocks
             .map((block) => block.effectiveLen)
             .reduce((a, b) => a + b)
-        return new RewrittenStatement(importText + text, effectiveLen)
+        return new RewrittenStatement(text, effectiveLen)
     } else {
         const text = rewritten
             .allStatements()
             .map((statement) => statement.text)
             .join("\n")
-        return new RewrittenStatement(importText + text, totalLen)
+        return new RewrittenStatement(text, totalLen)
     }
 }
 
@@ -172,20 +219,18 @@ function rewriteStatements(statements, source) {
  */
 export class ExportUnsupportedErr extends Error {}
 
-/** Group rewritten statements into an `eval` block and clear the given array.
+/** Group rewritten statements into an `eval` block.
  * @param {RewrittenStatement[]} rStatementArr - Array of `rewrittenStatement`s to group into an `eval` block.
  */
 function makeEvalBlock(rStatementArr) {
     const content = rStatementArr
         .map((statement) => escapeBackticksSlashes(statement.text))
         .join("\n")
-    while (true) {
-        // There is no `Array.clear`??
-        if (rStatementArr.pop() == undefined) {
-            break
-        }
-    }
-    return `var __jsphereEvalRes = eval(\`(function(){
+    const effectiveLen = rStatementArr
+        .map((statement) => statement.effectiveLen)
+        .reduce((a, b) => a + b)
+    return `var __jsphereEvalRes = eval(\`${effectiveLenHeader(effectiveLen)}
+(function(){
 ${content}}).call(this)\`);
 if (__jsphereEvalRes !== undefined) {
     return __jsphereEvalRes;
@@ -201,14 +246,11 @@ function escapeBackticksSlashes(s) {
 }
 
 /**
- * @field {string[]} imports - `import` statements that must be outside any `eval`.
  * @field {RewrittenStatement[]} hoisting - Statements that are evaluated first.
  * @field {RewrittenStatement[]} regular - Regular statements.
  */
 export class RewrittenStatements {
     constructor() {
-        const /** @type {string[]} */ imports = []
-        this.imports = imports
         const /** @type {RewrittenStatement[]} */ hoisting = []
         this.hoisting = hoisting
         const /** @type {RewrittenStatement[]} */ regular = []
@@ -238,8 +280,22 @@ export class RewrittenStatement {
         this.effectiveLen = effectiveLen
     }
 
+    /**
+     * JSphere effectiveLen header.
+     */
+    header() {
+        return effectiveLenHeader(this.effectiveLen)
+    }
+
     toString() {
-        return `//${this.effectiveLen} jsphere effectiveLen
+        return `${this.header()}
 ${this.text}`
     }
+}
+
+/**
+ * @param {number} effectiveLen
+ */
+export function effectiveLenHeader(effectiveLen) {
+    return `//${effectiveLen} jsphere effectiveLen`
 }
