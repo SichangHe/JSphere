@@ -24,7 +24,7 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
     - [x] Top-level functions.
 
-    We simply `eval` them first.
+        We simply `eval` them first.
 
     - [x] Variable declarations.
         Functions cannot capture variables declared in adjacent `eval`s, and
@@ -55,8 +55,8 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 - [x] `break`, `continue` and `yield` statements may not be able to
     reach the correct outer scopes inside `eval`.
 
-    We do rewrite with `eval` in loops or generators until we hit a function or
-    class boundary.
+    We do not rewrite with `eval` in loops or
+    generators until we hit a function or class boundary.
 
 - [x] Variables created in `eval`
     do not leak out unless they are declared with `var` in non-strict mode.
