@@ -29,3 +29,17 @@ if (expected !== actual) {
     console.error("network.js rewrite output unexpected")
     console.log(actual + "\n\n")
 }
+
+input = readFileSync(
+    `${__dirname}/scripts_to_rewrite/google_crashed_us.js`,
+    "utf8",
+)
+expected = readFileSync(
+    `${__dirname}/scripts_to_rewrite/rewritten_google_crashed_us.js`,
+    "utf8",
+)
+actual = rewriteJs(input)?.toString()
+if (expected !== actual) {
+    console.error("google_crashed_us.js rewrite output unexpected")
+    console.log(actual + "\n\n")
+}

@@ -12,6 +12,7 @@
  */
 import { parse } from "acorn"
 import { pCall, pCallAsync } from "./helpers.js"
+import { WILDCARD_URL } from "./browser.js"
 
 const /**@type{Options}*/ parseOptions = {
         ecmaVersion: "latest",
@@ -20,25 +21,33 @@ const /**@type{Options}*/ parseOptions = {
     }
 
 /**
+ * This is only for testing because it cannot coexist with other route interceptors.
  * @param {Page} page - The page to intercept JS requests on.
  */
 export function rewriteJsResponses(page) {
-    // NOTE: Some URLs not ending with `cjs`, `mts`, `jsx`, etc. also point to
-    // JS files, but let's not go crazy and just catch common cases.
-    page.route(/\.([cm]?[jt]sx?|svelte)$/, overwriteResponseJs)
+    page.route(WILDCARD_URL, overwriteResponseJs)
 }
 
 /**
+ * This is only for testing because it cannot coexist with other route interceptors.
  * @param {Route} route - The route to intercept.
  */
 export async function overwriteResponseJs(route) {
     const response = await route.fetch()
     const fulfillOpts = { response }
-    if (response.ok()) {
-        const text = await pCallAsync(response.text)
-        if (!(text instanceof Error)) {
+    if (
+        response.ok() &&
+        response.headers()["content-type"]?.includes("javascript")
+    ) {
+        console.log("Rewriting JS from", route.request().url())
+        const text = await pCallAsync(async () => response.text())
+        if (text instanceof Error) {
+            console.error("Failed to read JS response:", text, response)
+        } else {
             const rewritten = rewriteJs(text)
-            if (!(rewritten instanceof Error)) {
+            if (rewritten instanceof Error) {
+                console.error("Failed to rewrite JS:", rewritten, response)
+            } else {
                 fulfillOpts.body = rewritten
             }
         }
