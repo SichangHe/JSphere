@@ -68,73 +68,57 @@ ${rewritten.text}`
 /** Target maximum size per `eval` block is 1kB. */
 const MAX_EVAL_SIZE = 1000
 
-// TODO: `statements` should also deal w/ `Expression`s.
 /**
- * @param {(Statement | ModuleDeclaration)[]} statements - Statements in a program or function.
+ * @param {(Statement | ModuleDeclaration | Expression)[]} statements - Statements in a program or function.
  * @param {string} source - Source code.
  * @param {string[]} imports - `import` statements that must be at the top.
+ * @param {boolean?} noRewrite - Do not rewrite the statements at this level. If `undefined`, may rewrite contained statements if suitable.
  */
-function rewriteStatements(statements, source, imports) {
+function rewriteStatements(statements, source, imports, noRewrite = false) {
     const rewritten = new RewrittenStatements()
     let totalLen = 0
+    /* console.log(
+        statements[0].type,
+        source.slice(statements[0].start, statements[0].start + 30),
+        "...",
+        source.slice(
+            statements[statements.length - 1].end - 29,
+            statements[statements.length - 1].end + 1,
+        ),
+        statements[statements.length - 1].end - statements[0].start,
+        noRewrite,
+    ) //DBG */
 
     for (const statement of statements) {
         const t = statement.type
-        let span = source.slice(statement.start, statement.end)
-        // TODO: Use byte size instead of character count.
-        let effectiveLen = span.length
-        if (effectiveLen > MAX_EVAL_SIZE) {
-            let /**@type{Statement[]}*/ bodyArr = []
-            const /**@type {Statement | Statement[] | ClassBody | undefined}*/ body = // @ts-ignore
-                    statement.body
-            const /**@type {boolean | Expression | undefined}*/ expr = // @ts-ignore
-                    statement.expression // @ts-ignore
-            const /**@type {Expression | undefined}*/ callee = statement.callee // @ts-ignore
-            const /**@type {Expression | undefined}*/ object = statement.object
-            if (body == undefined) {
-                if (expr != undefined && typeof expr !== "boolean") {
-                    // @ts-ignore
-                    bodyArr = [expr]
-                } else if (callee != undefined) {
-                    // @ts-ignore
-                    bodyArr = [callee]
-                } else if (object != undefined) {
-                    // @ts-ignore
-                    bodyArr = [object]
+        const span = source.slice(statement.start, statement.end)
+        const effectiveLen = Buffer.byteLength(span, "utf8")
+        const rewrittenStmt = new RewrittenStatement(span, effectiveLen)
+        let /**@type{(Statement | Expression)[]}*/ bodyArr = []
+        let /**@type{(Statement | Expression)[]}*/ checkArr = []
+        let /**@type{RewrittenStatement[]?}*/ rewrittenArr = rewritten.regular
+        let separateScope = false
+        let nestedNoRewrite = noRewrite
+
+        if (t === "ClassDeclaration") {
+            // TODO: Perhaps break down large classes.
+            rewrittenArr = rewritten.hoisting
+            separateScope = true
+        } else if (t === "FunctionDeclaration") {
+            bodyArr = statement.body.body
+            rewrittenArr = rewritten.hoisting
+            separateScope = true
+            if (statement.generator) {
+                if (nestedNoRewrite === false) {
+                    // Do not rewrite in generators.
+                    nestedNoRewrite = null
                 }
-            } else if (body instanceof Array) {
-                bodyArr = body
-            } else if (body.type === "ClassBody") {
-                // TODO: Perhaps break down large classes.
             } else {
-                bodyArr = [body]
+                separateScope = true
             }
-
-            if (bodyArr.length > 0) {
-                const spanRewritten = rewriteStatements(
-                    bodyArr,
-                    source,
-                    imports,
-                )
-                if (spanRewritten instanceof Error) {
-                    return spanRewritten
-                }
-                const bodyStart = bodyArr[0].start
-                const bodyEnd = bodyArr[bodyArr.length - 1].end
-                const header = source.slice(statement.start, bodyStart)
-                const footer = source.slice(bodyEnd, statement.end)
-                span = `${header}${spanRewritten.text}${footer}`
-                effectiveLen =
-                    header.length + spanRewritten.effectiveLen + footer.length
-            }
-        }
-
-        const rewrittenStatement = new RewrittenStatement(span, effectiveLen)
-        totalLen += effectiveLen
-        if (t === "ClassDeclaration" || t === "FunctionDeclaration") {
-            rewritten.hoisting.push(rewrittenStatement)
         } else if (t === "ImportDeclaration") {
             imports.push(span)
+            rewrittenArr = null
         } else if (
             t === "ExportDefaultDeclaration" ||
             t === "ExportNamedDeclaration" ||
@@ -148,26 +132,278 @@ function rewriteStatements(statements, source, imports) {
                 if (decl.id.type === "Identifier") {
                     declarations.add(decl.id.name)
                 }
-                if (decl.init) {
+                if (decl.init != null) {
+                    checkArr.push(decl.init)
+
+                    // Generate the declaration text.
                     const declSpan = source
                         .slice(decl.start, decl.end + 1)
                         .trimEnd()
+                    const effectiveLen = declSpan.length
                     const declText = declSpan.endsWith(",")
                         ? declSpan.slice(0, -1)
                         : declSpan
-                    rewritten.regular.push(new RewrittenStatement(declText, 0))
+                    const stmt = new RewrittenStatement(declText, effectiveLen)
+                    rewritten.regular.push(stmt)
+                    totalLen += effectiveLen
                 }
             }
+            rewrittenArr = null
+        } else if (t === "ExpressionStatement") {
+            bodyArr.push(statement.expression)
+        } else if (t === "BlockStatement") {
+            bodyArr = statement.body
+        } else if (
+            t === "EmptyStatement" ||
+            t === "DebuggerStatement" ||
+            t === "BreakStatement" ||
+            t === "ContinueStatement" ||
+            t === "Identifier" ||
+            t === "Literal" ||
+            t === "ThisExpression" ||
+            t === "MetaProperty"
+        ) {
+            // No op.
+        } else if (t === "WithStatement") {
+            checkArr.push(statement.object)
+            bodyArr.push(statement.body)
+        } else if (t === "LabeledStatement") {
+            bodyArr.push(statement.body)
+            if (nestedNoRewrite === false) {
+                // Do not rewrite in labeled statements.
+                nestedNoRewrite = null
+            }
+        } else if (
+            t === "ReturnStatement" ||
+            t === "ThrowStatement" ||
+            t === "UnaryExpression" ||
+            t === "UpdateExpression" ||
+            t === "YieldExpression"
+        ) {
+            if (statement.argument != null) {
+                bodyArr.push(statement.argument)
+            }
+        } else if (t === "IfStatement") {
+            checkArr.push(statement.test)
+            if (statement.alternate != null) {
+                // NOTE: We do not rewrite `alternate` to avoid the complexity of
+                // also rewriting `consequent`.
+                checkArr.push(statement.alternate)
+            }
+        } else if (t === "SwitchStatement") {
+            // NOTE: We do not rewrite `switch` statements to avoid complexity.
+            checkArr.push(statement.discriminant)
+            for (const caseClause of statement.cases) {
+                if (caseClause.test != null) {
+                    checkArr.push(caseClause.test)
+                }
+                checkArr.push(...caseClause.consequent)
+            }
+            if (nestedNoRewrite === false) {
+                // Do not rewrite in switch statements.
+                nestedNoRewrite = null
+            }
+        } else if (t === "TryStatement") {
+            bodyArr = statement.block.body
+            if (statement.handler != null) {
+                checkArr.push(...statement.handler.body.body)
+            }
+            if (statement.finalizer != null) {
+                checkArr.push(...statement.finalizer.body)
+            }
+        } else if (t === "WhileStatement" || t === "DoWhileStatement") {
+            checkArr.push(statement.test)
+            bodyArr.push(statement.body)
+            if (nestedNoRewrite === false) {
+                // Do not rewrite in while loops.
+                nestedNoRewrite = null
+            }
+        } else if (t === "ForStatement") {
+            if (
+                statement.init != null &&
+                statement.init.type !== "VariableDeclaration"
+            ) {
+                checkArr.push(statement.init)
+            }
+            checkArr.push(
+                ...[statement.test, statement.update].filter((s) => s != null),
+            )
+            bodyArr.push(statement.body)
+            if (nestedNoRewrite === false) {
+                // Do not rewrite in for loops.
+                nestedNoRewrite = null
+            }
+        } else if (t === "ForInStatement" || t === "ForOfStatement") {
+            checkArr.push(statement.right)
+            bodyArr.push(statement.body)
+            if (nestedNoRewrite === false) {
+                // Do not rewrite in for loops.
+                nestedNoRewrite = null
+            }
+        } else if (t === "ArrayExpression") {
+            for (const elem of statement.elements) {
+                if (elem != null) {
+                    if (elem.type === "SpreadElement") {
+                        checkArr.push(elem.argument)
+                    } else {
+                        checkArr.push(elem)
+                    }
+                }
+            }
+        } else if (t === "ObjectExpression") {
+            for (const prop of statement.properties) {
+                if (prop.type === "SpreadElement") {
+                    checkArr.push(prop.argument)
+                } else {
+                    checkArr.push(prop.value)
+                }
+            }
+        } else if (t === "FunctionExpression") {
+            bodyArr = statement.body.body
+            if (statement.generator) {
+                if (nestedNoRewrite === false) {
+                    // Do not rewrite in generators.
+                    nestedNoRewrite = null
+                }
+            } else {
+                separateScope = true
+            }
+        } else if (t === "BinaryExpression") {
+            // NOTE: We do not rewrite LHS to avoid complexity.
+            if (statement.left.type !== "PrivateIdentifier") {
+                checkArr.push(statement.left)
+            }
+            bodyArr.push(statement.right)
+        } else if (t === "AssignmentExpression") {
+            bodyArr.push(statement.right)
+        } else if (t === "LogicalExpression") {
+            // NOTE: We do not rewrite LHS to avoid complexity.
+            checkArr.push(statement.left)
+            bodyArr.push(statement.right)
+        } else if (t === "MemberExpression") {
+            if (statement.object.type !== "Super") {
+                bodyArr.push(statement.object)
+            }
+            if (statement.property.type !== "PrivateIdentifier") {
+                checkArr.push(statement.property)
+            }
+        } else if (t === "ConditionalExpression") {
+            checkArr.push(
+                statement.test,
+                statement.consequent,
+                statement.alternate,
+            )
+        } else if (t === "CallExpression") {
+            if (statement.callee.type !== "Super") {
+                bodyArr.push(statement.callee)
+            }
+            for (const arg of statement.arguments) {
+                if (arg.type === "SpreadElement") {
+                    checkArr.push(arg.argument)
+                } else {
+                    checkArr.push(arg)
+                }
+            }
+        } else if (t === "NewExpression") {
+            checkArr.push(statement.callee)
+            for (const arg of statement.arguments) {
+                if (arg.type === "SpreadElement") {
+                    checkArr.push(arg.argument)
+                } else {
+                    checkArr.push(arg)
+                }
+            }
+        } else if (t === "SequenceExpression" || t === "TemplateLiteral") {
+            checkArr = statement.expressions
+        } else if (t === "ArrowFunctionExpression") {
+            if (statement.body.type === "BlockStatement") {
+                bodyArr = statement.body.body
+            } else {
+                bodyArr.push(statement.body)
+            }
+        } else if (t === "TaggedTemplateExpression") {
+            checkArr.push(statement.tag, statement.quasi)
+        } else if (t === "ClassExpression") {
+            // TODO: Perhaps break down large classes.
+            separateScope = true
+        } else if (t === "AwaitExpression") {
+            bodyArr.push(statement.argument)
+            rewrittenStmt.hasAwait = true
+        } else if (t === "ChainExpression" || t === "ParenthesizedExpression") {
+            bodyArr.push(statement.expression)
+        } else if (t === "ImportExpression") {
+            bodyArr.push(statement.source)
+            if (statement.options != null) {
+                bodyArr.push(statement.source)
+            }
         } else {
-            rewritten.regular.push(rewrittenStatement)
+            return new UnknownNodeErr(statement)
+        }
+
+        if (checkArr.length > 0) {
+            /* console.log("checkArr", t) //DBG */
+            const rewrittenExpr = rewriteStatements(
+                checkArr,
+                source,
+                imports,
+                true,
+            )
+            if (rewrittenExpr instanceof Error) {
+                return rewrittenExpr
+            }
+            rewrittenStmt.hasAwait ||= rewrittenExpr.hasAwait
+        }
+
+        if (separateScope) {
+            // Prevents `await` from leaking out of the scope.
+            rewrittenStmt.hasAwait = false
+        }
+        if (!noRewrite && bodyArr.length > 0 && effectiveLen > MAX_EVAL_SIZE) {
+            /* console.log("bodyArr", t, separateScope, noRewrite, nestedNoRewrite) //DBG */
+            // Break down the statement into `eval` blocks.
+            const textRewritten = rewriteStatements(
+                bodyArr,
+                source,
+                imports,
+                separateScope ? false : nestedNoRewrite,
+            )
+            if (textRewritten instanceof Error) {
+                return textRewritten
+            }
+            const bodyStart = bodyArr[0].start
+            const bodyEnd = bodyArr[bodyArr.length - 1].end
+            const header = source.slice(statement.start, bodyStart)
+            const footer = source.slice(bodyEnd, statement.end)
+            rewrittenStmt.text = `${header}${textRewritten.text}${footer}`
+            rewrittenStmt.effectiveLen =
+                header.length + textRewritten.effectiveLen + footer.length
+        }
+
+        if (rewrittenArr != null) {
+            rewrittenArr.push(rewrittenStmt)
+            totalLen += effectiveLen
+        } else if (rewrittenStmt.hasAwait && rewritten.regular.length > 0) {
+            // This is so that `await` in variable declarations are recorded.
+            rewritten.regular[rewritten.regular.length - 1].hasAwait = true
         }
     }
 
+    /* console.log(
+        statements[0].type,
+        source.slice(statements[0].start, statements[0].start + 30),
+        "...",
+        source.slice(
+            statements[statements.length - 1].end - 29,
+            statements[statements.length - 1].end + 1,
+        ),
+        totalLen,
+        noRewrite,
+    ) //DBG */
     const varDecls =
         rewritten.vars.size > 0 ? `var ${[...rewritten.vars].join(",")}\n` : ""
     const letDecls =
         rewritten.lets.size > 0 ? `let ${[...rewritten.lets].join(",")}\n` : ""
-    if (totalLen > MAX_EVAL_SIZE) {
+    if (noRewrite === false && totalLen > MAX_EVAL_SIZE) {
         // Need to try split the script into `eval` blocks.
         let /**@type{RewrittenStatement[]}*/ currentEvalBlock = []
         const /**@type{RewrittenStatement[][]}*/ evalBlocks = []
@@ -191,21 +427,31 @@ function rewriteStatements(statements, source, imports) {
         }
 
         const nestedBlocks = evalBlocks.reduceRight((prevBlock, block) => {
-            const evalBlock = makeEvalBlock(prevBlock)
-            block.push(new RewrittenStatement(evalBlock, 0))
+            // TODO: Double check the `async` modifier does work.
+            const hasAwait = prevBlock.some((s) => s.hasAwait)
+            const evalBlock = makeEvalBlock(prevBlock, hasAwait)
+            block.push(new RewrittenStatement(evalBlock, 0, hasAwait))
             return block
         })
         const text = nestedBlocks.map((block) => block.text).join("\n")
         const effectiveLen = nestedBlocks
             .map((block) => block.effectiveLen)
             .reduce((a, b) => a + b)
-        return new RewrittenStatement(varDecls + letDecls + text, effectiveLen)
+        const hasAwait = nestedBlocks.some((s) => s.hasAwait)
+        return new RewrittenStatement(
+            varDecls + letDecls + text,
+            effectiveLen,
+            hasAwait,
+        )
     } else {
-        const text = rewritten
-            .allStatements()
-            .map((statement) => statement.text)
-            .join("\n")
-        return new RewrittenStatement(varDecls + letDecls + text, totalLen)
+        const allStatements = rewritten.allStatements()
+        const text = allStatements.map((statement) => statement.text).join("\n")
+        const hasAwait = allStatements.some((s) => s.hasAwait)
+        return new RewrittenStatement(
+            varDecls + letDecls + text,
+            totalLen,
+            hasAwait,
+        )
     }
 }
 
@@ -214,21 +460,34 @@ function rewriteStatements(statements, source, imports) {
  */
 export class ExportUnsupportedErr extends Error {}
 
+export class UnknownNodeErr extends Error {
+    /**
+     * @param {never} node
+     */
+    constructor(node) {
+        super("Unknown node type")
+        return node && undefined
+    }
+}
+
 /** Group rewritten statements into an `eval` block.
  * @param {RewrittenStatement[]} rStatementArr - Array of `rewrittenStatement`s to group into an `eval` block.
  */
-function makeEvalBlock(rStatementArr) {
+function makeEvalBlock(rStatementArr, hasAwait) {
     const content = rStatementArr
         .map((statement) => escapeBackticksSlashes(statement.text))
         .join("\n")
     const effectiveLen = rStatementArr
         .map((statement) => statement.effectiveLen)
         .reduce((a, b) => a + b)
-    return `var __jsphereEvalRes = eval(\`${effectiveLenHeader(effectiveLen)}
-(function(){
-${content}}).call(this)\`);
-if (__jsphereEvalRes !== undefined) {
-    return __jsphereEvalRes;
+    // Unicode to avoid collisions. "圏" means "sphere".
+    return `var 圏 = ${hasAwait ? "await " : ""}eval(\`${effectiveLenHeader(effectiveLen)}
+(${hasAwait ? "async " : ""}function(){
+${content}
+return "⭕圏"
+}).call(this)\`);
+if (圏 !== "⭕圏") {
+    return 圏;
 }
 `
 }
@@ -270,15 +529,19 @@ export class RewrittenStatements {
 /**
  * @field {string} text - Source or modified source of the statement.
  * @field {number} effectiveLen - The length when ignoring nested `eval` inside.
+ * @field {boolean} leaky - If something inside is leaky, so it may not work inside `eval`.
+ * @field {boolean} hasAwait - If contains `await` expression.
  */
 export class RewrittenStatement {
     /**
      * @param {string} text - Source or modified source of the statement.
      * @param {number} effectiveLen - The length when ignoring nested `eval` inside.
+     * @param {boolean} hasAwait - If contains `await` expression.
      */
-    constructor(text, effectiveLen) {
+    constructor(text, effectiveLen, hasAwait = false) {
         this.text = text
         this.effectiveLen = effectiveLen
+        this.hasAwait = hasAwait
     }
 
     /**

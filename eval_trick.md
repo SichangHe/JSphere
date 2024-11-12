@@ -50,10 +50,11 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
     We keep these scripts as is.
 
-- [ ] `break`, `continue` and `yield` statements may not be able to
+- [x] `break`, `continue` and `yield` statements may not be able to
     reach the correct outer scopes inside `eval`.
 
-    We keep such portions of the script as is.
+    We do rewrite with `eval` in loops or generators until we hit a function or
+    class boundary.
 
 - [x] Variables created in `eval`
     do not leak out unless they are declared with `var` in non-strict mode.
@@ -61,11 +62,9 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
     We go deeper and deeper into nested `eval`s, so
     later statements can access variables from the previous ones.
 
-- [ ] `await` does not work inside `eval`.
+- [x] `await` does not work inside `eval`.
 
-    We keep such portions of the script as is.
-
-    We could use an async IIFE and `await` on the `eval`.
+    We use an async IIFE and `await` on the `eval`.
 
 ## Inherent limitations
 
