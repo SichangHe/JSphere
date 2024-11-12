@@ -8,6 +8,8 @@ The high-level idea is to split each script and
 subsequently each block recursively into blocks of `eval` calls smaller than
 1kB (an arbitrary number), and somehow have the whole script behave as before.
 
+- [ ] Test run in the browser.
+
 ## Why it should work
 
 Direct `eval` calls are executed in the same scope as the caller, with

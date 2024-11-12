@@ -472,6 +472,7 @@ export class UnknownNodeErr extends Error {
 
 /** Group rewritten statements into an `eval` block.
  * @param {RewrittenStatement[]} rStatementArr - Array of `rewrittenStatement`s to group into an `eval` block.
+ * @param {boolean} hasAwait
  */
 function makeEvalBlock(rStatementArr, hasAwait) {
     const content = rStatementArr
