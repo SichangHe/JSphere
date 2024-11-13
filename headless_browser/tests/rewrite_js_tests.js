@@ -13,7 +13,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_dummy.js`,
     "utf8",
 )
-actual = rewriteJs(input)?.toString()
+actual = rewriteJs(input)
 if (expected !== actual) {
     console.error("dummy.js rewrite output unexpected")
     console.log(actual + "\n\n")
@@ -24,7 +24,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_network.js`,
     "utf8",
 )
-actual = rewriteJs(input)?.toString()
+actual = rewriteJs(input)
 if (expected !== actual) {
     console.error("network.js rewrite output unexpected")
     console.log(actual + "\n\n")
@@ -38,7 +38,8 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_google_crashed_us.js`,
     "utf8",
 )
-actual = rewriteJs(input)?.toString()
+actual = rewriteJs(input)
+// FIXME: This output actually crashes the browser tab.
 if (expected !== actual) {
     console.error("google_crashed_us.js rewrite output unexpected")
     console.log(actual + "\n\n")

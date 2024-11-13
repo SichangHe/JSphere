@@ -63,3 +63,10 @@ export function afterDelay(callback, ms) {
     }
     return setTimeout(check, ms)
 }
+
+/**
+ * @param {string} s
+ */
+export function padNL(s) {
+    return s.endsWith("\n") ? s : s + "\n"
+}

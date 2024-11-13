@@ -1,0 +1,1 @@
+headless_browser/tests/scripts_to_rewrite/*.js filter=lfs diff=lfs merge=lfs -text
