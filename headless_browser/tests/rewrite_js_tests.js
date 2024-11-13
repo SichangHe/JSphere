@@ -13,7 +13,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_dummy.js`,
     "utf8",
 )
-actual = rewriteJs(input, 1000)
+actual = rewriteJs(input)
 if (expected !== actual) {
     console.error("dummy.js rewrite output unexpected")
     console.log(actual + "\n\n")
@@ -24,7 +24,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_network.js`,
     "utf8",
 )
-actual = rewriteJs(input, 1000)
+actual = rewriteJs(input)
 if (expected !== actual) {
     console.error("network.js rewrite output unexpected")
     console.log(actual + "\n\n")
@@ -38,7 +38,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_google_crashed_us.js`,
     "utf8",
 )
-actual = rewriteJs(input)
+actual = rewriteJs(input, 16000)
 if (expected !== actual) {
     console.error("google_crashed_us.js rewrite output unexpected")
     console.log(actual + "\n\n")
@@ -52,7 +52,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_desktop_polymer.js`,
     "utf8",
 )
-actual = rewriteJs(input)
+actual = rewriteJs(input, 16000)
 if (expected !== actual) {
     console.error("desktop_polymer.js rewrite output unexpected")
     console.log(actual + "\n\n")

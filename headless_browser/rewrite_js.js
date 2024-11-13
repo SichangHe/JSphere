@@ -33,34 +33,42 @@ export function rewriteJsResponses(page) {
  * @param {Route} route - The route to intercept.
  */
 export async function overwriteResponseJs(route) {
-    const response = await route.fetch()
-    const fulfillOpts = { response }
-    if (
-        response.ok() &&
-        response.headers()["content-type"]?.includes("javascript")
-    ) {
-        const url = route.request().url()
-        console.log("Rewriting JS from", url)
-        const text = await pCallAsync(async () => response.text())
-        if (text instanceof Error) {
-            console.error("Failed to read JS response:", text, response)
-        } else {
-            const rewritten = rewriteJs(text)
-            if (rewritten instanceof Error) {
-                console.error("Failed to rewrite JS:", rewritten, response)
+    try {
+        const response = await route.fetch()
+        const fulfillOpts = { response }
+        if (
+            response.ok() &&
+            response.headers()["content-type"]?.includes("javascript")
+        ) {
+            const url = route.request().url()
+            console.log("Rewriting JS from", url)
+            const text = await pCallAsync(async () => response.text())
+            if (text instanceof Error) {
+                console.error("Failed to read JS response:", text, response)
             } else {
-                console.log("Rewritten JS from", url)
-                fulfillOpts.body = rewritten
+                // NOTE: It seems splitting the script into 8 `eval` blocks
+                // starts to cause browser crashes.
+                const maxEvalSize = Math.max(text.length >> 2, MAX_EVAL_SIZE)
+                const rewritten = rewriteJs(text, maxEvalSize)
+                if (rewritten instanceof Error) {
+                    console.error("Failed to rewrite JS:", rewritten, response)
+                } else {
+                    console.log("Rewritten JS from", url)
+                    fulfillOpts.body = rewritten
+                }
             }
         }
+        await route.fulfill(fulfillOpts)
+    } catch (e) {
+        console.log("Failed to try to overwrite JS response:", e)
+        await route.continue()
     }
-    await route.fulfill(fulfillOpts)
 }
 
 /** Function for escaping backticks and slashes to be injected.
  * Unicode function name to be short and non-colliding. "迤" means "extend".
  */
-export const ESCAPE_FN_TEXT = `var 迤=s=>"eval(String.raw\`"+s.replace(/\\$/g,"$\${'$$'}").replace(/\`/g,"$\${'\`'}")+"\`)"`
+export const ESCAPE_FN_TEXT = `var 迤=s=>"eval(String.raw\`"+s.replace(/\\$/g,"$\${'$$'}").replace(/\`/g,"$\${'\`'}")+"\`)";`
 
 /**
  * @param {string} source - Source of JS script.
@@ -91,7 +99,7 @@ ${text}`
 }
 
 /** Target maximum size per `eval` block is 1kB. */
-const MAX_EVAL_SIZE = 16000
+const MAX_EVAL_SIZE = 1_000
 
 /**
  * @param {(Statement | ModuleDeclaration | Expression)[]} statements - Statements in a program or function.
@@ -170,17 +178,20 @@ function rewriteStatements(
                     checkArr.push(decl.init)
 
                     // Generate the declaration text.
-                    const declSpan = source
+                    let declSpan = source
                         .slice(decl.start, decl.end + 1)
                         .trimEnd()
                     const effectiveLen = declSpan.length
-                    const declText = declSpan.endsWith(",")
-                        ? declSpan.slice(0, -1)
-                        : declSpan
-                    const stmt = new RewrittenStatement(
-                        padNL(declText),
-                        effectiveLen,
-                    )
+                    if (declSpan.endsWith(",")) {
+                        declSpan = declSpan.slice(0, -1)
+                    }
+                    if (decl.id.type !== "Identifier") {
+                        // NOTE: This could be a destructuring assignment or something.
+                        declSpan = "var " + declSpan.replace(/;+$/, "")
+                    }
+                    declSpan =
+                        declSpan + (declSpan.endsWith(";") ? "\n" : ";\n")
+                    const stmt = new RewrittenStatement(declSpan, effectiveLen)
                     rewriting.regular.push(stmt)
                     rewriting.effectiveLen += effectiveLen
                 }
