@@ -38,8 +38,10 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
 - [x] `return` statements cannot return from inside `eval`.
 
-    We wrap every `eval` in an immediately invoked function expression (IIFE)
-    so that the `return`s are valid.
+    For each `eval` block that contains `return` statements not in
+    nested functions or classes, we wrap it in
+    an immediately invoked function expression (IIFE) so that the
+    `return`s are valid.
     We call the IIFE with `.call(this)` to preserve `this`.
     We then check the return value of `eval` and return early it if
     it is not `undefined`.
@@ -66,7 +68,7 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
 - [x] `await` does not work inside `eval`.
 
-    We use an async IIFE and `await` on the `eval`.
+    We `await` on the `eval` and use an async IIFE if an IIFE is used.
 
 ## Inherent limitations
 

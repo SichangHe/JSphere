@@ -82,6 +82,7 @@ export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
     if (rewritten instanceof Error) {
         return rewritten
     } else {
+        /* console.log("rewritten:", JSON.stringify(rewritten, null, 2)) //DBG */
         const text = rewritten.toNonEvalText()
         return `${effectiveLenHeader(rewritten.effectiveLen)}
 ${imports.join("")}${ESCAPE_FN_TEXT}
@@ -131,24 +132,23 @@ function rewriteStatements(
         let /**@type{(Statement | Expression)[]}*/ checkArr = []
         let /**@type{(RewrittenStatement | RewrittenStatements)[]?}*/ rewrittenArr =
                 rewriting.regular
-        let separateScope = false
         let nestedNoRewrite = noRewrite
 
         if (t === "ClassDeclaration") {
             // TODO: Perhaps break down large classes.
             rewrittenArr = rewriting.hoisting
-            separateScope = true
+            rewrittenStmt.separateScope = true
         } else if (t === "FunctionDeclaration") {
             bodyArr = statement.body.body
             rewrittenArr = rewriting.hoisting
-            separateScope = true
+            rewrittenStmt.separateScope = true
             if (statement.generator) {
                 if (nestedNoRewrite === false) {
                     // Do not rewrite in generators.
                     nestedNoRewrite = null
                 }
             } else {
-                separateScope = true
+                rewrittenStmt.separateScope = true
             }
         } else if (t === "ImportDeclaration") {
             imports.push(span)
@@ -210,8 +210,12 @@ function rewriteStatements(
                 // Do not rewrite in labeled statements.
                 nestedNoRewrite = null
             }
+        } else if (t === "ReturnStatement") {
+            if (statement.argument != null) {
+                bodyArr.push(statement.argument)
+            }
+            rewrittenStmt.hasReturn = true
         } else if (
-            t === "ReturnStatement" ||
             t === "ThrowStatement" ||
             t === "UnaryExpression" ||
             t === "UpdateExpression" ||
@@ -303,7 +307,7 @@ function rewriteStatements(
                     nestedNoRewrite = null
                 }
             } else {
-                separateScope = true
+                rewrittenStmt.separateScope = true
             }
         } else if (t === "BinaryExpression") {
             // NOTE: We do not rewrite LHS to avoid complexity.
@@ -362,7 +366,7 @@ function rewriteStatements(
             checkArr.push(statement.tag, statement.quasi)
         } else if (t === "ClassExpression") {
             // TODO: Perhaps break down large classes.
-            separateScope = true
+            rewrittenStmt.separateScope = true
         } else if (t === "AwaitExpression") {
             bodyArr.push(statement.argument)
             rewrittenStmt.hasAwait = true
@@ -390,12 +394,9 @@ function rewriteStatements(
                 return rewrittenExpr
             }
             rewrittenStmt.hasAwait ||= rewrittenExpr.hasAwait
+            rewrittenStmt.hasReturn ||= rewrittenExpr.hasReturn
         }
 
-        if (separateScope) {
-            // Prevents `await` from leaking out of the scope.
-            rewrittenStmt.hasAwait = false
-        }
         if (!noRewrite && bodyArr.length > 0 && effectiveLen > maxEvalSize) {
             /* console.log("bodyArr", t, separateScope, noRewrite, nestedNoRewrite) //DBG */
             // Break down the statement into `eval` blocks.
@@ -403,7 +404,7 @@ function rewriteStatements(
                 bodyArr,
                 source,
                 imports,
-                separateScope ? false : nestedNoRewrite,
+                rewrittenStmt.separateScope ? false : nestedNoRewrite,
                 maxEvalSize,
             )
             if (textRewritten instanceof Error) {
@@ -416,15 +417,23 @@ function rewriteStatements(
             textRewritten.footer = source.slice(bodyEnd, statement.end)
             textRewritten.effectiveLen +=
                 textRewritten.header.length + textRewritten.footer.length
+            textRewritten.separateScope = rewrittenStmt.separateScope
             rewrittenStmt = textRewritten
         }
 
         if (rewrittenArr != null) {
             rewrittenArr.push(rewrittenStmt)
             rewriting.effectiveLen += effectiveLen
-        } else if (rewrittenStmt.hasAwait && rewriting.regular.length > 0) {
-            // This is so that `await` in variable declarations are recorded.
-            rewriting.regular[rewriting.regular.length - 1].hasAwait = true
+        } else if (rewriting.regular.length > 0) {
+            const lastStmt = rewriting.regular[rewriting.regular.length - 1]
+            if (rewrittenStmt.hasAwait) {
+                // This is so that `await` in variable declarations are recorded.
+                lastStmt.hasAwait = true
+            }
+            if (rewrittenStmt.hasReturn) {
+                // This is so that `return` in variable declarations are recorded.
+                lastStmt.hasReturn = true
+            }
         }
     }
 
@@ -544,21 +553,32 @@ export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
             (a, s) => a + s.effectiveLen,
             0,
         )
-        const hasAwait = innermostBlock.some((s) => s.hasAwait)
+        const hasAwait = innermostBlock.some(
+            (s) => s.hasAwait && !s.separateScope,
+        )
+        const hasReturn = innermostBlock.some(
+            (s) => s.hasReturn && !s.separateScope,
+        )
         let currentStmts = new RewrittenStatements(
             innermostBlock,
             effectiveLen,
             hasAwait,
+            hasReturn,
         )
         for (let index = evalBlocks.length - 2; index >= 0; index--) {
             const block = evalBlocks[index]
             const effectiveLen = block.reduce((a, s) => a + s.effectiveLen, 0)
             const hasAwait =
-                currentStmts.hasAwait || block.some((s) => s.hasAwait)
+                currentStmts.hasAwait ||
+                block.some((s) => s.hasAwait && !s.separateScope)
+            const hasReturn =
+                currentStmts.hasReturn ||
+                block.some((s) => s.hasReturn && !s.separateScope)
             const newStmts = new RewrittenStatements(
                 block,
                 effectiveLen,
                 hasAwait,
+                hasReturn,
             )
             newStmts.statements.push(currentStmts)
             currentStmts = newStmts
@@ -571,7 +591,13 @@ export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
             0,
         )
         const hasAwait = allStatements.some((s) => s.hasAwait)
-        return new RewrittenStatements(allStatements, effectiveLen, hasAwait)
+        const hasReturn = allStatements.some((s) => s.hasReturn)
+        return new RewrittenStatements(
+            allStatements,
+            effectiveLen,
+            hasAwait,
+            hasReturn,
+        )
     }
 }
 
@@ -580,6 +606,8 @@ export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
  * @field {(RewrittenStatement | RewrittenStatements)[]} statements - Rewritten statements or blocks.
  * @field {number} effectiveLen - The length when ignoring nested `eval` inside.
  * @field {boolean} hasAwait - If contains `await` expression.
+ * @field {boolean} hasReturn - If contains `return` statement.
+ * @field {boolean} separateScope - If the statements are in a separate scope than their parent.
  * @field {string} header - Header text for the rewritten statements.
  * @field {string} footer - Footer text for the rewritten statements.
  * @field {boolean} inline - If the block should not be put into a separate `eval`.
@@ -587,13 +615,16 @@ export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
 export class RewrittenStatements {
     /**
      * @param {(RewrittenStatement | RewrittenStatements)[]} statements - Rewritten statements or blocks.
-     * @param {number} effectiveLen
-     * @param {boolean} hasAwait
+     * @param {number} effectiveLen - The length when ignoring nested `eval` inside.
+     * @param {boolean} hasAwait - If contains `await` expression.
+     * @param {boolean} hasReturn - If contains `return` statement.
      */
-    constructor(statements, effectiveLen, hasAwait) {
+    constructor(statements, effectiveLen, hasAwait, hasReturn) {
         this.statements = statements
         this.effectiveLen = effectiveLen
         this.hasAwait = hasAwait
+        this.hasReturn = hasReturn
+        this.separateScope = false
         this.header = ""
         this.footer = ""
         this.inline = false
@@ -605,13 +636,18 @@ export class RewrittenStatements {
                 if (stmts.inline) {
                     return s + stmts.toNonEvalText()
                 }
-                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}eval(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
-(${stmts.hasAwait ? "async " : ""}function(){
-${stmts.toEvalText()}
-return "⭕圏"
+                const fnHeader = stmts.hasReturn
+                    ? `(${stmts.hasAwait ? "async " : ""}function(){\n`
+                    : ""
+                const fnFooter = stmts.hasReturn
+                    ? `return "⭕圏"
 }).call(this)\`)
 if(圏!=="⭕圏"){return 圏}
 `
+                    : "`)"
+                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}eval(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
+${fnHeader}${stmts.toEvalText()}
+${fnFooter}`
             } else {
                 return s + stmts.text
             }
@@ -625,13 +661,18 @@ if(圏!=="⭕圏"){return 圏}
                 if (stmts.inline) {
                     return s + stmts.toEvalText()
                 }
-                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}\${迤(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
-(${stmts.hasAwait ? "async " : ""}function(){
-${stmts.toEvalText()}
-return "⭕圏"
+                const fnHeader = stmts.hasReturn
+                    ? `(${stmts.hasAwait ? "async " : ""}function(){\n`
+                    : ""
+                const fnFooter = stmts.hasReturn
+                    ? `return "⭕圏"
 }).call(this)\`)}
 if(圏!=="⭕圏"){return 圏}
 `
+                    : "`)}"
+                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}\${迤(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
+${fnHeader}${stmts.toEvalText()}
+${fnFooter}`
             } else {
                 return s + escapeTemplateInner(stmts.text)
             }
@@ -647,19 +688,21 @@ if(圏!=="⭕圏"){return 圏}
 /**
  * @field {string} text - Source or modified source of the statement.
  * @field {number} effectiveLen - The length when ignoring nested `eval` inside.
- * @field {boolean} leaky - If something inside is leaky, so it may not work inside `eval`.
  * @field {boolean} hasAwait - If contains `await` expression.
+ * @field {boolean} hasReturn - If contains `return` statement.
+ * @field {boolean} separateScope - If the statement is in a separate scope than its parent.
  */
 export class RewrittenStatement {
     /**
      * @param {string} text - Source or modified source of the statement.
      * @param {number} effectiveLen - The length when ignoring nested `eval` inside.
-     * @param {boolean} hasAwait - If contains `await` expression.
      */
-    constructor(text, effectiveLen, hasAwait = false) {
+    constructor(text, effectiveLen) {
         this.text = text
         this.effectiveLen = effectiveLen
-        this.hasAwait = hasAwait
+        this.hasAwait = false
+        this.hasReturn = false
+        this.separateScope = false
     }
 }
 
