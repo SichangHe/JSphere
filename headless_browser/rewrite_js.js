@@ -39,7 +39,8 @@ export async function overwriteResponseJs(route) {
         response.ok() &&
         response.headers()["content-type"]?.includes("javascript")
     ) {
-        console.log("Rewriting JS from", route.request().url())
+        const url = route.request().url()
+        console.log("Rewriting JS from", url)
         const text = await pCallAsync(async () => response.text())
         if (text instanceof Error) {
             console.error("Failed to read JS response:", text, response)
@@ -48,6 +49,7 @@ export async function overwriteResponseJs(route) {
             if (rewritten instanceof Error) {
                 console.error("Failed to rewrite JS:", rewritten, response)
             } else {
+                console.log("Rewritten JS from", url)
                 fulfillOpts.body = rewritten
             }
         }
@@ -58,18 +60,25 @@ export async function overwriteResponseJs(route) {
 /** Function for escaping backticks and slashes to be injected.
  * Unicode function name to be short and non-colliding. "迤" means "extend".
  */
-export const ESCAPE_FN_TEXT = `var 迤=s=>"eval(\`"+s.replace(/\\\\/g,"\\\\\\\\").replace(/\`/g,"\\\\\`")+"\`)"`
+export const ESCAPE_FN_TEXT = `var 迤=s=>"eval(String.raw\`"+s.replace(/\\$/g,"$\${'$$'}").replace(/\`/g,"$\${'\`'}")+"\`)"`
 
 /**
  * @param {string} source - Source of JS script.
+ * @param {number} maxEvalSize - Target maximum size per `eval` block.
  */
-export function rewriteJs(source) {
+export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
     const program = pCall(() => parse(source, parseOptions))
     if (program instanceof Error) {
         return program
     }
     const /**@type {string[]}*/ imports = []
-    const rewritten = rewriteStatements(program.body, source, imports)
+    const rewritten = rewriteStatements(
+        program.body,
+        source,
+        imports,
+        false,
+        maxEvalSize,
+    )
     if (rewritten instanceof Error) {
         return rewritten
     } else {
@@ -81,16 +90,23 @@ ${text}`
 }
 
 /** Target maximum size per `eval` block is 1kB. */
-const MAX_EVAL_SIZE = 1000
+const MAX_EVAL_SIZE = 16000
 
 /**
  * @param {(Statement | ModuleDeclaration | Expression)[]} statements - Statements in a program or function.
  * @param {string} source - Source code.
  * @param {string[]} imports - `import` statements that must be at the top.
  * @param {boolean?} noRewrite - Do not rewrite the statements at this level. If `undefined`, may rewrite contained statements if suitable.
+ * @param {number} maxEvalSize - Target maximum size per `eval` block.
  * @returns {RewrittenStatements | Error}
  */
-function rewriteStatements(statements, source, imports, noRewrite = false) {
+function rewriteStatements(
+    statements,
+    source,
+    imports,
+    noRewrite = false,
+    maxEvalSize = MAX_EVAL_SIZE,
+) {
     const rewriting = new RewritingStatements()
     /* console.log(
         statements[0].type,
@@ -368,6 +384,7 @@ function rewriteStatements(statements, source, imports, noRewrite = false) {
                 source,
                 imports,
                 true,
+                maxEvalSize,
             )
             if (rewrittenExpr instanceof Error) {
                 return rewrittenExpr
@@ -379,7 +396,7 @@ function rewriteStatements(statements, source, imports, noRewrite = false) {
             // Prevents `await` from leaking out of the scope.
             rewrittenStmt.hasAwait = false
         }
-        if (!noRewrite && bodyArr.length > 0 && effectiveLen > MAX_EVAL_SIZE) {
+        if (!noRewrite && bodyArr.length > 0 && effectiveLen > maxEvalSize) {
             /* console.log("bodyArr", t, separateScope, noRewrite, nestedNoRewrite) //DBG */
             // Break down the statement into `eval` blocks.
             const textRewritten = rewriteStatements(
@@ -387,6 +404,7 @@ function rewriteStatements(statements, source, imports, noRewrite = false) {
                 source,
                 imports,
                 separateScope ? false : nestedNoRewrite,
+                maxEvalSize,
             )
             if (textRewritten instanceof Error) {
                 return textRewritten
@@ -421,7 +439,7 @@ function rewriteStatements(statements, source, imports, noRewrite = false) {
         rewriting.effectiveLen,
         noRewrite,
     ) //DBG */
-    return finishRewrite(rewriting, noRewrite)
+    return finishRewrite(rewriting, noRewrite, maxEvalSize)
 }
 
 /**
@@ -442,8 +460,8 @@ export class UnknownNodeErr extends Error {
 /**
  * @param {string} s
  */
-function escapeBackticksSlashes(s) {
-    return s.replace(/\\/g, "\\\\").replace(/`/g, "\\`")
+function escapeTemplateInner(s) {
+    return s.replace(/\$/g, "$${'$$'}").replace(/`/g, "$${'`'}")
 }
 
 /**
@@ -493,9 +511,10 @@ export class RewritingStatements {
 /**
  * @param {RewritingStatements} rewriting
  * @param {boolean?} noRewrite - Do not rewrite the statements at this level.
+ * @param {number} maxEvalSize - Target maximum size per `eval` block.
  */
-export function finishRewrite(rewriting, noRewrite) {
-    if (noRewrite === false && rewriting.effectiveLen > MAX_EVAL_SIZE) {
+export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
+    if (noRewrite === false && rewriting.effectiveLen > maxEvalSize) {
         // Need to try split the script into `eval` blocks.
         let /**@type{(RewrittenStatement | RewrittenStatements)[]}*/ currentEvalBlock =
                 []
@@ -506,7 +525,7 @@ export function finishRewrite(rewriting, noRewrite) {
         for (const statement of rewriting.allStatements()) {
             if (
                 currentLen > 0 &&
-                currentLen + statement.effectiveLen > MAX_EVAL_SIZE
+                currentLen + statement.effectiveLen > maxEvalSize
             ) {
                 // Need to group existing block and start a new one.
                 evalBlocks.push(currentEvalBlock)
@@ -586,7 +605,7 @@ export class RewrittenStatements {
                 if (stmts.inline) {
                     return s + stmts.toNonEvalText()
                 }
-                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}eval(\`${effectiveLenHeader(stmts.effectiveLen)}
+                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}eval(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
 (${stmts.hasAwait ? "async " : ""}function(){
 ${stmts.toEvalText()}
 return "⭕圏"
@@ -594,7 +613,7 @@ return "⭕圏"
 if(圏!=="⭕圏"){return 圏}
 `
             } else {
-                return s + escapeBackticksSlashes(stmts.text)
+                return s + stmts.text
             }
         }, "")
         return `${this.header}${text}${this.footer}`
@@ -606,7 +625,7 @@ if(圏!=="⭕圏"){return 圏}
                 if (stmts.inline) {
                     return s + stmts.toEvalText()
                 }
-                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}\${迤(\`${effectiveLenHeader(stmts.effectiveLen)}
+                return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}\${迤(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
 (${stmts.hasAwait ? "async " : ""}function(){
 ${stmts.toEvalText()}
 return "⭕圏"
@@ -614,10 +633,14 @@ return "⭕圏"
 if(圏!=="⭕圏"){return 圏}
 `
             } else {
-                return s + escapeBackticksSlashes(stmts.text)
+                return s + escapeTemplateInner(stmts.text)
             }
         }, "")
-        return `${this.header}${text}${this.footer}`
+        return (
+            escapeTemplateInner(this.header) +
+            text +
+            escapeTemplateInner(this.footer)
+        )
     }
 }
 
