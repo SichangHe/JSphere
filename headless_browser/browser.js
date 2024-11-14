@@ -373,9 +373,13 @@ export async function inContext(userDataDir, logDir, harDir, task) {
         slowMo: opts.uiDebug ? 300 : undefined,
         // Prevent Playwright from using `--headless=old`.
         headless: false,
-        args: ["--disable-site-isolation-trials"].concat(
-            opts.uiDebug ? [] : ["--headless"],
-        ),
+        args: [
+            "--disable-site-isolation-trials",
+            // NOTE: Mitigates browser "Maximum call stack size exceeded".
+            // Setting the stack size to 5 GB causes routing to be bypassed;
+            // setting to 8 GB causes the browser to crash immediately.
+            `--js-flags=--stack-size=4000000`,
+        ].concat(opts.uiDebug ? [] : ["--headless"]),
         bypassCSP: true,
         devtools: opts.uiDebug,
         ignoreDefaultArgs: [

@@ -46,9 +46,9 @@ export async function overwriteResponseJs(route) {
             if (text instanceof Error) {
                 console.error("Failed to read JS response:", text, response)
             } else {
-                // NOTE: It seems splitting the script into 8 `eval` blocks
-                // starts to cause browser crashes.
-                const maxEvalSize = Math.max(text.length >> 2, MAX_EVAL_SIZE)
+                // NOTE: Splitting the script into 9 `eval` blocks starts to
+                // cause browser crashes.
+                const maxEvalSize = Math.max(text.length >> 3, MAX_EVAL_SIZE)
                 const rewritten = rewriteJs(text, maxEvalSize)
                 if (rewritten instanceof Error) {
                     console.error("Failed to rewrite JS:", rewritten, response)
