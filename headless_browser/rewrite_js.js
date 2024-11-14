@@ -48,8 +48,7 @@ export async function overwriteResponseJs(route) {
             } else {
                 // NOTE: Splitting the script into 9 `eval` blocks starts to
                 // cause browser crashes.
-                const maxEvalSize = Math.max(text.length >> 3, MAX_EVAL_SIZE)
-                const rewritten = rewriteJs(text, maxEvalSize)
+                const rewritten = rewriteJs(text)
                 if (rewritten instanceof Error) {
                     console.error("Failed to rewrite JS:", rewritten, response)
                 } else {
@@ -79,6 +78,7 @@ export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
     if (program instanceof Error) {
         return program
     }
+    /*     console.log("parsed:", JSON.stringify(program, null, 2)) //DBG */
     const /**@type {string[]}*/ imports = []
     const rewritten = rewriteStatements(
         program.body,
@@ -90,7 +90,7 @@ export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
     if (rewritten instanceof Error) {
         return rewritten
     } else {
-        /* console.log("rewritten:", JSON.stringify(rewritten, null, 2)) //DBG */
+        /*         console.log("rewritten:", JSON.stringify(rewritten, null, 2)) //DBG */
         const text = rewritten.toNonEvalText()
         return `${effectiveLenHeader(rewritten.effectiveLen)}
 ${imports.join("")}${ESCAPE_FN_TEXT}
@@ -109,7 +109,7 @@ const MAX_EVAL_SIZE = 1_000
  * @param {number} maxEvalSize - Target maximum size per `eval` block.
  * @returns {RewrittenStatements | Error}
  */
-function rewriteStatements(
+export function rewriteStatements(
     statements,
     source,
     imports,
@@ -237,6 +237,7 @@ function rewriteStatements(
             }
         } else if (t === "IfStatement") {
             checkArr.push(statement.test)
+            bodyArr.push(statement.consequent)
             if (statement.alternate != null) {
                 // NOTE: We do not rewrite `alternate` to avoid the complexity of
                 // also rewriting `consequent`.
@@ -373,6 +374,7 @@ function rewriteStatements(
             } else {
                 bodyArr.push(statement.body)
             }
+            rewrittenStmt.separateScope = true
         } else if (t === "TaggedTemplateExpression") {
             checkArr.push(statement.tag, statement.quasi)
         } else if (t === "ClassExpression") {
@@ -390,22 +392,6 @@ function rewriteStatements(
             }
         } else {
             return new UnknownNodeErr(statement)
-        }
-
-        if (checkArr.length > 0) {
-            /* console.log("checkArr", t) //DBG */
-            const rewrittenExpr = rewriteStatements(
-                checkArr,
-                source,
-                imports,
-                true,
-                maxEvalSize,
-            )
-            if (rewrittenExpr instanceof Error) {
-                return rewrittenExpr
-            }
-            rewrittenStmt.hasAwait ||= rewrittenExpr.hasAwait
-            rewrittenStmt.hasReturn ||= rewrittenExpr.hasReturn
         }
 
         if (!noRewrite && bodyArr.length > 0 && effectiveLen > maxEvalSize) {
@@ -428,8 +414,28 @@ function rewriteStatements(
             textRewritten.footer = source.slice(bodyEnd, statement.end)
             textRewritten.effectiveLen +=
                 textRewritten.header.length + textRewritten.footer.length
+            textRewritten.hasAwait ||= rewrittenStmt.hasAwait
+            textRewritten.hasReturn ||= rewrittenStmt.hasReturn
             textRewritten.separateScope = rewrittenStmt.separateScope
             rewrittenStmt = textRewritten
+        } else {
+            checkArr.push(...bodyArr)
+        }
+
+        if (checkArr.length > 0) {
+            /* console.log("checkArr", t) //DBG */
+            const rewrittenExpr = rewriteStatements(
+                checkArr,
+                source,
+                imports,
+                true,
+                maxEvalSize,
+            )
+            if (rewrittenExpr instanceof Error) {
+                return rewrittenExpr
+            }
+            rewrittenStmt.hasAwait ||= rewrittenExpr.hasAwait
+            rewrittenStmt.hasReturn ||= rewrittenExpr.hasReturn
         }
 
         if (rewrittenArr != null) {

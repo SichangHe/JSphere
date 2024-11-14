@@ -19,6 +19,7 @@ if (expected !== actual) {
     console.log(actual + "\n\n")
 }
 
+// FIXME: These tests are now failing because the rewriting changed.
 input = readFileSync(`${__dirname}/scripts_to_rewrite/network.js`, "utf8")
 expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_network.js`,
@@ -38,7 +39,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_google_crashed_us.js`,
     "utf8",
 )
-actual = rewriteJs(input, 16000)
+actual = rewriteJs(input)
 if (expected !== actual) {
     console.error("google_crashed_us.js rewrite output unexpected")
     console.log(actual + "\n\n")
@@ -52,7 +53,7 @@ expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_desktop_polymer.js`,
     "utf8",
 )
-actual = rewriteJs(input, 16000)
+actual = rewriteJs(input)
 if (expected !== actual) {
     console.error("desktop_polymer.js rewrite output unexpected")
     console.log(actual + "\n\n")
