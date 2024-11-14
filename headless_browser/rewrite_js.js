@@ -92,9 +92,24 @@ export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
     } else {
         /*         console.log("rewritten:", JSON.stringify(rewritten, null, 2)) //DBG */
         const text = rewritten.toNonEvalText()
-        return `${effectiveLenHeader(rewritten.effectiveLen)}
+        const result = `${effectiveLenHeader(rewritten.effectiveLen)}
 ${imports.join("")}${ESCAPE_FN_TEXT}
 ${text}`
+        const newProgram = pCall(() => parse(result, parseOptions))
+        if (newProgram instanceof Error) {
+            return new RewrittenInvalidErr(newProgram)
+        }
+        return result
+    }
+}
+
+export class RewrittenInvalidErr extends Error {
+    /**
+     * @param {Error} err - Error from parsing.
+     */
+    constructor(err) {
+        super("Rewritten JS is invalid")
+        this.err = err
     }
 }
 
@@ -435,8 +450,10 @@ export function rewriteStatements(
             if (rewrittenExpr instanceof Error) {
                 return rewrittenExpr
             }
-            rewrittenStmt.hasAwait ||= rewrittenExpr.hasAwait
-            rewrittenStmt.hasReturn ||= rewrittenExpr.hasReturn
+            rewrittenStmt.hasAwait ||=
+                rewrittenExpr.hasAwait && !rewrittenStmt.separateScope
+            rewrittenStmt.hasReturn ||=
+                rewrittenExpr.hasReturn && !rewrittenStmt.separateScope
         }
 
         if (rewrittenArr != null) {
