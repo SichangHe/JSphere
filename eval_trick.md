@@ -30,6 +30,8 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
         Functions cannot capture variables declared in adjacent `eval`s, and
         would capture the variable in the outer scope with
         the same name instead, causing errors.
+        Variables created in `eval`
+        do not leak out unless they are declared with `var` in non-strict mode.
 
         We identify all variable declarations in the current scope,
         declare all of them first using `var` or `let`, then
@@ -60,12 +62,6 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
     We do not rewrite with `eval` in loops or
     generators until we hit a function or class boundary.
 
-- [x] Variables created in `eval`
-    do not leak out unless they are declared with `var` in non-strict mode.
-
-    We go deeper and deeper into nested `eval`s, so
-    later statements can access variables from the previous ones.
-
 - [x] `await` does not work inside `eval`.
 
     We `await` on the `eval` and use an async IIFE if an IIFE is used.
@@ -74,3 +70,5 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
 - Performance: `eval` disables the JIT and forces slow variable lookups.
 - Bloat: deeply nested `eval`s cause mountains of backslashes.
+- Integrity: e.g., if the website checks the checksum of the script,
+    it will fail.

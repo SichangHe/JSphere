@@ -559,42 +559,29 @@ export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
             evalBlocks.push(currentEvalBlock)
         }
 
-        const innermostBlock = evalBlocks[evalBlocks.length - 1]
-        const effectiveLen = innermostBlock.reduce(
-            (a, s) => a + s.effectiveLen,
-            0,
+        const outerBlock = evalBlocks[0]
+        const outerStmts = new RewrittenStatements(
+            outerBlock,
+            outerBlock.reduce((a, s) => a + s.effectiveLen, 0),
+            outerBlock.some((s) => s.hasAwait && !s.separateScope),
+            outerBlock.some((s) => s.hasReturn && !s.separateScope),
         )
-        const hasAwait = innermostBlock.some(
-            (s) => s.hasAwait && !s.separateScope,
-        )
-        const hasReturn = innermostBlock.some(
-            (s) => s.hasReturn && !s.separateScope,
-        )
-        let currentStmts = new RewrittenStatements(
-            innermostBlock,
-            effectiveLen,
-            hasAwait,
-            hasReturn,
-        )
-        for (let index = evalBlocks.length - 2; index >= 0; index--) {
+        for (let index = 1; index < evalBlocks.length; index++) {
             const block = evalBlocks[index]
             const effectiveLen = block.reduce((a, s) => a + s.effectiveLen, 0)
-            const hasAwait =
-                currentStmts.hasAwait ||
-                block.some((s) => s.hasAwait && !s.separateScope)
-            const hasReturn =
-                currentStmts.hasReturn ||
-                block.some((s) => s.hasReturn && !s.separateScope)
-            const newStmts = new RewrittenStatements(
+            const hasAwait = block.some((s) => s.hasAwait && !s.separateScope)
+            const hasReturn = block.some((s) => s.hasReturn && !s.separateScope)
+            const stmts = new RewrittenStatements(
                 block,
                 effectiveLen,
                 hasAwait,
                 hasReturn,
             )
-            newStmts.statements.push(currentStmts)
-            currentStmts = newStmts
+            outerStmts.statements.push(stmts)
+            outerStmts.hasAwait ||= hasAwait
+            outerStmts.hasReturn ||= hasReturn
         }
-        return currentStmts
+        return outerStmts
     } else {
         const allStatements = rewriting.allStatements()
         const effectiveLen = allStatements.reduce(
@@ -652,10 +639,10 @@ export class RewrittenStatements {
                     : ""
                 const fnFooter = stmts.hasReturn
                     ? `return "⭕圏"
-}).call(this)\`)
+}).call(this)\`);
 if(圏!=="⭕圏"){return 圏}
 `
-                    : "`)"
+                    : "`);\n"
                 return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}eval(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
 ${fnHeader}${stmts.toEvalText()}
 ${fnFooter}`
@@ -677,10 +664,10 @@ ${fnFooter}`
                     : ""
                 const fnFooter = stmts.hasReturn
                     ? `return "⭕圏"
-}).call(this)\`)}
+}).call(this)\`)};
 if(圏!=="⭕圏"){return 圏}
 `
-                    : "`)}"
+                    : "`)};\n"
                 return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}\${迤(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
 ${fnHeader}${stmts.toEvalText()}
 ${fnFooter}`
