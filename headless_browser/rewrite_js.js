@@ -155,8 +155,6 @@ export function rewriteStatements(
                     // Do not rewrite in generators.
                     nestedNoRewrite = null
                 }
-            } else {
-                rewrittenStmt.separateScope = true
             }
         } else if (t === "ImportDeclaration") {
             imports.push(span)
@@ -312,14 +310,13 @@ export function rewriteStatements(
                 }
             }
         } else if (t === "FunctionExpression") {
+            rewrittenStmt.separateScope = true
             bodyArr = statement.body.body
             if (statement.generator) {
                 if (nestedNoRewrite === false) {
                     // Do not rewrite in generators.
                     nestedNoRewrite = null
                 }
-            } else {
-                rewrittenStmt.separateScope = true
             }
         } else if (t === "BinaryExpression") {
             // NOTE: We do not rewrite LHS to avoid complexity.
@@ -334,10 +331,12 @@ export function rewriteStatements(
             checkArr.push(statement.left)
             bodyArr.push(statement.right)
         } else if (t === "MemberExpression") {
+            rewrittenStmt.separateScope = true
             if (statement.object.type !== "Super") {
                 bodyArr.push(statement.object)
             }
             if (statement.property.type !== "PrivateIdentifier") {
+                // NOTE: We do not rewrite the arguments to avoid complexity.
                 checkArr.push(statement.property)
             }
         } else if (t === "ConditionalExpression") {
@@ -347,10 +346,12 @@ export function rewriteStatements(
                 statement.alternate,
             )
         } else if (t === "CallExpression") {
+            rewrittenStmt.separateScope = true
             if (statement.callee.type !== "Super") {
                 bodyArr.push(statement.callee)
             }
             for (const arg of statement.arguments) {
+                // NOTE: We do not rewrite the arguments to avoid complexity.
                 if (arg.type === "SpreadElement") {
                     checkArr.push(arg.argument)
                 } else {
