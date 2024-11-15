@@ -54,7 +54,8 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
         convert all function declarations to assignments of
         function expressions to those variables.
 
-        - [ ] This seems to break the script sometimes.
+        - [ ] This seems to break the script sometimes, especially when
+            it calls functions defined in other scripts.
 
 - [x] `import` statements are not allowed inside `eval`.
 

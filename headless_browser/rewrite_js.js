@@ -67,7 +67,7 @@ export async function overwriteResponseJs(route) {
 /** Function for escaping backticks and slashes to be injected.
  * Unicode function name to be short and non-colliding. "迤" means "extend".
  */
-export const ESCAPE_FN_TEXT = `var 迤=s=>"eval(String.raw\`"+s.replace(/\\$/g,"$\${'$$'}").replace(/\`/g,"$\${'\`'}")+"\`)";`
+export const ESCAPE_FN_TEXT = String.raw`var 迤=s=>${"`"}eval(String.raw\`${"${"}s.replace(/((?:^|[^\\])(?:\\\\)*)((?:${"`"}|\$\{)+)/g, "$1$${"${"}'$2'}")}\`)${"`"};`
 
 /**
  * @param {string} source - Source of JS script.
@@ -524,7 +524,7 @@ export class UnknownNodeErr extends Error {
  * @param {string} s
  */
 function escapeTemplateInner(s) {
-    return s.replace(/\$/g, "$${'$$'}").replace(/`/g, "$${'`'}")
+    return s.replace(/((?:^|[^\\])(?:\\\\)*)((?:`|\$\{)+)/g, "$1$${'$2'}")
 }
 
 /**

@@ -1,59 +1,46 @@
 import { rewriteJs } from "../rewrite_js.js"
-import { readFileSync } from "fs"
+import { readFile, writeFile } from "node:fs/promises"
 import { fileURLToPath } from "url"
 import { dirname } from "path"
+import { exit } from "node:process"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-let input, expected, actual
-
-input = readFileSync(`${__dirname}/scripts_to_rewrite/dummy.js`, "utf8")
-expected = readFileSync(
-    `${__dirname}/scripts_to_rewrite/rewritten_dummy.js`,
-    "utf8",
-)
-actual = rewriteJs(input)
-if (expected !== actual) {
-    console.error("dummy.js rewrite output unexpected")
-    console.log(actual + "\n\n")
+async function testAndWrite(inputDir, outputDir) {
+    const input = await readFile(`${__dirname}/${inputDir}`, "utf8")
+    const expected = await readFile(`${__dirname}/${outputDir}`, "utf8")
+    const actual = rewriteJs(input)
+    if (expected !== actual) {
+        await writeFile(`${__dirname}/${outputDir}`, actual)
+        console.error(
+            `${inputDir} rewrite output unexpected. See ${outputDir}.`,
+        )
+        return 1
+    }
+    return 0
 }
 
-input = readFileSync(`${__dirname}/scripts_to_rewrite/network.js`, "utf8")
-expected = readFileSync(
-    `${__dirname}/scripts_to_rewrite/rewritten_network.js`,
-    "utf8",
-)
-actual = rewriteJs(input)
-if (expected !== actual) {
-    console.error("network.js rewrite output unexpected")
-    console.log(actual + "\n\n")
-}
-
-input = readFileSync(
-    `${__dirname}/scripts_to_rewrite/google_crashed_us.js`,
-    "utf8",
-)
-expected = readFileSync(
-    `${__dirname}/scripts_to_rewrite/rewritten_google_crashed_us.js`,
-    "utf8",
-)
-actual = rewriteJs(input)
-if (expected !== actual) {
-    console.error("google_crashed_us.js rewrite output unexpected")
-    console.log(actual + "\n\n")
-}
-
-input = readFileSync(
-    `${__dirname}/scripts_to_rewrite/desktop_polymer.js`,
-    "utf8",
-)
-expected = readFileSync(
-    `${__dirname}/scripts_to_rewrite/rewritten_desktop_polymer.js`,
-    "utf8",
-)
-actual = rewriteJs(input)
-if (expected !== actual) {
-    console.error("desktop_polymer.js rewrite output unexpected")
-    console.log(actual + "\n\n")
-}
+const exitCode = (
+    await Promise.all([
+        testAndWrite(
+            "scripts_to_rewrite/dummy.js",
+            "scripts_to_rewrite/rewritten_dummy.js",
+        ),
+        testAndWrite(
+            "scripts_to_rewrite/network.js",
+            "scripts_to_rewrite/rewritten_network.js",
+        ),
+        testAndWrite(
+            "scripts_to_rewrite/google_crashed_us.js",
+            "scripts_to_rewrite/rewritten_google_crashed_us.js",
+        ),
+        testAndWrite(
+            "scripts_to_rewrite/desktop_polymer.js",
+            "scripts_to_rewrite/rewritten_desktop_polymer.js",
+        ),
+    ])
+).every((r) => r === 0)
+    ? 0
+    : 1
+exit(exitCode)
