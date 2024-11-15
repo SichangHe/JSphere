@@ -162,6 +162,7 @@ export function rewriteStatements(
             rewrittenArr = rewriting.hoisting
             rewrittenStmt.separateScope = true
         } else if (t === "FunctionDeclaration") {
+            rewriting.vars.add(statement.id.name)
             bodyArr = statement.body.body
             rewrittenArr = rewriting.hoisting
             rewrittenStmt.separateScope = true
@@ -438,6 +439,24 @@ export function rewriteStatements(
             checkArr.push(...bodyArr)
         }
 
+        if (t === "FunctionDeclaration") {
+            // Convert function declarations to function expressions.
+            const header = `${statement.id.name}=\
+${statement.async ? "async " : ""}function${statement.generator ? "*" : ""}\
+(${statement.params.map((p) => source.slice(p.start, p.end)).join(",")}){`
+            const footer = "};\n"
+            if (rewrittenStmt instanceof RewrittenStatements) {
+                rewrittenStmt.header = header
+                rewrittenStmt.footer = footer
+            } else {
+                const fnBody = statement.body.body
+                const bodyStart = fnBody[0]?.start ?? 0
+                const bodyEnd = fnBody[fnBody.length - 1]?.end ?? 0
+                const body = source.slice(bodyStart, bodyEnd)
+                rewrittenStmt.text = `${header}${body}${footer}`
+            }
+        }
+
         if (checkArr.length > 0) {
             /* console.log("checkArr", t) //DBG */
             const rewrittenExpr = rewriteStatements(
@@ -539,12 +558,12 @@ export class RewritingStatements {
                 []
         if (this.vars.size > 0) {
             decls.push(
-                new RewrittenStatement(`var ${[...this.vars].join(",")}\n`, 0),
+                new RewrittenStatement(`var ${[...this.vars].join(",")};\n`, 0),
             )
         }
         if (this.lets.size > 0) {
             decls.push(
-                new RewrittenStatement(`let ${[...this.lets].join(",")}\n`, 0),
+                new RewrittenStatement(`let ${[...this.lets].join(",")};\n`, 0),
             )
         }
         // How to chain iterators??

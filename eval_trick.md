@@ -48,11 +48,13 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
     We then check the return value of `eval` and return early it if
     it is not `undefined`.
 
-    - [ ] Functions declared in IIFEs do not leak out.
+    - [x] Functions declared in IIFEs do not leak out.
 
         We declare the function identifiers as variables first, then
         convert all function declarations to assignments of
         function expressions to those variables.
+
+        - [ ] This seems to break the script sometimes.
 
 - [x] `import` statements are not allowed inside `eval`.
 

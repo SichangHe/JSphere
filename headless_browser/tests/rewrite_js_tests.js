@@ -19,7 +19,6 @@ if (expected !== actual) {
     console.log(actual + "\n\n")
 }
 
-// FIXME: These tests are now failing because the rewriting changed.
 input = readFileSync(`${__dirname}/scripts_to_rewrite/network.js`, "utf8")
 expected = readFileSync(
     `${__dirname}/scripts_to_rewrite/rewritten_network.js`,
