@@ -8,7 +8,8 @@ The high-level idea is to split each script and
 subsequently each block recursively into blocks of `eval` calls smaller than
 1kB (an arbitrary number), and somehow have the whole script behave as before.
 
-- [ ] Test run in the browser.
+- [x] Test run in the browser.
+- [ ] Crawl top 100 websites and analyze the logs.
 
 ## Why it should work
 
@@ -38,6 +39,15 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
         make sure they are not declared again in the `eval` calls on
         the same level.
 
+        - [ ] *(Deferred)* Some assignments do not have a single variable
+            identifier on their left-hand side (LHS), such as destructuring.
+            The LHS can contain arbitrary expressions.
+
+            We currently stick `var` to their beginning so most of them work,
+            but the assigned variables do not leak out.
+            This is usually fine because most such assignments are for
+            local variables anyway.
+
 - [x] `return` statements cannot return from inside `eval`.
 
     For each `eval` block that contains `return` statements not in
@@ -54,8 +64,11 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
         convert all function declarations to assignments of
         function expressions to those variables.
 
-        - [ ] This seems to break the script sometimes, especially when
-            it calls functions defined in other scripts.
+        - [ ] *(Deferred)* This seems to break a few scripts, especially when
+            they call functions defined in other scripts.
+
+            No idea for solutions yet because
+            the error messages did not reveal the cause.
 
 - [x] `import` statements are not allowed inside `eval`.
 
