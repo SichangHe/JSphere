@@ -6,7 +6,7 @@
 import { readFile, rm, writeFile } from "node:fs/promises"
 import { chdir } from "node:process"
 import { chromium } from "playwright"
-import { afterDelay, mkFreshDir } from "./helpers.js"
+import { afterDelay, mkFreshDir, timeOut } from "./helpers.js"
 import { overwriteResponseJs } from "./rewrite_js.js"
 
 /** Options for the CLI. */
@@ -133,7 +133,8 @@ export async function testSite(subdomain, nTimes, outputDir) {
         const task = async (/** @type {BrowserContext} */ context) =>
             await visitSite(context, subdomain)
         try {
-            const reachable = await inContext(userDataDir, logDir, harDir, task)
+            const contextTask = inContext(userDataDir, logDir, harDir, task)
+            const reachable = await timeOut(contextTask, VISIT_TIMEOUT_MS)
             const reachableJson = JSON.stringify(reachable, null, "\t")
             const writePromise = writeFile(reachableDir, reachableJson)
             writePromises.push(writePromise)
@@ -150,6 +151,9 @@ export async function testSite(subdomain, nTimes, outputDir) {
 
 /** Time to interact in milliseconds. */
 const INTERACTION_TIME_MS = 30_000
+
+/** Maximum time spent visiting a site, in milliseconds. */
+const VISIT_TIMEOUT_MS = INTERACTION_TIME_MS * 10
 
 /**
  * Visits a specified site in the given browser context.
@@ -306,7 +310,7 @@ export async function visitUrl(context, url) {
             let waitHandle
             while (leftMs > 0) {
                 if (waitHandle !== undefined) {
-                    clearTimeout(waitHandle)
+                    waitHandle.clearTimeout()
                 }
                 waitHandle = afterDelay(() => done("timeout"), leftMs)
                 const status = await waitUntilDone
