@@ -410,7 +410,11 @@ export function rewriteStatements(
             return new UnknownNodeErr(statement)
         }
 
-        if (!noRewrite && bodyArr.length > 0 && effectiveLen > maxEvalSize) {
+        if (
+            !noRewrite &&
+            bodyArr.length > 0 &&
+            effectiveLen > maxEvalSize * 2
+        ) {
             /* console.log("bodyArr", t, separateScope, noRewrite, nestedNoRewrite) //DBG */
             // Break down the statement into `eval` blocks.
             const textRewritten = rewriteStatements(
@@ -576,7 +580,7 @@ export class RewritingStatements {
  * @param {number} maxEvalSize - Target maximum size per `eval` block.
  */
 export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
-    if (noRewrite === false && rewriting.effectiveLen > maxEvalSize) {
+    if (noRewrite === false && rewriting.effectiveLen > maxEvalSize * 2) {
         // Need to try split the script into `eval` blocks.
         let /**@type{(RewrittenStatement | RewrittenStatements)[]}*/ currentEvalBlock =
                 []
@@ -598,7 +602,13 @@ export function finishRewrite(rewriting, noRewrite, maxEvalSize) {
             currentLen += statement.effectiveLen
         }
         if (currentEvalBlock.length > 0) {
-            evalBlocks.push(currentEvalBlock)
+            // `currentEvalBlock` must have `effectiveLen` between 1 and
+            // `maxEvalSize`, so we just append it to the last `eval` block.
+            if (evalBlocks.length > 0) {
+                evalBlocks[evalBlocks.length - 1].push(...currentEvalBlock)
+            } else {
+                evalBlocks.push(currentEvalBlock)
+            }
         }
 
         const outerBlock = evalBlocks[0]
