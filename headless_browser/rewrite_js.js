@@ -671,11 +671,15 @@ export class RewrittenStatements {
         this.inline = false
     }
 
-    toNonEvalText() {
+    /** Convert the rewritten statements to inner text for
+     * top-level `eval` block.
+     * @param {number} maxDepth - Maximum depth of nested `eval` blocks.
+     */
+    toNonEvalText(maxDepth = 8) {
         const text = this.statements.reduce((s, stmts) => {
             if (stmts instanceof RewrittenStatements) {
-                if (stmts.inline) {
-                    return s + stmts.toNonEvalText()
+                if (stmts.inline || maxDepth <= 0) {
+                    return s + stmts.toNonEvalText(maxDepth)
                 }
                 const fnHeader = stmts.hasReturn
                     ? `(${stmts.hasAwait ? "async " : ""}function(){\n`
@@ -687,7 +691,7 @@ if(圏!=="⭕圏"){return 圏}
 `
                     : "`);\n"
                 return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}eval(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
-${fnHeader}${stmts.toEvalText()}
+${fnHeader}${stmts.toEvalText(maxDepth - 1)}
 ${fnFooter}`
             } else {
                 return s + stmts.text
@@ -696,11 +700,15 @@ ${fnFooter}`
         return `${this.header}${text}${this.footer}`
     }
 
-    toEvalText() {
+    /** Convert the rewritten statements to text for `eval` block inside
+     * `eval` block.
+     * @param {number} maxDepth - Maximum depth of nested `eval` blocks.
+     */
+    toEvalText(maxDepth) {
         const text = this.statements.reduce((s, stmts) => {
             if (stmts instanceof RewrittenStatements) {
-                if (stmts.inline) {
-                    return s + stmts.toEvalText()
+                if (stmts.inline || maxDepth <= 0) {
+                    return s + stmts.toEvalText(maxDepth)
                 }
                 const fnHeader = stmts.hasReturn
                     ? `(${stmts.hasAwait ? "async " : ""}function(){\n`
@@ -712,7 +720,7 @@ if(圏!=="⭕圏"){return 圏}
 `
                     : "`)};\n"
                 return `${s}var 圏 = ${stmts.hasAwait ? "await " : ""}\${迤(String.raw\`${effectiveLenHeader(stmts.effectiveLen)}
-${fnHeader}${stmts.toEvalText()}
+${fnHeader}${stmts.toEvalText(maxDepth - 1)}
 ${fnFooter}`
             } else {
                 return s + escapeTemplateInner(stmts.text)
