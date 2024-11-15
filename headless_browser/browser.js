@@ -220,21 +220,6 @@ export async function visitUrl(context, url) {
                 await popupPage.close()
             }
         })
-        page.on("load", async (frame) => {
-            const elapsed = Date.now() - startMs
-            console.log("Frame %s.", frame.url())
-            try {
-                const hasHorde = await page.evaluate(
-                    () => window.__hordePromise__ !== undefined,
-                )
-                if (!hasHorde) {
-                    leftMs -= elapsed
-                    done("noHorde")
-                }
-            } catch (_) {
-                // Not settled down on a page.
-            }
-        })
 
         await page.route(WILDCARD_URL, async (route) => {
             try {
@@ -271,13 +256,29 @@ export async function visitUrl(context, url) {
             }
         })
 
-        console.log("Visiting %s.", url)
+        console.log("\nVisiting %s.", url)
         const response = await page.goto(url, { timeout: 120_000 })
         if (response !== null && response.status() >= 400) {
             throw new Error(
                 `Failed to visit ${url} with status ${response.status()}.`,
             )
         }
+        // After navigating to the page, start watching for future page loads.
+        page.on("load", async (frame) => {
+            const elapsed = Date.now() - startMs
+            console.log("Frame %s.", frame.url())
+            try {
+                const hasHorde = await page.evaluate(
+                    () => window.__hordePromise__ !== undefined,
+                )
+                if (!hasHorde) {
+                    leftMs -= elapsed
+                    done("noHorde")
+                }
+            } catch (_) {
+                // Not settled down on a page.
+            }
+        })
 
         try {
             // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
