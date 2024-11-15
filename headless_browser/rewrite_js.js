@@ -25,14 +25,14 @@ const /**@type{Options}*/ parseOptions = {
  * @param {Page} page - The page to intercept JS requests on.
  */
 export function rewriteJsResponses(page) {
-    page.route(WILDCARD_URL, overwriteResponseJs)
+    page.route(WILDCARD_URL, (route) => overwriteResponseJs(route))
 }
 
 /**
- * This is only for testing because it cannot coexist with other route interceptors.
  * @param {Route} route - The route to intercept.
+ * @param {number} maxDepth - Maximum depth of nested `eval` blocks.
  */
-export async function overwriteResponseJs(route) {
+export async function overwriteResponseJs(route, maxDepth = 8) {
     try {
         const response = await route.fetch()
         const fulfillOpts = { response }
@@ -46,9 +46,7 @@ export async function overwriteResponseJs(route) {
             if (text instanceof Error) {
                 console.error("Failed to read JS response:", text, response)
             } else {
-                // NOTE: Splitting the script into 9 `eval` blocks starts to
-                // cause browser crashes.
-                const rewritten = rewriteJs(text)
+                const rewritten = rewriteJs(text, maxDepth)
                 if (rewritten instanceof Error) {
                     console.error("Failed to rewrite JS:", rewritten, response)
                 } else {
@@ -72,8 +70,9 @@ export const ESCAPE_FN_TEXT = String.raw`var 迤=s=>${"`"}eval(String.raw\`${"${
 /**
  * @param {string} source - Source of JS script.
  * @param {number} maxEvalSize - Target maximum size per `eval` block.
+ * @param {number} maxDepth - Maximum depth of nested `eval` blocks.
  */
-export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
+export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE, maxDepth = 8) {
     const program = pCall(() => parse(source, parseOptions))
     if (program instanceof Error) {
         return program
@@ -91,7 +90,7 @@ export function rewriteJs(source, maxEvalSize = MAX_EVAL_SIZE) {
         return rewritten
     } else {
         /*         console.log("rewritten:", JSON.stringify(rewritten, null, 2)) //DBG */
-        const text = rewritten.toNonEvalText()
+        const text = rewritten.toNonEvalText(maxDepth)
         const result = `${effectiveLenHeader(rewritten.effectiveLen)}
 ${imports.join("")}${ESCAPE_FN_TEXT}
 ${text}`

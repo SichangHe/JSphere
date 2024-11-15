@@ -7,6 +7,7 @@ import { readFile, rm, writeFile } from "node:fs/promises"
 import { chdir } from "node:process"
 import { chromium } from "playwright"
 import { afterDelay, mkFreshDir } from "./helpers.js"
+import { overwriteResponseJs } from "./rewrite_js.js"
 
 /** Options for the CLI. */
 export const opts = {
@@ -219,15 +220,23 @@ export async function visitUrl(context, url) {
                 await popupPage.close()
             }
         })
+        page.on("load", async (frame) => {
+            const elapsed = Date.now() - startMs
+            console.log("Frame %s.", frame.url())
+            try {
+                const hasHorde = await page.evaluate(
+                    () => window.__hordePromise__ !== undefined,
+                )
+                if (!hasHorde) {
+                    leftMs -= elapsed
+                    done("noHorde")
+                }
+            } catch (_) {
+                // Not settled down on a page.
+            }
+        })
 
-        console.log("Visiting %s.", url)
-        const response = await page.goto(url, { timeout: 120_000 })
-        if (response !== null && response.status() >= 400) {
-            throw new Error(
-                `Failed to visit ${url} with status ${response.status()}.`,
-            )
-        }
-        const pageRoutePromise = page.route(WILDCARD_URL, async (route) => {
+        await page.route(WILDCARD_URL, async (route) => {
             try {
                 const request = route.request()
                 const requestUrl = request.url().split("#")[0]
@@ -254,35 +263,27 @@ export async function visitUrl(context, url) {
                         startMs = Date.now()
                     }, 1000)
                 } else {
-                    await route.continue()
+                    await overwriteResponseJs(route)
                 }
             } catch (error) {
                 // Avoid crashing when the page is closed.
                 console.error(error)
             }
         })
-        page.on("load", async (frame) => {
-            const elapsed = Date.now() - startMs
-            console.log("Frame %s.", frame.url())
-            try {
-                const hasHorde = await page.evaluate(
-                    () => window.__hordePromise__ !== undefined,
-                )
-                if (!hasHorde) {
-                    leftMs -= elapsed
-                    done("noHorde")
-                }
-            } catch (_) {
-                // Not settled down on a page.
-            }
-        })
+
+        console.log("Visiting %s.", url)
+        const response = await page.goto(url, { timeout: 120_000 })
+        if (response !== null && response.status() >= 400) {
+            throw new Error(
+                `Failed to visit ${url} with status ${response.status()}.`,
+            )
+        }
 
         try {
             // See <https://github.com/marmelab/gremlins.js?tab=readme-ov-file#playwright>.
             // Here, we do not run the Gremlins script before the page's own to
             // avoid affecting its performance.
             await page.evaluate(await gremlinsScript())
-            await pageRoutePromise
             startMs = await page.evaluate((seed) => {
                 // Create Gremlins horde within the browser context and unleash it.
                 // See <https://marmelab.com/gremlins.js/>.
