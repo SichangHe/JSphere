@@ -6,7 +6,8 @@ author:
 format: acm-pdf
 acm-metadata:
     final: true
-    acmart-options: sigcomm
+    keep-tex: true
+    acmart-options: sigconf,screen
     copyright-year: 2024
     acm-year: 2024
     copyright: none
