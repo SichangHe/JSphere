@@ -4,6 +4,8 @@ author:
     - name: Sichang "Steven" He
     - name: "Mentor: Harsha V. Madhyastha"
 format: acm-pdf
+filters:
+    - table_workaround_filter.lua
 acm-metadata:
     final: true
     acmart-options: sigconf,screen
@@ -21,13 +23,83 @@ bibliography: main.bib
 
 <!-- TODO: add this in private repo. -->
 
-# Introduction
+# Introduction {#sec-intro}
 <!-- giving an overview of what need you're trying to address,
 what you are doing and plan to do, what the novelty and
 new results will be (i.e., why will your work be interesting to others in
 the field), and why is this work interesting to you, personally.
 Except for the last part (about you), that
 structure is roughly like a typical paper. -->
+
+<!-- TODO: These are copied over. -->
+The amount of JavaScript (JS) websites include has been growing over the years,
+with visible impacts for users browsing the Web. On today's median webpage,
+JS constitutes around 25% of the bytes transferred [@httparchive2024web;
+@httparchive2024javascript], and has been reported to account for about 50% of
+the compute delay [@goel2024sprinter].
+Additionally, JS is responsible for providing client-side interactivity and
+sometimes content rendering.
+Therefore, JS plays a central role in shaping the Web browsing experience in
+terms of both resource usage and functionalities.
+
+However, despite the extensive use of JS,
+the exact underlying reasons remain understudied.
+While some believe the increase of JS usage provides the end users with
+better browsing experience, others suggest much of this JS is unnecessary and
+instead inflates webpages [@ceglowski2015website].
+Unfortunately, user-facing JS research efforts have primarily focused on
+security vulnerabilities, privacy invasions, and performance issues.
+The purpose behind the extensive use of JS and its effectiveness in
+achieving them remain unanswered.
+
+As a step towards understanding the common purpose and necessity of JS use,
+JSphere aims to classify the functionalities of JS scripts on
+the public Web. Although JS was originally designed for beginner programmers to
+script interactive user experience (UX) [@paolini1994netscape],
+it has been adopted for a plethora of systems tasks, which
+may explain its high resource usage.
+For example, as the popularity of Single-Page Applications (SPAs)
+[@oh2013automated] rose, many websites that could otherwise be served as
+static HTML instead ship entire SPA frameworks, fetch JSON data from
+the server, and convert them into DOM elements.
+By understanding the common use of JS, we can potentially guide developers in
+optimizing their websites, improve general online browsing experiences, and
+inform future utilization of the Internet for serving Web content.
+
+As we alluded above, some functionalities are more suitable to
+be implemented on the client, while others are less essential or
+can be offloaded to the server.
+Based on this observation, we propose to classify each JS script into one or
+more categories, which we call *spheres*.
+We describe the spheres in @sec-goal, and
+discuss how we classify JS into these spheres.
+
+We analyze JS browser API calls to
+approximately classify them into the above spheres.
+While perfect classification is generally impossible because
+JS is Turing-complete, browser API calls reveal the effects each script has on
+the webpage.
+Additionally, browser APIs usually have distinct and specific purposes.
+By observing which browser APIs a script calls when the webpage loads or
+is interacted with, we can approximately infer its purpose.
+Thus, we visit and interact with webpages, then
+analyze their browser API calls to classify their JS into spheres, as
+we detail in @sec-methods.
+
+This work is personally interesting to me because I have strong opinions on
+the trend of increasing JS usage on the Web. Although popular thoughts on
+social media advocates for more JS usage, claiming it provides better user and
+developer experiences, I personally experience otherwise.
+As a user browsing the Web, I frequently experienced the frustration of
+slow webpage loading and interaction even when
+very little content is being loaded.
+When I checked the network tab in my browser, I always saw many requests and
+much JS transferred.
+As a web developer, I also found the SPA frameworks unnecessary, that
+it causes constant struggles to synchronize both frontend and
+backend implementations and state.
+I hope JSphere can bridges some gaps between the popular beliefs and
+the reality of JS usage.
 
 # Related Work
 <!-- summarizes prior work related to yours and describes how your work compares.
@@ -66,7 +138,7 @@ By looking into the common use of ordinary JS, we hope to
 provide insights into avoiding JS issues in the first place and
 improving web browsing experiences.
 
-# Goals
+# Goals {#sec-goal}
 <!-- listing what your goals were from Research Projects A and B with
 a statement about which goals you completed, and for those you didn't complete,
 why you didn't complete them.
@@ -78,11 +150,278 @@ annotate these as "additional".
 
 (This section is the only one that would not appear in a real paper.) -->
 
+<!-- TODO: These are copied over. -->
+Based on our observation in @sec-intro that
+some functionalities suit JS better than others, we aim to
+draw each JS script of the top 1000 popular websites into one or
+more following spheres:
+
+- **Frontend processing.** Client-side functionalities such as
+    user interaction, form validation, and
+    other domain-specific logic are essential JS purposes.
+- **DOM element generation.** Instead of serving static HTML, many websites
+    fetch JSON data from the server and convert them into DOM elements, and
+    even apply styling after page load, shifting rendering workloads from
+    the server to the client.
+- **UX enhancement.** Animations, effects, and
+    font loading improve the look and feel of the webpage, but
+    may be replaceable by modern HTML and CSS features.
+- **Extensional features.** Authentication, tracking, and
+    hardware access are inessential to the core functionalities of webpages,
+    but often provides important extra features comparable to
+    native applications.
+- **Silent**: Some scripts do not call any JS APIs or mutate global state,
+    essentially ineffective. These are likely never executed.
+
+Besides classifying scripts into spheres, we also aim to correlate them with
+website performance.
+We would like to see sphere distributions across websites,
+associating the JS sizes per sphere with each webpage's load time.
+We plan to visualize both the sphere distributions and its relationships with
+performance metrics.
+
 # JSphere
 <!-- Section 4 A discussion of your work.
 You will likely want to use multiple sections or subsections here, and
 you should identify your goal, methodology/approach, data collection, and
 results. -->
+
+## Methods {#sec-methods}
+
+<!-- TODO: These are copied over. -->
+We leverage web crawling to collect API call logs, then analyze these logs to
+classify JS files on the top 1000 subdomains.
+
+### Web Crawling
+
+We visit and interact with webpages in a fashion used in [@snyder2016browser].
+For each subdomain, we visit the root webpage, 3 second-level linked webpages,
+9 third-level webpages, repeating this process five times.
+After each webpage's `load` event fires, we conduct "chaos testing",
+randomly interacting with the webpage's elements for 30 seconds in total.
+During interactions, we block all page navigations by
+fulfilling such requests with an HTML webpage containing a single JS block to
+go back in history, and record this navigation attempt for the second- and
+third-level linked webpages.
+With the browser's back-forward cache enabled,
+we find this method reliably resumes the interaction, with
+infrequent glitches that we detect and solve by visiting the webpage again.
+We use Playwright[^playwright] to automate this browsing process and
+inject Gremlins.js[^gremlins] for the chaos testing.
+
+While loading and interacting with webpages,
+VisibleV8 records the API calls they make and provides logs for our analysis.
+VisibleV8 is a modified Chromium browser [@jueckstock2019visiblev8]; for
+each Chromium thread, it writes a log file that
+contains each script context and browser API call made in that
+context [@jueckstock2019visiblev8].
+We open a new browser page every time we visit a webpage to
+ensure all API calls in
+each log file before our injected interaction script are made during page
+loading.
+
+We also collect the HTTP Archive (HAR) files and a list of reachable or
+visited webpages for potential further analysis.
+The HAR files contain detailed information about the network requests made and
+the timing, which we can use for website performance comparisons.
+The list of reachable or
+visited webpages helps identify the links we clicked and webpages we visited.
+
+### Log Processing
+
+We parse the VisibleV8 logs to aggregate the API calls of each script context.
+A script context is either a standalone JS file being executed, a script tag in
+an HTML file, or a script created using `eval()`.
+For each context, we group API calls made based on their API types, `this`
+values, and attributes accessed, e.g., a Get API on `Window`'s `scrollY`
+attribute, and count the presence of each API call group.
+Additionally, we filter out internal, user-defined, and
+injected calls using log information and API name filtering, so we can focus on
+browser API usage. Our custom Rust library powers this processing.
+
+We divide API calls into two portions: calls made during page loading and
+calls made after interaction begin.
+This division helps us filter out API calls not made for interaction handling.
+We make this distinction based on when the browser enters a context of
+our injected interaction script in the log file.
+
+Additional to the API call logs, we also collect the script sizes in bytes from
+their source code provided in the logs.
+The script sizes may be a more indicative metric than script counts because
+they better reflect the transferred bytes and the execution time of
+the scripts, which directly affect user experiences.
+
+### Heuristics for Classification {#sec-heuristics}
+
+We count specific "anchor" APIs that strongly indicate specific spheres, and
+develop heuristics based on them to determine if
+a script context falls under a sphere.
+Although there are tens of thousands of browser APIs,
+prior studies observed an 20/80 rule of browser API usage, that
+only a fraction is popularly used [@snyder2016browser].
+Therefore, we expect to classify most scripts through a few popular APIs.
+We currently deploy the following heuristics, which are subject to change:
+
+- **Frontend processing** scripts
+    read event attributes, webpage location, or form elements.
+    We also identify they if they listen to events,
+    calculate bounding rectangles, or set text content.
+- **DOM element generation** is classified if the scripts create elements or
+    apply styles before interaction begins.
+- **UX enhancement** is assumed if the scripts remove or hide elements,
+    animate elements, query media type, or set font faces.
+- **Extensional features** are detected if
+    the scripts request performance data or send beacons.
+
+<!-- TODO: These are copied over. Reframe as something done -->
+## Classification Granularity Improvement
+
+Gaining more fine-grained classifications than per script file is crucial to
+understanding the popularity of each sphere, as shown in @sec-class-results.
+Unfortunately, our method of using the VisibleV8 browser limits us to
+the granularity of script contexts, which generally correspond to
+individual script file, so we cannot classify individual functions or
+statements with our current setup.
+However, script contexts may also correspond to scripts created using `eval()`,
+opening up the possibility of classifying smaller units.
+
+To grind down our classification granularity to below the script file level,
+we plan to break down large scripts into smaller `eval`
+blocks before they arrive at the browser.
+Specifically, we will intercept requests to JS scripts like we already do for
+preventing navigations, make the requests ourselves, modify the responses to
+include `eval` blocks as needed, and then fulfill the browser's requests with
+the modified responses.
+To preserve the scripts' functionalities, we need to insert the `eval`
+calls without breaking scopes or execution order (hoisting), which
+requires parsing each script and modifying its abstract syntax tree (AST).
+To avoid potential high overheads introduced by `eval`, we plan to
+only break down large scripts, and only create `eval` blocks of 1 kB or
+larger sizes.
+We hope this method can help us gain a more granular sphere classification.
+
+<!-- TODO: These are copied over. -->
+## Initial Results
+
+For our initial results, we are mostly concerned with two aspects:
+validating our assumptions about a small set of
+browser APIs dominating all API usage (the 20/80 rule), and testing whether
+we can classify scripts into spheres based on these APIs.
+Our preliminary analysis of the top 100 subdomains confirmed the 20/80 rule of
+browser APIs, based on which
+we developed our initial classification heuristics; however,
+our initial classification results demonstrate that
+script is too large a unit to separate spheres effectively.
+
+### The 20/80 Rule of Browser APIs
+
+**Dominating APIs.** We find that 1.75% (318) of all observed APIs account for
+80% of all API calls and 3.74% (678) of APIs cover 90% of all API calls, as
+demonstrated in @fig-api-calls-cdf.
+This tail-heavy distribution suggests that a relatively small set of
+APIs dominates JS usage on the web.
+
+![Cumulative distribution function of observed API calls by
+increasing fraction of
+APIs.](data/api_calls_cdf.png){width=50% #fig-api-calls-cdf}
+
+**"Anchor" APIs.** We manually inspected the top 678 APIs that make up 90% of
+all API calls and identified "anchor" APIs that
+strongly indicate specific spheres.
+For example, `addEventListener` for Frontend Processing and `createElement` for
+DOM Element Generation.
+Additionally, we manually inspected five scripts from YouTube to
+gain intuition on the purpose of several anchor APIs.
+Using these anchor APIs, we handcrafted the initial heuristics in
+@sec-heuristics to classify scripts into spheres.
+
+### Initial Classification Results {#sec-class-results}
+
+We apply our heuristics to the 40,116 scripts from the top 100 subdomains,
+aggregate classification results, and correlate them with script sizes.
+In addition to the spheres,
+we also classify scripts into auxiliary categories (Has Request,
+Queries Element, Uses Storage) in the hope of discovering additional cues for
+classification.
+No significant correlation was found between script size and classification,
+the spheres, or any other pairs of metrics.
+
+**Single-Category Results.** We apply our heuristics to 40,116 scripts,
+totaling 3,192.7 MB, and report both how many scripts in each category (count)
+and how many megabytes they total (size).
+@tbl-script-classification shows our heuristics successfully categorized 93.0%
+of script bytes into at least one sphere (inverse of "No Sure Sphere"), though
+it is only 67.2% of scripts by count.
+This size coverage cannot be improve to over 94.4% even if
+we use the auxiliary categories (inverse of "No Category"), so
+we do not see any potential to significantly improvement coverage.
+Additionally, a quarter of scripts executed do not call any browser APIs or
+mutate global states, but they are only a tiny fraction of
+the total script size, meaning there are many small scripts that
+seemingly have no effects.
+
+The popularities of spheres are mildly surprising.
+Frontend processing is the most popular sphere, encompassing almost 90% of
+scripts, which may indicate that
+most scripts are doing essential client-side work.
+However,
+our heuristics is very relaxed toward classifying scripts into frontend
+processing, thus this can be a false positive.
+For example, a script primarily responsible for
+DOM element generation may listen for DOM load and then generate elements,
+which is Unfortunately classified as frontend processing.
+Other spheres also have surprisingly high popularities by size, which
+alludes to the peculiar script size distribution we discuss below.
+
+| Feature                | Count | Count (%) | Size (MB) | Size (%) |
+| ---------------------- | ----- | --------- | --------- | -------- |
+| Frontend Processing    | 14129 | 35.22     | 2864.3    | 89.72    |
+| DOM Element Generation | 8196  | 20.43     | 2248.9    | 70.44    |
+| UX Enhancement         | 4496  | 11.21     | 1840.7    | 57.65    |
+| Extensional Features   | 4915  | 12.25     | 1888.1    | 59.14    |
+| Silent Scripts         | 10260 | 25.58     | 28.1      | 0.88     |
+| Has Request            | 4205  | 10.48     | 1432.1    | 44.86    |
+| Queries Element        | 13640 | 34.00     | 2731.6    | 85.56    |
+| Uses Storage           | 4571  | 11.39     | 1641.0    | 51.40    |
+| No Sure Sphere         | 13148 | 32.77     | 221.1     | 6.93     |
+| No Category            | 10178 | 25.37     | 179.7     | 5.63     |
+
+: Initial classification results for the top 100 subdomains: the script counts,
+sizes and their corresponding percentages out of the respective total.
+{#tbl-script-classification}
+
+**Script Size Distribution.** @fig-script-size-cdf shows the distribution of
+script sizes in all scripts and in scripts belonging to each sphere.
+Script sizes range from 9 bytes to 8.7 MB.
+The average script size is 80 kB, with a median of 2.2 kB,
+therefore there are many small scripts and a few large scripts, with
+the large scripts contributing to most of the total script size.
+Silent scripts are much smaller than other scripts, but scripts in
+each sphere have similar size distributions.
+
+![Cumulative distribution function of script sizes among all scripts and
+scripts belonging to
+each sphere.](data/script_size_cdf.png){width=50% #fig-script-size-cdf}
+
+**Multi-Sphere Scripts.** Many large scripts belong to multiple spheres.
+@tbl-2-sphere-scripts shows high overlap between and among spheres: if
+we pick any two spheres, we find around half of all scripts by size belong to
+those spheres.
+In fact, 1296.1 MB of scripts (40.60% by size) fall into all sure spheres,
+although the count is only 1473 (3.67%).
+The all-sure-sphere scripts have sizes ranging from 7.1 kB to 8.7 MB,
+suggesting a small fraction of large scripts tightly couples multiple spheres.
+Therefore, classifying by each script file is not fine-grained enough to
+meaningfully separate spheres.
+
+| Feature Combination        | Frontend Processing              | DOM Element Generation          | UX Enhancement                  |
+| -------------------------- | -------------------------------- | ------------------------------- | ------------------------------- |
+| **DOM Element Generation** | 6602 (16.46%), 2197.1MB (68.82%) | -                               | -                               |
+| **UX Enhancement**         | 3840 (9.57%), 1821.5MB (57.05%)  | 3125 (7.79%), 1613.2MB (50.53%) | -                               |
+| **Extensional Features**   | 4229 (10.54%), 1841.1MB (57.67%) | 2703 (6.74%), 1562.9MB (48.95%) | 1844 (4.60%), 1440.5MB (45.12%) |
+
+: Counts (and percentages) and sizes (and percentages) of scripts that
+belong to two spheres. {#tbl-2-sphere-scripts}
 
 # Future Work
 <!-- You are not required to actually do this work, but it's always good to
@@ -92,4 +431,8 @@ the project work might not have perfectly aligned with the semester deadline. --
 # References {.unnumbered}
 <!-- Section 6 A bibliography, with at least what you cite in related work -->
 ::: {#refs}
+
 :::
+
+[^playwright]: <https://playwright.dev/>
+[^gremlins]: <https://github.com/marmelab/gremlins.js>
