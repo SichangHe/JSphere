@@ -135,24 +135,25 @@ fn main() {
 
     //================================================================
     // Shared functions for scanning logs.
-    fn for_each_log(mut callback: impl FnMut(LogFile)) {
+    fn for_each_log(mut callback: impl FnMut(LogFile, &str)) {
         for dir_entry_result in fs::read_dir("headless_browser/target/").unwrap() {
             let dir_entry = dir_entry_result.unwrap();
             let subdomain_dir = dir_entry.path();
+            let subdomain = subdomain_dir.file_name().unwrap().to_str().unwrap();
             for trial in 0..5 {
                 let trial_dir = subdomain_dir.join(trial.to_string());
                 if trial_dir.exists() && trial_dir.is_dir() {
                     println!("Scanning `{}`", trial_dir.to_string_lossy());
                     let logs = read_logs(&trial_dir).unwrap();
                     for log in logs {
-                        callback(log);
+                        callback(log, subdomain);
                     }
                 }
             }
         }
     }
-    fn for_each_filtered_script(mut callback: impl FnMut(i32, ScriptAggregate)) {
-        for_each_log(|mut log| {
+    fn for_each_filtered_script(mut callback: impl FnMut(i32, ScriptAggregate, &str)) {
+        for_each_log(|mut log, subdomain| {
             let LogFileInfo {
                 timestamp,
                 pid,
@@ -175,7 +176,7 @@ fn main() {
                 if matches!(script.injection_type, ScriptInjectionType::Not)
                     && script.source != "window.history.back()"
                 {
-                    callback(id, script);
+                    callback(id, script, subdomain);
                 }
             }
         })
@@ -195,7 +196,7 @@ fn main() {
         acc_per_may_interact: f64,
     }
     let mut api_calls = HashMap::<ApiCall, CallCounts>::with_capacity(2048);
-    for_each_filtered_script(|_, script| {
+    for_each_filtered_script(|_, script, _| {
         if let Some((total_calls, total_may_interact)) = script
             .api_calls
             .values()
@@ -265,7 +266,9 @@ fn main() {
     struct ScriptFeatures {
         id: i32,
         name: Option<String>,
+        subdomain: String,
         size: usize,
+        rewritten: bool,
         total_call: u32,
         sure_frontend_processing: bool,
         sure_dom_element_generation: bool,
@@ -276,7 +279,7 @@ fn main() {
         uses_storage: bool,
     }
     let mut script_features = Vec::<ScriptFeatures>::with_capacity(8192);
-    for_each_filtered_script(|id, script| {
+    for_each_filtered_script(|id, script, subdomain| {
         let ScriptAggregate {
             line,
             name,
@@ -286,12 +289,17 @@ fn main() {
             n_filtered_call,
         } = script;
         // NOTE: We have the `effectiveLen` if the script is rewritten.
-        let size = regex_captures!(r"^//(\d+) effectiveLen", &source)
+        let (size, rewritten) = match regex_captures!(r"^//(\d+) effectiveLen", &source)
             .and_then(|(_, len)| len.parse::<usize>().ok())
-            .unwrap_or(source.len());
+        {
+            Some(len) => (len, true),
+            None => (source.len(), false),
+        };
         let mut features = ScriptFeatures {
             id,
+            subdomain: subdomain.to_string(),
             size,
+            rewritten,
             total_call: api_calls.len() as u32 + n_filtered_call,
             ..ScriptFeatures::default()
         };
@@ -411,12 +419,18 @@ fn main() {
     {
         let mut file = BufWriter::new(File::create("data/script_features3.csv").unwrap());
         // Need to use tab because URLs may contain commas.
-        file.write_all(b"id\tname\tsize\ttotal_call\tsure_frontend_processing\tsure_dom_element_generation\tsure_ux_enhancement\tsure_extensional_featuers\thas_request\tqueries_element\tuses_storage\n")
-            .unwrap();
+        file.write_all(
+            b"id\tname\tsubdomain\tsize\trewritten\ttotal_call\tsure_frontend_processing\
+              \tsure_dom_element_generation\tsure_ux_enhancement\
+              \tsure_extensional_featuers\thas_request\tqueries_element\tuses_storage\n",
+        )
+        .unwrap();
         for ScriptFeatures {
             id,
             name,
+            subdomain,
             size,
+            rewritten,
             total_call,
             sure_frontend_processing,
             sure_dom_element_generation,
@@ -429,7 +443,7 @@ fn main() {
         {
             writeln!(
                 file,
-                "{id}\t{name}\t{size}\t{total_call}\t{sure_frontend_processing}\
+                "{id}\t{name}\t{subdomain}\t{size}\t{rewritten}\t{total_call}\t{sure_frontend_processing}\
                  \t{sure_dom_element_generation}\t{sure_ux_enhancement}\
                  \t{sure_extensional_featuers}\t{has_request}\t{queries_element}\t{uses_storage}",
                 name = name.as_deref().unwrap_or(""),
