@@ -6,7 +6,6 @@ author:
 format: acm-pdf
 acm-metadata:
     final: true
-    keep-tex: true
     acmart-options: sigconf,screen
     copyright-year: 2024
     acm-year: 2024
@@ -18,4 +17,79 @@ abstract: TODO
 bibliography: main.bib
 ---
 
-# Weekly Meeting Notes
+# Weekly Meeting Notes {.unnumbered}
+
+<!-- TODO: add this in private repo. -->
+
+# Introduction
+<!-- giving an overview of what need you're trying to address,
+what you are doing and plan to do, what the novelty and
+new results will be (i.e., why will your work be interesting to others in
+the field), and why is this work interesting to you, personally.
+Except for the last part (about you), that
+structure is roughly like a typical paper. -->
+
+# Related Work
+<!-- summarizes prior work related to yours and describes how your work compares.
+When you compare to prior work, summarize the prior work and then
+identify how it is alike or different from your work.
+(Usually, related work is similar to your work in some ways and different in
+others.) You need to include complete citations to the prior work
+(those citations should point to a bibliography at the end of your report). -->
+
+<!-- TODO: These are copied over. -->
+There have been many user-facing studies on JS.
+Researchers have studied how to detect privacy-invading or
+malicious intention in JS, such as tracking when
+user data flow towards the server [@li2018jsgraph],
+identifying browser APIs associated with advertisements and
+tracking [@snyder2016browser],
+identifying fingerprinting behaviors [@iqbal2021fingerprinting], and,
+most recently, detecting techniques for malicious code to
+evade observations [@pantelaios2024fv8].
+Besides privacy and security, researchers have also invented techniques to
+improve the performance bottlenecks brought by JS, such as
+speeding up webpage load time by executing JS in
+parallel [@mardani2021horcrux], or reducing JS execution during web crawling by
+imitating their effects on previously-visited webpages [@goel2024sprinter].
+These studies have provided insights into how to solve some of the issues of
+JS and improve user experiences.
+
+There are, however, no research focusing on identifying the purposes of
+general JS to the best of our knowledge.
+JSphere aims to bridge this gap of understanding about the use of JS in
+general.
+Instead of working around the JS issues, we aim to understand the root cause;
+instead of focusing on script intentions centering around privacy and security,
+we focus on the ordinary use of JS on webpages.
+By looking into the common use of ordinary JS, we hope to
+provide insights into avoiding JS issues in the first place and
+improving web browsing experiences.
+
+# Goals
+<!-- listing what your goals were from Research Projects A and B with
+a statement about which goals you completed, and for those you didn't complete,
+why you didn't complete them.
+Possible Reasons may vary from "ran out of time" or "unable to get access to
+data" to "decided with mentor that result Y was more interesting than
+result X"; you may have other reasons as well.
+You should also list any goals you added after you submitted Project B, and
+annotate these as "additional".
+
+(This section is the only one that would not appear in a real paper.) -->
+
+# JSphere
+<!-- Section 4 A discussion of your work.
+You will likely want to use multiple sections or subsections here, and
+you should identify your goal, methodology/approach, data collection, and
+results. -->
+
+# Future Work
+<!-- You are not required to actually do this work, but it's always good to
+identify where the work might go, especially since
+the project work might not have perfectly aligned with the semester deadline. -->
+
+# References {.unnumbered}
+<!-- Section 6 A bibliography, with at least what you cite in related work -->
+::: {#refs}
+:::
