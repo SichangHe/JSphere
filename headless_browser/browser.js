@@ -409,5 +409,7 @@ export async function inContext(userDataDir, logDir, harDir, task) {
         return await task(context)
     } finally {
         await context.close()
+        // Wait an extra 200ms to ensure the browser is shut down.
+        await new Promise((resolve) => afterDelay(() => resolve(0), 200))
     }
 }
