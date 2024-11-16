@@ -1,0 +1,20 @@
+---
+title: "JSphere: Classification of The Use of JavaScript on The Web"
+author:
+    - name: Sichang "Steven" He
+    - name: "Mentor: Harsha V. Madhyastha"
+format: acm-pdf
+acm-metadata:
+    final: true
+    acmart-options: sigcomm
+    copyright-year: 2024
+    acm-year: 2024
+    copyright: none
+    conference-name: CSci 651 by John Heidemann
+    conference-date: November, 2024
+    conference-location: Los Angeles, CA
+abstract: TODO
+bibliography: main.bib
+---
+
+# Weekly Meeting Notes

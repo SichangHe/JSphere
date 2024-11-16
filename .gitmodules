@@ -1,0 +1,3 @@
+[submodule "quarto_acm_journal_template"]
+	path = quarto_acm_journal_template
+	url = git@github.com:SichangHe/quarto_acm_journal_template.git
