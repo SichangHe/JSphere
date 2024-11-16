@@ -75,7 +75,7 @@
         how do we know it does not belong to another sphere?
         - We can probably only claim we detect which sphere.
 - [ ] Split script to fine-grained!!
-    - [ ] `eval` per ~~function~~ chunk of 1kB code.
+    - [x] `eval` per ~~function~~ chunk of 1kB code.
         Details in `eval_trick.md`.
         - [Doable because VV8 keep separate execution
             context](https://github.com/SichangHe/JSphere/issues/2#issue-2620157064)
@@ -130,7 +130,8 @@ all API calls in the top 100 sites, we spot "anchor" APIs (list in
 - **Frontend processing**
     - Get `.*Event`, `Location` (some attributes),
         `HTML(Input|TextArea)Element.(value|checked)`
-    - Function `addEventListener`, `getBoundingClientRect`
+    - Function `addEventListener`~~, `getBoundingClientRect`~~
+        - These can also be used to trigger DOM element generation?
     - Set `textContent` and anything on `URLSearchParams`, `DOMRect`,
         `DOMRectReadOnly`
 - **DOM element generation**, before interaction begins

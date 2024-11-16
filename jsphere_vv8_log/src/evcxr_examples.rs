@@ -6,9 +6,11 @@ use crate as jsphere_vv8_log;
 // Copy to the end of the comment from here if running in Evcxr.
 :opt 2
 :dep shame
+:dep lazy-regex
 :dep jsphere_vv8_log = { path = "jsphere_vv8_log" }
 // */
 use jsphere_vv8_log::*;
+use lazy_regex::regex_captures;
 use shame::prelude::*;
 use std::{
     collections::HashMap,
@@ -19,6 +21,8 @@ use std::{
 
 fn main() {
     init_tracing();
+
+    //================================================================
     // Read logs from a directory.
     let start_time = Instant::now();
     let mut logs = read_logs("headless_browser/target/youtube.com/0").unwrap();
@@ -129,6 +133,8 @@ fn main() {
 
     println!("{}", &aggregate.scripts[&27].source);
 
+    //================================================================
+    // Shared functions for scanning logs.
     fn for_each_log(mut callback: impl FnMut(LogFile)) {
         for dir_entry_result in fs::read_dir("headless_browser/target/").unwrap() {
             let dir_entry = dir_entry_result.unwrap();
@@ -175,6 +181,7 @@ fn main() {
         })
     }
 
+    //================================================================
     // Scan over all logs and find popular API calls.
     #[derive(Copy, Clone, Debug, Default)]
     struct CallCounts {
@@ -252,6 +259,7 @@ fn main() {
         file.flush().unwrap();
     }
 
+    //================================================================
     // Classify each script by heuristics.
     #[derive(Clone, Debug, Default)]
     struct ScriptFeatures {
@@ -277,9 +285,13 @@ fn main() {
             api_calls,
             n_filtered_call,
         } = script;
+        // NOTE: We have the `effectiveLen` if the script is rewritten.
+        let size = regex_captures!(r"^//(\d+) effectiveLen", &source)
+            .and_then(|(_, len)| len.parse::<usize>().ok())
+            .unwrap_or(source.len());
         let mut features = ScriptFeatures {
             id,
-            size: source.len(),
+            size,
             total_call: api_calls.len() as u32 + n_filtered_call,
             ..ScriptFeatures::default()
         };
@@ -397,7 +409,7 @@ fn main() {
     });
 
     {
-        let mut file = BufWriter::new(File::create("data/script_features2.csv").unwrap());
+        let mut file = BufWriter::new(File::create("data/script_features3.csv").unwrap());
         // Need to use tab because URLs may contain commas.
         file.write_all(b"id\tname\tsize\ttotal_call\tsure_frontend_processing\tsure_dom_element_generation\tsure_ux_enhancement\tsure_extensional_featuers\thas_request\tqueries_element\tuses_storage\n")
             .unwrap();
