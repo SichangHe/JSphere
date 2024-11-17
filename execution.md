@@ -124,6 +124,7 @@ Details in `youtube_scripts_api_calls_overview.md`.
 By manually inspecting the 678 most popular APIs that make up 90% of
 all API calls in the top 100 sites, we spot "anchor" APIs (list in
 `notable_apis.md`).
+See the classification results in `classification_results.md`.
 
 #### Certain indicators
 
@@ -172,54 +173,6 @@ all API calls in the top 100 sites, we spot "anchor" APIs (list in
 - `ShadowRoot`: web components, but then what?
 - `Crypto.getRandomValues`
 - `frames`: iframes
-
-#### Classification results
-
-Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
-
-- Size: 9B~8.7MB, average 80kB, median 2.2kB.
-    - Many small scripts.
-- No significant correlation between anything.
-- Coverage: 67% classified by count, 93% by size.
-- Coverage growth potential: 7% by count, 1% by size.
-- Half (1296.1MB, 40.60%) scripts by size fall into all sure categories.
-    Count 1473 (3.67%).
-    - [ ] Look for bloated sites.
-    - [ ] What next if we can split it up?
-        - [ ] What user impact from size? Aggregate per page?
-        - [ ] Chrome execution time of script.
-
-| Feature                | Count | Percentage (%) | Size (MB) | Size Percentage (%) |
-| ---------------------- | ----- | -------------- | --------- | ------------------- |
-| Total Scripts          | 40116 | -              | 3192.7    | -                   |
-| Frontend Processing    | 14129 | 35.22          | 2864.3    | 89.72               |
-| DOM Element Generation | 8196  | 20.43          | 2248.9    | 70.44               |
-| UX Enhancement         | 4496  | 11.21          | 1840.7    | 57.65               |
-| Extensional Features   | 4915  | 12.25          | 1888.1    | 59.14               |
-| Silent Scripts         | 10260 | 25.58          | 28.1      | 0.88                |
-| Has Request            | 4205  | 10.48          | 1432.1    | 44.86               |
-| Queries Element        | 13640 | 34.00          | 2731.6    | 85.56               |
-| Uses Storage           | 4571  | 11.39          | 1641.0    | 51.40               |
-| No Sure Category       | 13148 | 32.77          | 221.1     | 6.93                |
-| No Category            | 10178 | 25.37          | 179.7     | 5.63                |
-
-| Feature Combination        | Frontend Processing              | DOM Element Generation           | UX Enhancement                  | Extensional Features            | Has Request                     | Queries Element                 |
-| -------------------------- | -------------------------------- | -------------------------------- | ------------------------------- | ------------------------------- | ------------------------------- | ------------------------------- |
-| **DOM Element Generation** | 6602 (16.46%), 2197.1MB (68.82%) | -                                | -                               | -                               | -                               | -                               |
-| **UX Enhancement**         | 3840 (9.57%), 1821.5MB (57.05%)  | 3125 (7.79%), 1613.2MB (50.53%)  | -                               | -                               | -                               | -                               |
-| **Extensional Features**   | 4229 (10.54%), 1841.1MB (57.67%) | 2703 (6.74%), 1562.9MB (48.95%)  | 1844 (4.60%), 1440.5MB (45.12%) | -                               | -                               | -                               |
-| **Has Request**            | 3981 (9.92%), 1428.9MB (44.76%)  | 2338 (5.83%), 1192.9MB (37.36%)  | 1459 (3.64%), 1162.6MB (36.42%) | 1755 (4.37%), 1226.1MB (38.40%) | -                               | -                               |
-| **Queries Element**        | 9379 (23.38%), 2648.1MB (82.94%) | 6846 (17.07%), 2152.1MB (67.41%) | 3754 (9.36%), 1773.7MB (55.55%) | 3508 (8.74%), 1800.3MB (56.39%) | 3627 (9.04%), 1410.1MB (44.17%) | -                               |
-| **Uses Storage**           | 4335 (10.81%), 1633.2MB (51.15%) | 2728 (6.80%), 1362.7MB (42.68%)  | 1669 (4.16%), 1278.9MB (40.06%) | 2093 (5.22%), 1372.2MB (42.98%) | 2424 (6.04%), 1106.1MB (34.64%) | 3722 (9.28%), 1596.9MB (50.02%) |
-
-| Feature Combination                                                     | Scripts Count (%) | Size (MB) (%)     |
-| ----------------------------------------------------------------------- | ----------------- | ----------------- |
-| **Frontend Processing & DOM Element Generation & UX Enhancement**       | 2813 (7.01%)      | 1604.9MB (50.27%) |
-| **Frontend Processing & DOM Element Generation & Extensional Features** | 2679 (6.68%)      | 1533.0MB (48.02%) |
-| **Frontend Processing & UX Enhancement & Extensional Features**         | 1814 (4.52%)      | 1439.2MB (45.08%) |
-| **DOM Element Generation & UX Enhancement & Extensional Features**      | 1482 (3.69%)      | 1296.6MB (40.61%) |
-
-![script_size_cdf](https://github.com/user-attachments/assets/193b415e-6209-4506-81fd-6f70972b458d)
 
 ## Deferred
 

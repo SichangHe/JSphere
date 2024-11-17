@@ -431,6 +431,11 @@ meaningfully separate spheres.
 : Counts (and percentages) and sizes (and percentages) of scripts that
 belong to two spheres. {#tbl-2-sphere-scripts}
 
+<!-- TODO: Caption and explanation. -->
+![Cumulative distribution function of sizes of
+execution contexts among all contexts and contexts belonging to
+each sphere.](data/script_size_cdf2.pdf){width=50% #fig-script-size-cdf2}
+
 # Future Work
 <!-- You are not required to actually do this work, but it's always good to
 identify where the work might go, especially since
