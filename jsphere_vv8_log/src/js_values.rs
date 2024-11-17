@@ -47,10 +47,10 @@ impl From<&str> for JSValue {
             "<anonymous>" => JSValue::Lambda,
             "?" => JSValue::Unsure,
             _ => {
-                if value.starts_with("\"") && value.ends_with("\"") {
+                if value.starts_with("\"") && value.ends_with("\"") && value.len() >= 2 {
                     // "<string>"
                     JSValue::String(unescape_colon(&value[1..value.len() - 1]))
-                } else if value.starts_with('/') && value.ends_with('/') {
+                } else if value.starts_with('/') && value.ends_with('/') && value.len() >= 2 {
                     // "/regex/"
                     JSValue::RegEx(unescape_colon(&value[1..value.len() - 1]))
                 } else if value.starts_with('{') && value.ends_with('}') {

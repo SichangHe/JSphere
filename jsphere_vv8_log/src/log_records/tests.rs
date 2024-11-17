@@ -118,4 +118,32 @@ fn log_record_parsing() {
     };
     let actual = r#"c326104:%createPolicy:{551471,TrustedTypePolicyFactory}:"polymer_resin":{71465,createHTML\:createHTML,createScript\:createScript,createScriptURL\:createScriptURL}"#.try_into().unwrap();
     assert_eq!(expected, actual);
+
+    let expected = LogRecord::SetProperty {
+        offset: 226505,
+        object: JSValue::Object {
+            index: 667758,
+            constructor: "HTMLDivElement".into(),
+        },
+        property: JSValue::String("innerHTML".into()),
+        value: JSValue::String(":".into()),
+    };
+    let actual = r#"s226505:{667758,HTMLDivElement}:"innerHTML":"\:""#
+        .try_into()
+        .unwrap();
+    assert_eq!(expected, actual);
+
+    let expected = LogRecord::GetProperty {
+        offset: 219612,
+        object: JSValue::Object {
+            index: 453703,
+            constructor: "HTMLDocument".into(),
+        },
+        property: JSValue::Function {
+            name: "\"".into(),
+            is_user_fn: true,
+        },
+    };
+    let actual = r#"g219612:{453703,HTMLDocument}:""#.try_into().unwrap();
+    assert_eq!(expected, actual);
 }
