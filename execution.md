@@ -229,6 +229,9 @@ Of the 40116 scripts we analyzed (3192.7MB, details in `script_features.py`):
     - [ ] Save space: compress logs.
     - [ ] Proper logging.
     - [ ] Checkpointing and resuming.
+    - [ ] Concatenate `chrome.1`, `chrome.2` and
+        other such logs after their previous logs (`chrome.0`) when
+        analyzing to avoid unknown execution context ID.
 - Just thoughts
     - [ ] If top 1000 sites yield poor results, try sampling other sites.
     - [ ] Targeted event listener tests instead of chaos testing?
