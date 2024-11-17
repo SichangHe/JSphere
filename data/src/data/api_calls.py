@@ -117,7 +117,6 @@ ax.scatter(
     label="80% and 90% API Call Thresholds",
 )
 ax.set_xscale("log")
-ax.set_yscale("log")
 ax.set_xlabel("Fraction of Browser APIs", fontsize=36)
 ax.set_ylabel(
     "Cumulative Fraction\nof Total API Calls",

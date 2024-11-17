@@ -36,17 +36,19 @@ The amount of JavaScript (JS) websites include has been growing over the years,
 with visible impacts for users browsing the Web. On today's median webpage,
 JS constitutes around 25% of the bytes transferred [@httparchive2024web;
 @httparchive2024javascript], and has been reported to account for about 50% of
-the compute delay [@goel2024sprinter].
+the compute delay [@goel2024sprinter], thus JS is responsible for
+much waiting time that millions of website visitors experience every day.
 Additionally, JS is responsible for providing client-side interactivity and
 sometimes content rendering.
 Therefore, JS plays a central role in shaping the Web browsing experience in
 terms of both resource usage and functionalities.
 
-However, despite the extensive use of JS,
-the exact underlying reasons remain understudied.
+However, despite the extensive use of JS, the exact underlying reasons of
+its use remain understudied.
 While some believe the increase of JS usage provides the end users with
-better browsing experience, others suggest much of this JS is unnecessary and
-instead inflates webpages [@ceglowski2015website].
+more interactive browsing experiences, others suggest much of
+this JS is unnecessary and
+instead inflates webpages size [@ceglowski2015website].
 Unfortunately, user-facing JS research efforts have primarily focused on
 security vulnerabilities, privacy invasions, and performance issues.
 The purpose behind the extensive use of JS and its effectiveness in
@@ -70,7 +72,7 @@ As we alluded above, some functionalities are more suitable to
 be implemented on the client, while others are less essential or
 can be offloaded to the server.
 Based on this observation, we propose to classify each JS script into one or
-more categories, which we call *spheres*.
+multiple categories, which we call *spheres*.
 We describe the spheres in @sec-goal, and
 discuss how we classify JS into these spheres.
 
@@ -128,7 +130,7 @@ These studies have provided insights into how to solve some of the issues of
 JS and improve user experiences.
 
 There are, however, no research focusing on identifying the purposes of
-general JS to the best of our knowledge.
+general JS, to the best of our knowledge.
 JSphere aims to bridge this gap of understanding about the use of JS in
 general.
 Instead of working around the JS issues, we aim to understand the root cause;
@@ -190,7 +192,8 @@ results. -->
 
 <!-- TODO: These are copied over. -->
 We leverage web crawling to collect API call logs, then analyze these logs to
-classify JS files on the top 1000 subdomains.
+classify JS files on the top 1000 subdomains in
+the Tranco sites ranking downloaded on September 25, 2024 [@pochat2018tranco].
 
 ### Web Crawling
 
@@ -210,7 +213,8 @@ We use Playwright[^playwright] to automate this browsing process and
 inject Gremlins.js[^gremlins] for the chaos testing.
 
 While loading and interacting with webpages,
-VisibleV8 records the API calls they make and provides logs for our analysis.
+VisibleV8 records the API calls they make at run time and provides logs for
+our analysis.
 VisibleV8 is a modified Chromium browser [@jueckstock2019visiblev8]; for
 each Chromium thread, it writes a log file that
 contains each script context and browser API call made in that
@@ -262,6 +266,7 @@ only a fraction is popularly used [@snyder2016browser].
 Therefore, we expect to classify most scripts through a few popular APIs.
 We currently deploy the following heuristics, which are subject to change:
 
+<!-- TODO: specify the exact heuristics. -->
 - **Frontend processing** scripts
     read event attributes, webpage location, or form elements.
     We also identify they if they listen to events,
@@ -318,9 +323,11 @@ script is too large a unit to separate spheres effectively.
 **Dominating APIs.** We find that 1.75% (318) of all observed APIs account for
 80% of all API calls and 3.74% (678) of APIs cover 90% of all API calls, as
 demonstrated in @fig-api-calls-cdf.
-This tail-heavy distribution suggests that a relatively small set of
-APIs dominates JS usage on the web.
+This tail-heavy distribution suggests that, at run time,
+a relatively small set of APIs dominates JS usage on the web.
 
+<!-- TODO: Is it possible to also show the count? -->
+<!-- TODO: Replot the figure with 1000 sites. -->
 ![Cumulative distribution function of observed API calls by
 increasing fraction of
 APIs.](data/api_calls_cdf.png){width=50% #fig-api-calls-cdf}
@@ -337,6 +344,7 @@ Using these anchor APIs, we handcrafted the initial heuristics in
 
 ### Initial Classification Results {#sec-class-results}
 
+<!-- TODO: Replace with results from 1000 sites with `eval`. -->
 We apply our heuristics to the 40,116 scripts from the top 100 subdomains,
 aggregate classification results, and correlate them with script sizes.
 In addition to the spheres,
@@ -427,6 +435,10 @@ belong to two spheres. {#tbl-2-sphere-scripts}
 <!-- You are not required to actually do this work, but it's always good to
 identify where the work might go, especially since
 the project work might not have perfectly aligned with the semester deadline. -->
+- How much of the JS is essential, how much is optional?
+- Compared to traditional HTML transfer, does shipping JS or JSON and
+    converting them into DOM elements on the client side save server compute or
+    network resources?
 
 # References {.unnumbered}
 <!-- Section 6 A bibliography, with at least what you cite in related work -->
