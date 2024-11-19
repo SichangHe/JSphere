@@ -8,13 +8,7 @@ filters:
     - table_workaround_filter.lua
 acm-metadata:
     final: true
-    acmart-options: sigconf,screen
-    copyright-year: 2024
-    acm-year: 2024
-    copyright: none
-    conference-name: CSci 651 by John Heidemann
-    conference-date: November, 2024
-    conference-location: Los Angeles, CA
+    acmart-options: sigconf,screen,nonacm
 abstract: TODO
 bibliography: main.bib
 ---
