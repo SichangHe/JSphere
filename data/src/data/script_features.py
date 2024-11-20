@@ -6,7 +6,7 @@ import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from data import CsvFile
+from data import CsvFile, smart_sample
 
 script_features_csv = CsvFile(
     "script_features3.csv.gz",
@@ -15,6 +15,9 @@ script_features_csv = CsvFile(
 
 df = pd.read_csv(script_features_csv.path, sep="\t", engine="pyarrow")
 all_columns = [
+    "subdomain_rank",
+    "size",
+    "rewritten",
     "total_call",
     "silent",
     "sure_frontend_processing",
@@ -25,8 +28,8 @@ all_columns = [
     "queries_element",
     "uses_storage",
 ]
-category_columns = all_columns[1:]
-sure_columns = all_columns[1:6]
+category_columns = all_columns[4:]
+sure_columns = category_columns[:5]
 
 df["silent"] = (df["total_call"] <= 0).astype(np.int32)
 
@@ -42,6 +45,15 @@ min    3.000000e+00  1.000000e+00  0.000000e+00              0.000000e+00       
 75%    1.089500e+04  8.800000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
 max    5.748600e+04  6.071970e+06  1.091761e+06              1.000000e+00                 1.000000e+00         1.000000e+00               1.000000e+00  1.000000e+00     1.000000e+00  1.000000e+00  1.000000e+00
 """
+
+# Subdomain rank
+df_subdomains = pd.read_csv(
+    "../headless_browser/input_urls.csv",
+    names=["rank", "subdomain"],
+    engine="pyarrow",
+)
+subdomain_ranks = dict(zip(df_subdomains["subdomain"], df_subdomains["rank"]))
+df["subdomain_rank"] = df["subdomain"].map(lambda s: subdomain_ranks[s])
 
 # Scripts rewritten.
 df_rewritten = df[df["rewritten"] > 0]
@@ -207,19 +219,21 @@ max    34388.000000  5.987415e+06  1.091761e+06                       1.0       
 # NOTE: The large median size shows we did not split them.
 
 # Does not seem to have strong correlations between features.
-df[["size"] + all_columns].corr()  # type: ignore[reportCallIssue]
+df[all_columns].corr()  # type: ignore[reportCallIssue]
 """
-                                 size  total_call    silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage
-size                         1.000000    0.056608 -0.038269                  0.113154                     0.165579             0.237483                   0.222832     0.239167         0.157545      0.228421
-total_call                   0.056608    1.000000 -0.032933                  0.025988                     0.052352             0.081589                   0.054885     0.035398         0.029932      0.020719
-silent                      -0.038269   -0.032933  1.000000                 -0.288366                    -0.132454            -0.080164                  -0.088930    -0.063810        -0.171456     -0.079473
-sure_frontend_processing     0.113154    0.025988 -0.288366                  1.000000                     0.126581             0.160958                   0.125115     0.136956         0.155620      0.138677
-sure_dom_element_generation  0.165579    0.052352 -0.132454                  0.126581                     1.000000             0.293375                   0.125775     0.161977         0.313452      0.159940
-sure_ux_enhancement          0.237483    0.081589 -0.080164                  0.160958                     0.293375             1.000000                   0.181268     0.213109         0.277648      0.193194
-sure_extensional_featuers    0.222832    0.054885 -0.088930                  0.125115                     0.125775             0.181268                   1.000000     0.209339         0.122774      0.177579
-has_request                  0.239167    0.035398 -0.063810                  0.136956                     0.161977             0.213109                   0.209339     1.000000         0.169864      0.313140
-queries_element              0.157545    0.029932 -0.171456                  0.155620                     0.313452             0.277648                   0.122774     0.169864         1.000000      0.174820
-uses_storage                 0.228421    0.020719 -0.079473                  0.138677                     0.159940             0.193194                   0.177579     0.313140         0.174820      1.000000
+                             subdomain_rank      size  rewritten  total_call    silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage
+subdomain_rank                     1.000000  0.004444   0.010444   -0.001309 -0.003998                 -0.011032                     0.005252            -0.003425                   0.000585    -0.000978        -0.015328      0.003195
+size                               0.004444  1.000000  -0.043035    0.056608 -0.038269                  0.113154                     0.165579             0.237483                   0.222832     0.239167         0.157545      0.228421
+rewritten                          0.010444 -0.043035   1.000000   -0.008490  0.076273                 -0.055310                    -0.080623            -0.051576                  -0.052007    -0.037097        -0.113071     -0.041413
+total_call                        -0.001309  0.056608  -0.008490    1.000000 -0.032933                  0.025988                     0.052352             0.081589                   0.054885     0.035398         0.029932      0.020719
+silent                            -0.003998 -0.038269   0.076273   -0.032933  1.000000                 -0.288366                    -0.132454            -0.080164                  -0.088930    -0.063810        -0.171456     -0.079473
+sure_frontend_processing          -0.011032  0.113154  -0.055310    0.025988 -0.288366                  1.000000                     0.126581             0.160958                   0.125115     0.136956         0.155620      0.138677
+sure_dom_element_generation        0.005252  0.165579  -0.080623    0.052352 -0.132454                  0.126581                     1.000000             0.293375                   0.125775     0.161977         0.313452      0.159940
+sure_ux_enhancement               -0.003425  0.237483  -0.051576    0.081589 -0.080164                  0.160958                     0.293375             1.000000                   0.181268     0.213109         0.277648      0.193194
+sure_extensional_featuers          0.000585  0.222832  -0.052007    0.054885 -0.088930                  0.125115                     0.125775             0.181268                   1.000000     0.209339         0.122774      0.177579
+has_request                       -0.000978  0.239167  -0.037097    0.035398 -0.063810                  0.136956                     0.161977             0.213109                   0.209339     1.000000         0.169864      0.313140
+queries_element                   -0.015328  0.157545  -0.113071    0.029932 -0.171456                  0.155620                     0.313452             0.277648                   0.122774     0.169864         1.000000      0.174820
+uses_storage                       0.003195  0.228421  -0.041413    0.020719 -0.079473                  0.138677                     0.159940             0.193194                   0.177579     0.313140         0.174820      1.000000
 """
 
 # Count how many script are not in any "sure" category.
@@ -322,5 +336,47 @@ ax.tick_params(axis="both", labelsize=32)
 ax.grid()
 ax.legend(fontsize=30, loc="best")
 fig.savefig("script_size_cdf2.pdf", bbox_inches="tight")
-fig.savefig("script_size_cdf2.pdf", bbox_inches="tight")
+fig.savefig("script_size_cdf2.png", bbox_inches="tight")
 fig.show()
+
+# Per-subdomain aggregation.
+dict_size = {column: df[column] * df["size"] for column in sure_columns}
+for column in ("subdomain_rank", "size", "rewritten", "total_call"):
+    dict_size[column] = df[column]
+df_size = pd.DataFrame(dict_size)
+df_subdomain = df_size.groupby("subdomain_rank").sum()
+assert type(df_subdomain) is pd.DataFrame
+for column in sure_columns:
+    df_subdomain[f"%{column}"] = df_subdomain[column] * 100.0 / df_subdomain["size"]
+percentages = [f"%{column}" for column in sure_columns[1:]] + ["%silent"]
+df_subdomain["%total"] = sum(df_subdomain[f"%{column}"] for column in sure_columns[1:])
+df_subdomain.sort_values(
+    by=["%total"] + percentages,
+    ascending=[False] + [False for _ in sure_columns[1:]] + [True],
+    ignore_index=True,
+    inplace=True,
+)
+indexes, values = smart_sample(
+    tuple(df_subdomain[column] for column in percentages),  # type: ignore[reportArgumentType]
+)
+SPHERE_LABELS = [
+    "Frontend Processing",
+    "DOM Generation",
+    "UX Enhancement",
+    "Extensional Features",
+    "Silent",
+]
+fig, ax = plt.subplots(figsize=(16, 9))
+ax.stackplot(
+    indexes,
+    values,
+    labels=SPHERE_LABELS,
+    colors=["cyan", "red", "purple", "#dfdf6f", "gray"],
+)
+ax.set_xlabel("Subdomains, Ordered by Spheres Usage", fontsize=36)
+ax.set_ylabel("Percentages of Sizes of\nScripts", fontsize=36)
+ax.tick_params(axis="both", labelsize=32)
+ax.grid()
+ax.legend(fontsize=30, loc="best")
+fig.savefig("subdomain_spheres_size_stacked.pdf", bbox_inches="tight")
+fig.savefig("subdomain_spheres_size_stacked.png", bbox_inches="tight")

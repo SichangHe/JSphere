@@ -9,6 +9,7 @@ filters:
 acm-metadata:
     final: true
     acmart-options: sigconf,screen,nonacm
+    copyright: none
 abstract: TODO
 bibliography: main.bib
 ---
@@ -324,7 +325,7 @@ a relatively small set of APIs dominates JS usage on the web.
 <!-- TODO: Replot the figure with 1000 sites. -->
 ![Cumulative distribution function of observed API calls by
 increasing fraction of
-APIs.](data/api_calls_cdf.png){width=50% #fig-api-calls-cdf}
+APIs.](data/api_calls_cdf.png){width=45% #fig-api-calls-cdf}
 
 **"Anchor" APIs.** We manually inspected the top 678 APIs that make up 90% of
 all API calls and identified "anchor" APIs that
@@ -403,7 +404,7 @@ each sphere have similar size distributions.
 
 ![Cumulative distribution function of script sizes among all scripts and
 scripts belonging to
-each sphere.](data/script_size_cdf.png){width=50% #fig-script-size-cdf}
+each sphere.](data/script_size_cdf.png){width=45% #fig-script-size-cdf}
 
 **Multi-Sphere Scripts.** Many large scripts belong to multiple spheres.
 @tbl-2-sphere-scripts shows high overlap between and among spheres: if
@@ -428,7 +429,13 @@ belong to two spheres. {#tbl-2-sphere-scripts}
 <!-- TODO: Caption and explanation. -->
 ![Cumulative distribution function of sizes of
 execution contexts among all contexts and contexts belonging to
-each sphere.](data/script_size_cdf2.pdf){width=50% #fig-script-size-cdf2}
+each sphere.](data/script_size_cdf2.pdf){width=45% #fig-script-size-cdf2}
+
+<!-- TODO: Explanation. -->
+![Stacked Area Plot of
+Script Size Distribution per Sphere per
+Subdomain.](data/subdomain_spheres_size_stacked.pdf){width=45%
+#fig-size-sphere-stacked}
 
 # Future Work
 <!-- You are not required to actually do this work, but it's always good to
