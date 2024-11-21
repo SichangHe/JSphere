@@ -4,6 +4,7 @@ author:
     - name: Sichang "Steven" He
     - name: "Mentor: Harsha V. Madhyastha"
 format: acm-pdf
+keep-tex: true
 filters:
     - table_workaround_filter.lua
 acm-metadata:
@@ -183,13 +184,24 @@ You will likely want to use multiple sections or subsections here, and
 you should identify your goal, methodology/approach, data collection, and
 results. -->
 
-## Methods {#sec-methods}
+We automate browsers to crawl and collect API call logs from
+the top 1000 subdomains in the Tranco sites ranking downloaded on September 25,
+2024 [@pochat2018tranco].
+In @sec-methods, we first experiment in a smaller scale of
+the top 100 subdomains to test the feasibility of our vanilla approach.
+To meaningfully classify scripts into the spheres we defined in @sec-goal,
+we improve our methods by modifying the JS before executing them, and
+we expand our experiments to the top 1000 subdomains in @sec-methods2.
+
+## Vanilla Experiment Setup {#sec-methods}
+
+We start by crawling the top 100 subdomains, then record and analyze logs of
+API calls made by JS scripts on these webpages.
+In this setup, the browser executes the original JS scripts on the webpages,
+thus we call this the "vanilla" setup to distinguish it from our experiment in
+@sec-methods2.
 
 <!-- TODO: These are copied over. -->
-We leverage web crawling to collect API call logs, then analyze these logs to
-classify JS files on the top 1000 subdomains in
-the Tranco sites ranking downloaded on September 25, 2024 [@pochat2018tranco].
-
 ### Web Crawling
 
 We visit and interact with webpages in a fashion used in [@snyder2016browser].
@@ -273,35 +285,8 @@ We currently deploy the following heuristics, which are subject to change:
 - **Extensional features** are detected if
     the scripts request performance data or send beacons.
 
-<!-- TODO: These are copied over. Reframe as something done -->
-## Classification Granularity Improvement
-
-Gaining more fine-grained classifications than per script file is crucial to
-understanding the popularity of each sphere, as shown in @sec-class-results.
-Unfortunately, our method of using the VisibleV8 browser limits us to
-the granularity of script contexts, which generally correspond to
-individual script file, so we cannot classify individual functions or
-statements with our current setup.
-However, script contexts may also correspond to scripts created using `eval()`,
-opening up the possibility of classifying smaller units.
-
-To grind down our classification granularity to below the script file level,
-we plan to break down large scripts into smaller `eval`
-blocks before they arrive at the browser.
-Specifically, we will intercept requests to JS scripts like we already do for
-preventing navigations, make the requests ourselves, modify the responses to
-include `eval` blocks as needed, and then fulfill the browser's requests with
-the modified responses.
-To preserve the scripts' functionalities, we need to insert the `eval`
-calls without breaking scopes or execution order (hoisting), which
-requires parsing each script and modifying its abstract syntax tree (AST).
-To avoid potential high overheads introduced by `eval`, we plan to
-only break down large scripts, and only create `eval` blocks of 1 kB or
-larger sizes.
-We hope this method can help us gain a more granular sphere classification.
-
 <!-- TODO: These are copied over. -->
-## Initial Results
+## Vanilla Experiment Results
 
 For our initial results, we are mostly concerned with two aspects:
 validating our assumptions about a small set of
@@ -337,7 +322,7 @@ gain intuition on the purpose of several anchor APIs.
 Using these anchor APIs, we handcrafted the initial heuristics in
 @sec-heuristics to classify scripts into spheres.
 
-### Initial Classification Results {#sec-class-results}
+### Vanilla Classification Results {#sec-class-results}
 
 <!-- TODO: Replace with results from 1000 sites with `eval`. -->
 We apply our heuristics to the 40,116 scripts from the top 100 subdomains,
@@ -376,18 +361,18 @@ which is Unfortunately classified as frontend processing.
 Other spheres also have surprisingly high popularities by size, which
 alludes to the peculiar script size distribution we discuss below.
 
-| Feature                | Count | Count (%) | Size (MB) | Size (%) |
-| ---------------------- | ----- | --------- | --------- | -------- |
-| Frontend Processing    | 14129 | 35.22     | 2864.3    | 89.72    |
-| DOM Element Generation | 8196  | 20.43     | 2248.9    | 70.44    |
-| UX Enhancement         | 4496  | 11.21     | 1840.7    | 57.65    |
-| Extensional Features   | 4915  | 12.25     | 1888.1    | 59.14    |
-| Silent Scripts         | 10260 | 25.58     | 28.1      | 0.88     |
-| Has Request            | 4205  | 10.48     | 1432.1    | 44.86    |
-| Queries Element        | 13640 | 34.00     | 2731.6    | 85.56    |
-| Uses Storage           | 4571  | 11.39     | 1641.0    | 51.40    |
-| No Sure Sphere         | 13148 | 32.77     | 221.1     | 6.93     |
-| No Category            | 10178 | 25.37     | 179.7     | 5.63     |
+| Feature           | Count | Count (%) | Size (MB) | Size (%) |
+| :---------------- | ----: | --------: | --------: | -------: |
+| Frontend Proc.    | 14129 | 35.22     | 2864.3    | 89.72    |
+| DOM Elem. Gen.    | 8196  | 20.43     | 2248.9    | 70.44    |
+| UX Enhancement    | 4496  | 11.21     | 1840.7    | 57.65    |
+| Extensional Feat. | 4915  | 12.25     | 1888.1    | 59.14    |
+| Silent Scripts    | 10260 | 25.58     | 28.1      | 0.88     |
+| Has Request       | 4205  | 10.48     | 1432.1    | 44.86    |
+| Queries Element   | 13640 | 34.00     | 2731.6    | 85.56    |
+| Uses Storage      | 4571  | 11.39     | 1641.0    | 51.40    |
+| No Sure Sphere    | 13148 | 32.77     | 221.1     | 6.93     |
+| No Category       | 10178 | 25.37     | 179.7     | 5.63     |
 
 : Initial classification results for the top 100 subdomains: the script counts,
 sizes and their corresponding percentages out of the respective total.
@@ -417,14 +402,148 @@ suggesting a small fraction of large scripts tightly couples multiple spheres.
 Therefore, classifying by each script file is not fine-grained enough to
 meaningfully separate spheres.
 
+<!-- NOTE: Generated. Do not edit directly.
+Instead, comment out Markdown table below, edit it, regenerate the TeX file,
+copy it over, and change `table` to `table*`. -->
+\begin{table*}
+
+\caption{\label{tbl-2-sphere-scripts}Counts (and percentages) and sizes
+(and percentages) of scripts that belong to two spheres.}
+
+\centering{
+
+\begin{tabular}{lccc}
+
+\toprule
+
+Feature Combination & Frontend Processing & DOM Element Generation & UX
+Enhancement \\
+
+\midrule
+
+DOM Element Generation & 6602 (16.46\%), 2197.1MB (68.82\%)
+& - & - \\ UX Enhancement & 3840 (9.57\%), 1821.5MB (57.05\%) & 3125 (7.79\%),
+1613.2MB (50.53\%) & - \\ Extensional Features & 4229 (10.54\%),
+1841.1MB (57.67\%) & 2703 (6.74\%), 1562.9MB (48.95\%) & 1844 (4.60\%),
+1440.5MB (45.12\%) \\
+
+\bottomrule
+
+\end{tabular}
+
+}
+
+\end{table*}
+
+<!--
 | Feature Combination        | Frontend Processing              | DOM Element Generation          | UX Enhancement                  |
-| -------------------------- | -------------------------------- | ------------------------------- | ------------------------------- |
+| :------------------------- | -------------------------------- | ------------------------------- | ------------------------------- |
 | **DOM Element Generation** | 6602 (16.46%), 2197.1MB (68.82%) | -                               | -                               |
 | **UX Enhancement**         | 3840 (9.57%), 1821.5MB (57.05%)  | 3125 (7.79%), 1613.2MB (50.53%) | -                               |
 | **Extensional Features**   | 4229 (10.54%), 1841.1MB (57.67%) | 2703 (6.74%), 1562.9MB (48.95%) | 1844 (4.60%), 1440.5MB (45.12%) |
 
 : Counts (and percentages) and sizes (and percentages) of scripts that
 belong to two spheres. {#tbl-2-sphere-scripts}
+-->
+
+## Classification Granularity Improvement {#sec-methods2}
+
+@sec-class-results shows that
+our vanilla setup classifies many large scripts into multiple overlapping
+spheres, thus gaining more fine-grained classifications than
+per script file is crucial to understanding the popularity of each sphere.
+Therefore, we modify our experiment to classify JS code on a sub-script level.
+
+Unfortunately, the VisibleV8 browser inherently limits us to the granularity of
+script contexts, which generally correspond to individual script file, so
+we cannot classify individual functions or statements with our current setup.
+To work around this limitation, we observe that
+script contexts may also correspond to scripts created by calling the `eval`
+function with the source code as a string.
+Building on this observation, our approach is to
+break down large scripts into smaller blocks of `eval`
+calls before they arrive at the browser.
+
+Specifically, we intercept all requests to JS scripts via Playwright,
+make the requests ourselves, rewrite the responses into JS code with
+small `eval` blocks, and then fulfill the browser's requests with
+the rewritten responses.
+This method allows us to maintain the rest of our setup, while
+reducing the size of the classification unit from script files to `eval`
+blocks.
+
+However, the mechanisms of JS and `eval` introduce many challenges to
+this approach, for which we introduce workarounds to
+achieve high correctness and efficacy.
+
+### JS Rewriting with `eval`
+
+Our two main goals of JS rewriting are correctness and efficacy.
+Correctness is to preserve the scripts' functionalities; efficacy means to
+break down the scripts into reasonably small blocks.
+We judge correctness by whether
+we can browse the webpages normally after rewriting its JS, and we aim to
+create `eval` blocks of around 1 kB in sizes for efficacy.
+
+Hoisting and scoping immediately impact correctness.
+Naively, one may group all the top-level statements in
+a JS script into multiple small blocks, then include each block in an `eval`
+call.
+However, variables declared with `var` and functions are hoisted, treated as if
+they are declared at the top of the script.
+Thus, in JS code, they may be accessed before they are declared.
+In contrast, `eval` calls are executed sequentially, causing some variables and
+functions to be undefined when accessed before they are declared.
+Additionally, variables declared with `let` and `const` do not leak out of
+`eval` calls due to scoping, so they are not accessible in adjacent `eval`
+calls.
+These issues break most of the webpages we tested due to
+accessing undefined variables or functions.
+
+To mitigate issues brought by hoisting and scoping,
+we manually hoist declarations.
+We extract all the function and variable declarations, and declare them as
+variables at the top of the script.
+Then, we evaluation all function declarations first.
+This workaround ensuring that variables and
+functions are declared before they are accessed, and they leak out of `eval`
+calls as needed.
+
+Efficacy also requires more sophistication than splitting scripts only on
+the top level.
+This requirement is due to the extensive use of closure functions in JS, where
+functions are defined within other functions, resulting in
+large top-level functions.
+Additionally, many scripts avoid polluting the global scope with
+immediately invoked function expressions (IIFE), where
+a function expression is defined and immediately invoked.
+To split scripts into blocks around 1 kB,
+we recursively break down code blocks such as function bodies and
+the first block with an if-statement, and we introduce more `eval` blocks for
+them.
+
+We apply many more workarounds until we can successfully browser most webpages
+we tested after rewriting their JS.
+We wrap some code blocks in IIFE or async IIFE to enable `return` and `await`
+syntax.
+We converting function declarations to function expressions to leak them out of
+IIFE.
+We preserve blocks with `break`, `continue`, `yield` and `export` to
+avoid syntax errors.
+To enable efficient `eval` nesting, we inject JS raw string literals and
+use nested function calls to construct the strings at runtime for
+`eval`'s argument.
+Finally, we increase Chromium's stack size to 4 GB and limit the depth of
+`eval` nesting to 8, to avoid exceeding the stack size limit.
+Some of
+these workarounds introduce obscure edge cases we not yet handle[^eval_trick].
+
+We use Acorn[^acorn] to parse JS code into an abstract syntax tree (AST) and
+generate the rewritten JS code from this AST.
+Our implementation finishes rewriting an 8.6 MB script under 1 second,
+thus it introduces tolerable overhead to web crawling.
+
+## Improved Experiment Results
 
 <!-- TODO: Caption and explanation. -->
 ![Cumulative distribution function of sizes of
@@ -452,5 +571,7 @@ the project work might not have perfectly aligned with the semester deadline. --
 
 :::
 
-[^playwright]: <https://playwright.dev/>
-[^gremlins]: <https://github.com/marmelab/gremlins.js>
+[^acorn]: <https://github.com/acornjs/acorn>.
+[^eval_trick]: See <https://github.com/SichangHe/JSphere/blob/main/eval_trick.md> for details.
+[^playwright]: <https://playwright.dev/>.
+[^gremlins]: <https://github.com/marmelab/gremlins.js>.

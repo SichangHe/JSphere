@@ -9,7 +9,7 @@ subsequently each block recursively into blocks of `eval` calls smaller than
 1kB (an arbitrary number), and somehow have the whole script behave as before.
 
 - [x] Test run in the browser.
-- [ ] Crawl top 100 websites and analyze the logs.
+- [x] Crawl top 1000 websites and analyze the logs.
 
 ## Why it should work
 
@@ -88,9 +88,18 @@ In reality, the `eval` trick is a giant hack due to the quirks of `eval`.
 
     We `await` on the `eval` and use an async IIFE if an IIFE is used.
 
+- [x] Bloat: deeply nested `eval`s cause mountains of backslashes.
+
+    We use `String.raw` to avoid escaping backslashes and nest nested `eval`
+    calls in functions to escape the backticks and `${` at runtime.
+
+- [x] Browser crash with stack size exceeded when nesting `eval` to
+    over depth 8.
+
+    We limit the depth of `eval` nesting to 8 and inline the deeper blocks.
+
 ## Inherent limitations
 
 - Performance: `eval` disables the JIT and forces slow variable lookups.
-- Bloat: deeply nested `eval`s cause mountains of backslashes.
 - Integrity: e.g., if the website checks the checksum of the script,
     it will fail.
