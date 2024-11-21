@@ -8,3 +8,6 @@ publish = false
 lazy-regex.workspace = true
 rayon.workspace = true
 shame.workspace = true
+
+[dev-dependencies]
+rand.workspace = true

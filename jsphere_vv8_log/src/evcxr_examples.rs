@@ -5,6 +5,7 @@ use crate as jsphere_vv8_log;
 /*
 // Copy to the end of the comment from here if running in Evcxr.
 :opt 3
+:dep rand
 :dep shame
 :dep lazy-regex
 :dep jsphere_vv8_log = { path = "jsphere_vv8_log" }
@@ -16,6 +17,7 @@ use std::{
     collections::HashMap,
     fs::{self, File},
     io::{BufWriter, Write},
+    path::PathBuf,
     time::Instant,
 };
 
@@ -152,44 +154,51 @@ fn main() {
             }
         }
     }
+    fn aggregate_records(
+        log: LogFile,
+        unknown_id_logs: &mut Vec<(String, usize)>,
+    ) -> RecordAggregate {
+        let LogFileInfo {
+            timestamp,
+            pid,
+            tid,
+            thread_name,
+        } = &log.info;
+        let info = format!(
+            "[{timestamp} {pid} {tid} {thread_name}] {} records {} read errors",
+            log.records.len(),
+            log.read_errs.len()
+        );
+        if !log.read_errs.is_empty() {
+            println!("{info}");
+        }
+        let mut has_unknown_id = false;
+        let mut aggregate = RecordAggregate::default();
+        for (line, record) in log.records {
+            if let Err(err) = aggregate.add(line as u32, record) {
+                let err_str = format!("{err}");
+                if err_str.ends_with("Unknown execution context script ID") {
+                    // TODO: This is caused by the `chrome.1` and
+                    // `chrome.2` threads being continuations of
+                    // previous logs.
+                    if !has_unknown_id {
+                        unknown_id_logs.push((info.clone(), line));
+                        has_unknown_id = true;
+                        println!("{info}; {line}: {err_str}");
+                    }
+                } else {
+                    println!("{info}; {line}: {err_str}");
+                }
+            }
+        }
+        aggregate
+    }
     fn for_each_filtered_script(
         mut callback: impl FnMut(i32, ScriptAggregate, &str),
         unknown_id_logs: &mut Vec<(String, usize)>,
     ) {
         for_each_log(|mut log, subdomain| {
-            let LogFileInfo {
-                timestamp,
-                pid,
-                tid,
-                thread_name,
-            } = &log.info;
-            let info = format!(
-                "[{timestamp} {pid} {tid} {thread_name}] {} records {} read errors",
-                log.records.len(),
-                log.read_errs.len()
-            );
-            if !log.read_errs.is_empty() {
-                println!("{info}");
-            }
-            let mut has_unknown_id = false;
-            let mut aggregate = RecordAggregate::default();
-            for (line, record) in log.records {
-                if let Err(err) = aggregate.add(line as u32, record) {
-                    let err_str = format!("{err}");
-                    if err_str.ends_with("Unknown execution context script ID") {
-                        // TODO: This is caused by the `chrome.1` and
-                        // `chrome.2` threads being continuations of
-                        // previous logs.
-                        if !has_unknown_id {
-                            unknown_id_logs.push((info.clone(), line));
-                            has_unknown_id = true;
-                            println!("{info}; {line}: {err_str}");
-                        }
-                    } else {
-                        println!("{info}; {line}: {err_str}");
-                    }
-                }
-            }
+            let aggregate = aggregate_records(log, unknown_id_logs);
             for (id, script) in aggregate.scripts {
                 // Filter out injected scripts.
                 if matches!(script.injection_type, ScriptInjectionType::Not)
@@ -302,143 +311,152 @@ fn main() {
         queries_element: bool,
         uses_storage: bool,
     }
+    fn script_aggregate2feature(
+        id: i32,
+        subdomain: String,
+        script: ScriptAggregate,
+    ) -> ScriptFeatures {
+        let ScriptAggregate {
+            line,
+            name,
+            source,
+            injection_type: _,
+            api_calls,
+            n_filtered_call,
+        } = script;
+        // NOTE: We have the `effectiveLen` if the script is rewritten.
+        let (size, rewritten) = match regex_captures!(r"^//(\d+) effectiveLen", &source)
+            .and_then(|(_, len)| len.parse::<usize>().ok())
+        {
+            Some(len) => (len, true),
+            None => (source.len(), false),
+        };
+        let mut features = ScriptFeatures {
+            id,
+            subdomain,
+            size,
+            rewritten,
+            total_call: api_calls.len() as u32 + n_filtered_call,
+            ..ScriptFeatures::default()
+        };
+        if let ScriptName::Url(name) = name {
+            features.name = Some(name);
+        }
+        for (
+            ApiCall {
+                api_type,
+                this,
+                attr,
+            },
+            lines,
+        ) in api_calls
+        {
+            match (api_type, (this.as_str(), attr.as_deref())) {
+                // Frontend processing.
+                (
+                    ApiType::Get,
+                    (
+                        this,
+                        Some(
+                            "state" | "keyCode" | "pointerType" | "which" | "bubbles" | "clientY"
+                            | "target" | "key" | "charCode" | "clientX" | "pointerId"
+                            | "currentTarget" | "isTrusted" | "propertyName" | "preventDefault"
+                            | "offsetY" | "cancelable" | "changedTouches" | "composed" | "screenX"
+                            | "button" | "composedPath" | "metaKey" | "pageY" | "ctrlKey"
+                            | "touches" | "detail" | "shiftKey" | "type" | "offsetX" | "pageX"
+                            | "eventPhase" | "timeStamp" | "screenY" | "altKey" | "data"
+                            | "relatedTarget" | "defaultPrevented",
+                        ),
+                    ),
+                ) if this.ends_with("Event") => features.sure_frontend_processing = true,
+                (
+                    ApiType::Get,
+                    ("Location", Some("pathname" | "hash" | "href" | "hostname" | "search"))
+                    | ("HTMLInputElement" | "HTMLTextAreaElement", Some("value" | "checked")),
+                )
+                | (ApiType::Function, (_, Some("addEventListener")))
+                | (
+                    ApiType::Set,
+                    (_, Some("textContent"))
+                    | ("URLSearchParams" | "DOMRect" | "DOMRectReadOnly", Some(_)),
+                ) => features.sure_frontend_processing = true,
+
+                // DOM element generation.
+                (
+                    ApiType::Function,
+                    (
+                        _,
+                        Some(
+                            "createElement" | "createElementNS" | "createTextNode" | "appendChild"
+                            | "insertBefore",
+                        ),
+                    )
+                    | ("CSSStyleDeclaration", Some("setProperty")),
+                )
+                | (ApiType::Set, ("CSSStyleDeclaration", _) | (_, Some("style")))
+                    if lines.n_must_not_interact() > 0 =>
+                {
+                    features.sure_dom_element_generation = true
+                }
+
+                // UX enhancement.
+                (
+                    ApiType::Function,
+                    (
+                        _,
+                        Some(
+                            "removeAttribute"
+                            | "matchMedia"
+                            | "removeChild"
+                            | "requestAnimationFrame"
+                            | "cancelAnimationFrame",
+                        ),
+                    )
+                    | ("FontFaceSet", Some("load"))
+                    | ("MediaQueryList", Some("matches")),
+                )
+                | (ApiType::Set, (_, Some("hidden" | "disabled"))) => {
+                    features.sure_ux_enhancement = true
+                }
+
+                // Extensional features.
+                (
+                    ApiType::Function,
+                    ("Performance" | "PerformanceTiming" | "PerformanceResourceTiming", _)
+                    | ("Navigator", Some("sendBeacon")),
+                    // TODO: This list can be extended much more.
+                ) => features.sure_extensional_featuers = true,
+
+                // Requests.
+                (ApiType::Function, ("XMLHttpRequest", _) | ("Window", Some("fetch"))) => {
+                    features.has_request = true
+                }
+
+                // Queries element.
+                (ApiType::Get, (_, Some(attr)))
+                    if attr.starts_with("querySelector")
+                        || attr.starts_with("getElementBy")
+                        || attr.starts_with("getElementsBy") =>
+                {
+                    features.queries_element = true
+                }
+
+                // Uses storage.
+                (ApiType::Function, ("Storage", _) | ("HTMLDocument", Some("cookie"))) => {
+                    features.uses_storage = true
+                }
+
+                _ => {}
+            }
+        }
+        features
+    }
+
     let mut script_features = Vec::<ScriptFeatures>::with_capacity(8192);
     let mut unknown_id_logs = Vec::<(String, usize)>::with_capacity(1024);
     for_each_filtered_script(
         |id, script, subdomain| {
-            let ScriptAggregate {
-                line,
-                name,
-                source,
-                injection_type: _,
-                api_calls,
-                n_filtered_call,
-            } = script;
-            // NOTE: We have the `effectiveLen` if the script is rewritten.
-            let (size, rewritten) = match regex_captures!(r"^//(\d+) effectiveLen", &source)
-                .and_then(|(_, len)| len.parse::<usize>().ok())
-            {
-                Some(len) => (len, true),
-                None => (source.len(), false),
-            };
-            let mut features = ScriptFeatures {
-                id,
-                subdomain: subdomain.to_string(),
-                size,
-                rewritten,
-                total_call: api_calls.len() as u32 + n_filtered_call,
-                ..ScriptFeatures::default()
-            };
-            if let ScriptName::Url(name) = name {
-                features.name = Some(name);
-            }
-            for (
-                ApiCall {
-                    api_type,
-                    this,
-                    attr,
-                },
-                lines,
-            ) in api_calls
-            {
-                match (api_type, (this.as_str(), attr.as_deref())) {
-                    // Frontend processing.
-                    (
-                        ApiType::Get,
-                        (
-                            this,
-                            Some(
-                                "state" | "keyCode" | "pointerType" | "which" | "bubbles"
-                                | "clientY" | "target" | "key" | "charCode" | "clientX"
-                                | "pointerId" | "currentTarget" | "isTrusted" | "propertyName"
-                                | "preventDefault" | "offsetY" | "cancelable" | "changedTouches"
-                                | "composed" | "screenX" | "button" | "composedPath" | "metaKey"
-                                | "pageY" | "ctrlKey" | "touches" | "detail" | "shiftKey" | "type"
-                                | "offsetX" | "pageX" | "eventPhase" | "timeStamp" | "screenY"
-                                | "altKey" | "data" | "relatedTarget" | "defaultPrevented",
-                            ),
-                        ),
-                    ) if this.ends_with("Event") => features.sure_frontend_processing = true,
-                    (
-                        ApiType::Get,
-                        ("Location", Some("pathname" | "hash" | "href" | "hostname" | "search"))
-                        | ("HTMLInputElement" | "HTMLTextAreaElement", Some("value" | "checked")),
-                    )
-                    | (ApiType::Function, (_, Some("addEventListener")))
-                    | (
-                        ApiType::Set,
-                        (_, Some("textContent"))
-                        | ("URLSearchParams" | "DOMRect" | "DOMRectReadOnly", Some(_)),
-                    ) => features.sure_frontend_processing = true,
-
-                    // DOM element generation.
-                    (
-                        ApiType::Function,
-                        (
-                            _,
-                            Some(
-                                "createElement" | "createElementNS" | "createTextNode"
-                                | "appendChild" | "insertBefore",
-                            ),
-                        )
-                        | ("CSSStyleDeclaration", Some("setProperty")),
-                    )
-                    | (ApiType::Set, ("CSSStyleDeclaration", _) | (_, Some("style")))
-                        if lines.n_must_not_interact() > 0 =>
-                    {
-                        features.sure_dom_element_generation = true
-                    }
-
-                    // UX enhancement.
-                    (
-                        ApiType::Function,
-                        (
-                            _,
-                            Some(
-                                "removeAttribute"
-                                | "matchMedia"
-                                | "removeChild"
-                                | "requestAnimationFrame"
-                                | "cancelAnimationFrame",
-                            ),
-                        )
-                        | ("FontFaceSet", Some("load"))
-                        | ("MediaQueryList", Some("matches")),
-                    )
-                    | (ApiType::Set, (_, Some("hidden" | "disabled"))) => {
-                        features.sure_ux_enhancement = true
-                    }
-
-                    // Extensional features.
-                    (
-                        ApiType::Function,
-                        ("Performance" | "PerformanceTiming" | "PerformanceResourceTiming", _)
-                        | ("Navigator", Some("sendBeacon")),
-                        // TODO: This list can be extended much more.
-                    ) => features.sure_extensional_featuers = true,
-
-                    // Requests.
-                    (ApiType::Function, ("XMLHttpRequest", _) | ("Window", Some("fetch"))) => {
-                        features.has_request = true
-                    }
-
-                    // Queries element.
-                    (ApiType::Get, (_, Some(attr)))
-                        if attr.starts_with("querySelector")
-                            || attr.starts_with("getElementBy")
-                            || attr.starts_with("getElementsBy") =>
-                    {
-                        features.queries_element = true
-                    }
-
-                    // Uses storage.
-                    (ApiType::Function, ("Storage", _) | ("HTMLDocument", Some("cookie"))) => {
-                        features.uses_storage = true
-                    }
-
-                    _ => {}
-                }
-            }
+            let features = script_aggregate2feature(id, subdomain.into(), script);
             script_features.push(features);
         },
         &mut unknown_id_logs,
@@ -487,5 +505,88 @@ fn main() {
             )
             .unwrap();
         }
+    }
+
+    //================================================================
+    // Randomly validate script classification.
+    fn script_name(name: &ScriptName, aggregate: &RecordAggregate, mut is_child: bool) -> String {
+        let inner = match name {
+            ScriptName::Empty => "<no name>".into(),
+            ScriptName::Url(url) => url.clone(),
+            ScriptName::Eval { parent_script_id } => {
+                let parent = match aggregate.scripts.get(parent_script_id) {
+                    Some(script) => script,
+                    None => return "".into(),
+                };
+                is_child = false;
+                script_name(&parent.name, aggregate, true)
+            }
+        };
+        match is_child {
+            true => format!("child of {}", inner),
+            false => inner,
+        }
+    }
+    let mut trial_dirs = Vec::<PathBuf>::with_capacity(4096);
+    let mut unknown_id_logs = Vec::<(String, usize)>::new();
+    for dir_entry_result in fs::read_dir("headless_browser/target/").unwrap() {
+        let dir_entry = dir_entry_result.unwrap();
+        let subdomain_dir = dir_entry.path();
+        let subdomain = subdomain_dir.file_name().unwrap().to_str().unwrap();
+        for trial in 0..5 {
+            let trial_dir = subdomain_dir.join(trial.to_string());
+            if trial_dir.exists() && trial_dir.is_dir() {
+                trial_dirs.push(trial_dir);
+            }
+        }
+    }
+    trial_dirs.shrink_to_fit();
+    let mut stdin = std::io::stdin();
+    let mut input_buf = String::new();
+    let mut record = Vec::<(RecordAggregate, ScriptFeatures, bool)>::with_capacity(100);
+    let mut n_trial = 0;
+    while n_trial < 100 {
+        let index = rand::random::<usize>() % trial_dirs.len();
+        let trial_dir = &trial_dirs[index];
+        println!("Scanning `{}`", trial_dir.to_string_lossy());
+        let logs = read_logs(trial_dir).unwrap();
+        if logs.is_empty() {
+            continue;
+        }
+        let index = rand::random::<usize>() % logs.len();
+        let log = &logs[index];
+        let aggregate = aggregate_records(log.clone(), &mut unknown_id_logs);
+        if aggregate.scripts.is_empty() {
+            continue;
+        }
+        let index = rand::random::<usize>() % aggregate.scripts.len();
+        let (id, script) = aggregate.scripts.iter().nth(index).unwrap();
+        if !matches!(script.injection_type, ScriptInjectionType::Not)
+            || script.source == "window.history.back()"
+        {
+            break;
+        }
+        let subdomain = trial_dir.file_name().unwrap().to_str().unwrap();
+        let features = script_aggregate2feature(*id, subdomain.into(), script.clone());
+        let name = script_name(&script.name, &aggregate, false);
+        println!("\n\n{source}\n{features:?} {name}", source = script.source);
+        // Prompt for correctness.
+        loop {
+            println!("Is the classification correct? [Y/n]");
+            input_buf.clear();
+            stdin.read_line(&mut input_buf).unwrap();
+            match input_buf.trim() {
+                "" | "y" | "Y" => {
+                    record.push((aggregate, features, true));
+                    break;
+                }
+                "n" | "N" => {
+                    record.push((aggregate, features, false));
+                    break;
+                }
+                _ => {}
+            }
+        }
+        n_trial += 1;
     }
 }

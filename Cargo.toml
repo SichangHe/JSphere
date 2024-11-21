@@ -3,6 +3,7 @@ members = [".", "jsphere_vv8_log"]
 
 [workspace.dependencies]
 lazy-regex = "3"
+rand = "0.8.5"
 rayon = "1"
 shame = "0.0.4"
 
