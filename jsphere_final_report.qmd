@@ -735,9 +735,9 @@ traditional HTML transfer.
 
 # Conclusion
 
-We presented JSphere, an early attempt to classify the functionalities of
-JS scripts on the Web. Our methods pioneer classifying JS scripts based on
-browser API calls.
+We presented JSphere[^jsphere], an early attempt to
+classify the functionalities of JS scripts on
+the Web. Our methods pioneer classifying JS scripts based on browser API calls.
 Early results show that frontend processing remains the core of JS usage, while
 content rendering and analytics are also major contributors.
 JSphere experiments provide insights into JS usage on the Web and
@@ -753,3 +753,4 @@ hopefully inspire future research on user-facing JS studies.
 [^eval_trick]: See <https://github.com/SichangHe/JSphere/blob/main/eval_trick.md> for details.
 [^playwright]: <https://playwright.dev/>.
 [^gremlins]: <https://github.com/marmelab/gremlins.js>.
+[^jsphere]: See code and documentation at <https://github.com/SichangHe/JSphere>.
