@@ -24,7 +24,9 @@ class CsvFile:
             return
         response = requests.get(self.url)
         response.raise_for_status()
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        dirname = os.path.dirname(self.path)
+        if dirname != "":
+            os.makedirs(dirname, exist_ok=True)
         with open(self.path, "wb") as f:
             f.write(response.content)
         print(f"Downloaded {self.url} -> {self.path}.")

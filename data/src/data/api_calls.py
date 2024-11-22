@@ -9,6 +9,7 @@ api_calls_csv = CsvFile(
     "api_calls.csv.gz",
     "https://github.com/user-attachments/files/17332957/api_calls.csv.gz",
 )
+api_calls_csv.download_if_missing()
 
 df = api_calls_csv.read_w_default_config()
 df["%interact/total"] = df["interact"] * 100.0 / df["total"]

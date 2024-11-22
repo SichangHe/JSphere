@@ -5,20 +5,17 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from matplotlib_set_diagrams import EulerDiagram
 
-from data import CsvFile, smart_sample
+from data import CsvFile
 
 script_features_csv = CsvFile(
-    "script_features3.csv.gz",
-    "https://github.com/SichangHe/JSphere/releases/download/data-issue-5/script_features3.csv.gz",
+    "script_features2.csv.gz",
+    "https://github.com/user-attachments/files/17381468/script_features2.csv.gz",
 )
+script_features_csv.download_if_missing()
 
 df = pd.read_csv(script_features_csv.path, sep="\t", engine="pyarrow")
 all_columns = [
-    "subdomain_rank",
-    "size",
-    "rewritten",
     "total_call",
     "silent",
     "sure_frontend_processing",
@@ -29,102 +26,22 @@ all_columns = [
     "queries_element",
     "uses_storage",
 ]
-category_columns = all_columns[4:]
-sure_columns = category_columns[:5]
+category_columns = all_columns[1:]
+sure_columns = all_columns[1:6]
 
 df["silent"] = (df["total_call"] <= 0).astype(np.int32)
 
 df.describe()
 """
-                 id          size    total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers   has_request  queries_element  uses_storage        silent
-count  2.102795e+07  2.102795e+07  2.102795e+07              2.102795e+07                 2.102795e+07         2.102795e+07               2.102795e+07  2.102795e+07     2.102795e+07  2.102795e+07  2.102795e+07
-mean   7.812512e+03  1.244209e+03  1.701549e+01              1.608682e-02                 3.437615e-03         1.261939e-03               1.552552e-03  7.999352e-04     5.746826e-03  1.240301e-03  8.356882e-01
-std    7.367579e+03  3.022778e+04  1.165218e+03              1.258095e-01                 5.853031e-02         3.550136e-02               3.937184e-02  2.827181e-02     7.558969e-02  3.519607e-02  3.705582e-01
-min    3.000000e+00  1.000000e+00  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  0.000000e+00
-25%    2.526000e+03  2.000000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
-50%    5.635000e+03  4.800000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
-75%    1.089500e+04  8.800000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
-max    5.748600e+04  6.071970e+06  1.091761e+06              1.000000e+00                 1.000000e+00         1.000000e+00               1.000000e+00  1.000000e+00     1.000000e+00  1.000000e+00  1.000000e+00
-"""
-
-# Silent script reason.
-df_silent = df[df["silent"] > 0]
-size_silent = df_silent["size"].sum()
-df_smaller_silent = df_silent[df_silent["size"] <= 1000]
-size_smaller_silent = df_smaller_silent["size"].sum()
-print(
-    f"""{len(df_smaller_silent)} ({len(df_smaller_silent) * 100.0 / len(df_silent):.2f}%) \
-silent scripts are smaller than 1kB, \
-{size_smaller_silent / 1_000_000:.1f}MB \
-({size_smaller_silent * 100.0 / size_silent:.2f}%)."""
-)
-"""
-17289267 (98.39%) silent scripts are smaller than 1kB, 1288.1MB (10.02%).
-"""
-
-# Large scripts.
-df_large = df[df["size"] > 10_000]
-size_large = df_large["size"].sum()
-print(
-    f"{len(df_large)} ({len(df_large) * 100.0 / len(df):.2f}%) scripts larger than 10kB, \
-{size_large / 1_000_000:.1f}MB ({size_large * 100.0 / df['size'].sum():.2f}%)."
-)
-"""
-146979 (0.70%) scripts larger than 10kB, 23510.3MB (89.86%)
-"""
-
-# Subdomain rank
-df_subdomains = pd.read_csv(
-    "../headless_browser/input_urls.csv",
-    names=["rank", "subdomain"],
-    engine="pyarrow",
-)
-subdomain_ranks = dict(zip(df_subdomains["subdomain"], df_subdomains["rank"]))
-df["subdomain_rank"] = df["subdomain"].map(lambda s: subdomain_ranks[s])
-
-# Scripts rewritten.
-df_rewritten = df[df["rewritten"] > 0]
-df_rewritten.describe()
-"""
-                 id          size    total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers   has_request  queries_element  uses_storage        silent
-count  2.083600e+07  2.083600e+07  2.083600e+07              2.083600e+07                 2.083600e+07         2.083600e+07               2.083600e+07  2.083600e+07     2.083600e+07  2.083600e+07  2.083600e+07
-mean   7.836371e+03  1.119352e+03  1.606595e+01              1.541894e-02                 2.984689e-03         1.086197e-03               1.356018e-03  6.992704e-04     4.926472e-03  1.100403e-03  8.384010e-01
-std    7.373476e+03  2.567862e+04  1.023712e+03              1.232120e-01                 5.455072e-02         3.293960e-02               3.679918e-02  2.643447e-02     7.001573e-02  3.315407e-02  3.680825e-01
-min    3.000000e+00  1.000000e+00  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  0.000000e+00
-25%    2.546000e+03  2.000000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
-50%    5.654000e+03  4.700000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
-75%    1.090900e+04  8.600000e+01  0.000000e+00              0.000000e+00                 0.000000e+00         0.000000e+00               0.000000e+00  0.000000e+00     0.000000e+00  0.000000e+00  1.000000e+00
-max    5.748600e+04  5.488592e+06  1.091761e+06              1.000000e+00                 1.000000e+00         1.000000e+00               1.000000e+00  1.000000e+00     1.000000e+00  1.000000e+00  1.000000e+00
-"""
-
-# Scripts not rewritten.
-df_not_rewritten = df[df["rewritten"] <= 0]
-df_not_rewritten.describe()
-"""
-                  id          size    total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers    has_request  queries_element   uses_storage         silent
-count  191950.000000  1.919500e+05  1.919500e+05             191950.000000                191950.000000        191950.000000              191950.000000  191950.000000    191950.000000  191950.000000  191950.000000
-mean     5222.649054  1.479730e+04  1.200871e+02                  0.088586                     0.052602             0.020339                   0.022886       0.011727         0.094796       0.016426       0.541219
-std      6170.646657  1.683314e+05  5.913536e+03                  0.284145                     0.223239             0.141156                   0.149541       0.107655         0.292933       0.127108       0.498299
-min         3.000000  8.000000e+00  0.000000e+00                  0.000000                     0.000000             0.000000                   0.000000       0.000000         0.000000       0.000000       0.000000
-25%       100.000000  1.080000e+02  0.000000e+00                  0.000000                     0.000000             0.000000                   0.000000       0.000000         0.000000       0.000000       0.000000
-50%      3048.000000  2.520000e+02  0.000000e+00                  0.000000                     0.000000             0.000000                   0.000000       0.000000         0.000000       0.000000       1.000000
-75%      9539.000000  8.650000e+02  2.000000e+00                  0.000000                     0.000000             0.000000                   0.000000       0.000000         0.000000       0.000000       1.000000
-max     57433.000000  6.071970e+06  1.007990e+06                  1.000000                     1.000000             1.000000                   1.000000       1.000000         1.000000       1.000000       1.000000
-"""
-
-# Rewritten vs not rewritten.
-n_rewritten = len(df_rewritten)
-n_not_rewritten = len(df_not_rewritten)
-n_total = n_rewritten + n_not_rewritten
-size_rewritten = df_rewritten["size"].sum()
-size_not_rewritten = df_not_rewritten["size"].sum()
-size_total = size_rewritten + size_not_rewritten
-print(
-    f"{n_rewritten} ({n_rewritten * 100.0 / n_total:.2f}%) rewritten scripts, \
-{size_rewritten / 1_000_000:.1f}MB ({size_rewritten * 100.0 / size_total:.2f}%)."
-)
-"""
-20836004 (99.09%) rewritten scripts, 23322.8MB (89.14%).
+                 id          size     total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers   has_request  queries_element  uses_storage        silent
+count  40116.000000  4.011600e+04   40116.000000              40116.000000                 40116.000000         40116.000000               40116.000000  40116.000000     40116.000000  40116.000000  40116.000000
+mean      74.541206  7.958582e+04     687.395054                  0.352204                     0.204308             0.112075                   0.122520      0.104821         0.340014      0.113945      0.255758
+std      120.871663  3.303808e+05    8439.449922                  0.477663                     0.403200             0.315463                   0.327889      0.306326         0.473719      0.317748      0.436292
+min        3.000000  9.000000e+00       0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000      0.000000
+25%       19.000000  3.340000e+02       0.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000      0.000000
+50%       43.000000  2.217000e+03       5.000000                  0.000000                     0.000000             0.000000                   0.000000      0.000000         0.000000      0.000000      0.000000
+75%       81.000000  3.211175e+04      41.000000                  1.000000                     0.000000             0.000000                   0.000000      0.000000         1.000000      0.000000      1.000000
+max     1279.000000  8.669659e+06  538050.000000                  1.000000                     1.000000             1.000000                   1.000000      1.000000         1.000000      1.000000      1.000000
 """
 
 # Basic counts.
@@ -159,15 +76,15 @@ print(f"""{n_scripts} scripts in total ({total_size / 1_000_000:.1f}MB).
 {n_uses_storage} ({n_uses_storage * 100.0 / n_scripts:.2f}%) uses_storage, {size_uses_storage /1_000_000:.1f}MB ({size_uses_storage * 100.0 / total_size:.2f}%).
 """)
 """
-21027954 scripts in total (26163.2MB).
-17572814 (83.57%) silent, 12850.4MB (49.12%),
-338273 (1.61%) sure_frontend_processing, 9469.6MB (36.19%),
-72286 (0.34%) sure_dom_element_generation, 6250.1MB (23.89%),
-26536 (0.13%) sure_ux_enhancement, 5392.0MB (20.61%),
-32647 (0.16%) sure_extensional_featuers, 5617.2MB (21.47%),
-16821 (0.08%) has_request, 4318.8MB (16.51%),
-120844 (0.57%) queries_element, 7719.9MB (29.51%),
-26081 (0.12%) uses_storage, 5142.6MB (19.66%).
+40116 scripts in total (3192.7MB).
+10260 (25.58%) silent, 28.1MB (0.88%),
+14129 (35.22%) sure_frontend_processing, 2864.3MB (89.72%),
+8196 (20.43%) sure_dom_element_generation, 2248.9MB (70.44%),
+4496 (11.21%) sure_ux_enhancement, 1840.7MB (57.65%),
+4915 (12.25%) sure_extensional_featuers, 1888.1MB (59.14%),
+4205 (10.48%) has_request, 1432.1MB (44.86%),
+13640 (34.00%) queries_element, 2731.6MB (85.56%),
+4571 (11.39%) uses_storage, 1641.0MB (51.40%).
 """
 
 # Combinations.
@@ -181,27 +98,27 @@ scripts have both {name1} and {name2}. Size: {size_subset / 1_000_000:.1f}MB \
 ({size_subset * 100.0 / total_size:.2f}%)"
     )
 """
-20763 (0.10%) scripts have both sure_frontend_processing and sure_dom_element_generation. Size: 5924.2MB (22.64%)
-15544 (0.07%) scripts have both sure_frontend_processing and sure_ux_enhancement. Size: 5229.6MB (19.99%)
-13557 (0.06%) scripts have both sure_frontend_processing and sure_extensional_featuers. Size: 5540.2MB (21.18%)
-10514 (0.05%) scripts have both sure_frontend_processing and has_request. Size: 4276.4MB (16.35%)
-33064 (0.16%) scripts have both sure_frontend_processing and queries_element. Size: 7174.1MB (27.42%)
-13332 (0.06%) scripts have both sure_frontend_processing and uses_storage. Size: 5067.7MB (19.37%)
-12910 (0.06%) scripts have both sure_dom_element_generation and sure_ux_enhancement. Size: 4537.7MB (17.34%)
-6207 (0.03%) scripts have both sure_dom_element_generation and sure_extensional_featuers. Size: 4006.9MB (15.31%)
-5694 (0.03%) scripts have both sure_dom_element_generation and has_request. Size: 3081.3MB (11.78%)
-29577 (0.14%) scripts have both sure_dom_element_generation and queries_element. Size: 5575.6MB (21.31%)
-7018 (0.03%) scripts have both sure_dom_element_generation and uses_storage. Size: 3569.3MB (13.64%)
-5369 (0.03%) scripts have both sure_ux_enhancement and sure_extensional_featuers. Size: 3667.5MB (14.02%)
-4519 (0.02%) scripts have both sure_ux_enhancement and has_request. Size: 3041.1MB (11.62%)
-15820 (0.08%) scripts have both sure_ux_enhancement and queries_element. Size: 4875.0MB (18.63%)
-5109 (0.02%) scripts have both sure_ux_enhancement and uses_storage. Size: 3400.2MB (13.00%)
-4926 (0.02%) scripts have both sure_extensional_featuers and has_request. Size: 3572.3MB (13.65%)
-7871 (0.04%) scripts have both sure_extensional_featuers and queries_element. Size: 4812.3MB (18.39%)
-5215 (0.02%) scripts have both sure_extensional_featuers and uses_storage. Size: 3815.2MB (14.58%)
-7730 (0.04%) scripts have both has_request and queries_element. Size: 3857.2MB (14.74%)
-6573 (0.03%) scripts have both has_request and uses_storage. Size: 3583.0MB (13.69%)
-9930 (0.05%) scripts have both queries_element and uses_storage. Size: 4640.1MB (17.74%)
+6602 (16.46%) scripts have both sure_frontend_processing and sure_dom_element_generation. Size: 2197.1MB (68.82%)
+3840 (9.57%) scripts have both sure_frontend_processing and sure_ux_enhancement. Size: 1821.5MB (57.05%)
+4229 (10.54%) scripts have both sure_frontend_processing and sure_extensional_featuers. Size: 1841.1MB (57.67%)
+3981 (9.92%) scripts have both sure_frontend_processing and has_request. Size: 1428.9MB (44.76%)
+9379 (23.38%) scripts have both sure_frontend_processing and queries_element. Size: 2648.1MB (82.94%)
+4335 (10.81%) scripts have both sure_frontend_processing and uses_storage. Size: 1633.2MB (51.15%)
+3125 (7.79%) scripts have both sure_dom_element_generation and sure_ux_enhancement. Size: 1613.2MB (50.53%)
+2703 (6.74%) scripts have both sure_dom_element_generation and sure_extensional_featuers. Size: 1562.9MB (48.95%)
+2338 (5.83%) scripts have both sure_dom_element_generation and has_request. Size: 1192.9MB (37.36%)
+6846 (17.07%) scripts have both sure_dom_element_generation and queries_element. Size: 2152.1MB (67.41%)
+2728 (6.80%) scripts have both sure_dom_element_generation and uses_storage. Size: 1362.7MB (42.68%)
+1844 (4.60%) scripts have both sure_ux_enhancement and sure_extensional_featuers. Size: 1440.5MB (45.12%)
+1459 (3.64%) scripts have both sure_ux_enhancement and has_request. Size: 1162.6MB (36.42%)
+3754 (9.36%) scripts have both sure_ux_enhancement and queries_element. Size: 1773.7MB (55.55%)
+1669 (4.16%) scripts have both sure_ux_enhancement and uses_storage. Size: 1278.9MB (40.06%)
+1755 (4.37%) scripts have both sure_extensional_featuers and has_request. Size: 1226.1MB (38.40%)
+3508 (8.74%) scripts have both sure_extensional_featuers and queries_element. Size: 1800.3MB (56.39%)
+2093 (5.22%) scripts have both sure_extensional_featuers and uses_storage. Size: 1372.2MB (42.98%)
+3627 (9.04%) scripts have both has_request and queries_element. Size: 1410.1MB (44.17%)
+2424 (6.04%) scripts have both has_request and uses_storage. Size: 1106.1MB (34.64%)
+3722 (9.28%) scripts have both queries_element and uses_storage. Size: 1596.9MB (50.02%)
 """
 
 # 3-combinations.
@@ -215,10 +132,10 @@ scripts have all {name1}, {name2}, and {name3}. Size: {size_subset / 1_000_000:.
 ({size_subset * 100.0 / total_size:.2f}%)"
     )
 """
-10291 (0.05%) scripts have all sure_frontend_processing, sure_dom_element_generation, and sure_ux_enhancement. Size: 4483.3MB (17.14%)
-6022 (0.03%) scripts have all sure_frontend_processing, sure_dom_element_generation, and sure_extensional_featuers. Size: 3975.0MB (15.19%)
-5241 (0.02%) scripts have all sure_frontend_processing, sure_ux_enhancement, and sure_extensional_featuers. Size: 3664.5MB (14.01%)
-4078 (0.02%) scripts have all sure_dom_element_generation, sure_ux_enhancement, and sure_extensional_featuers. Size: 3235.9MB (12.37%)
+2813 (7.01%) scripts have all sure_frontend_processing, sure_dom_element_generation, and sure_ux_enhancement. Size: 1604.9MB (50.27%)
+2679 (6.68%) scripts have all sure_frontend_processing, sure_dom_element_generation, and sure_extensional_featuers. Size: 1533.0MB (48.02%)
+1814 (4.52%) scripts have all sure_frontend_processing, sure_ux_enhancement, and sure_extensional_featuers. Size: 1439.2MB (45.08%)
+1482 (3.69%) scripts have all sure_dom_element_generation, sure_ux_enhancement, and sure_extensional_featuers. Size: 1296.6MB (40.61%)
 """
 
 # 4-combination.
@@ -232,35 +149,32 @@ scripts have all sure categories. Size: {size_subset / 1_000_000:.1f}MB \
 )
 print(subset.describe())
 """
-4061 (0.02%) scripts have all sure categories. Size: 3235.2MB (12.37%)
-                 id          size    total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage  silent
-count   4061.000000  4.061000e+03  4.061000e+03                    4061.0                       4061.0               4061.0                     4061.0  4061.000000      4061.000000   4061.000000  4061.0
-mean     589.822458  7.966478e+05  1.005670e+04                       1.0                          1.0                  1.0                        1.0     0.479192         0.801773      0.515390     0.0
-std     1778.411100  1.269591e+06  4.406802e+04                       0.0                          0.0                  0.0                        0.0     0.499628         0.398713      0.499825     0.0
-min        5.000000  3.074000e+03  3.200000e+01                       1.0                          1.0                  1.0                        1.0     0.000000         0.000000      0.000000     0.0
-25%       17.000000  1.299960e+05  2.530000e+02                       1.0                          1.0                  1.0                        1.0     0.000000         1.000000      0.000000     0.0
-50%       50.000000  2.107060e+05  1.011000e+03                       1.0                          1.0                  1.0                        1.0     0.000000         1.000000      1.000000     0.0
-75%      283.000000  8.386520e+05  6.946000e+03                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
-max    34388.000000  5.987415e+06  1.091761e+06                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
+1473 (3.67%) scripts have all sure categories. Size: 1296.1MB (40.60%)
+                id          size     total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage  silent
+count  1473.000000  1.473000e+03    1473.000000                    1473.0                       1473.0               1473.0                     1473.0  1473.000000      1473.000000   1473.000000  1473.0
+mean     28.131704  8.799315e+05   10053.464358                       1.0                          1.0                  1.0                        1.0     0.609640         0.898846      0.658520     0.0
+std      59.519158  1.254164e+06   32078.781532                       0.0                          0.0                  0.0                        0.0     0.487997         0.301635      0.474367     0.0
+min       6.000000  7.129000e+03      48.000000                       1.0                          1.0                  1.0                        1.0     0.000000         0.000000      0.000000     0.0
+25%       9.000000  1.409900e+05     280.000000                       1.0                          1.0                  1.0                        1.0     0.000000         1.000000      0.000000     0.0
+50%      17.000000  3.568700e+05     780.000000                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
+75%      23.000000  1.054709e+06    3898.000000                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
+max    1055.000000  8.669659e+06  538050.000000                       1.0                          1.0                  1.0                        1.0     1.000000         1.000000      1.000000     0.0
 """
-# NOTE: The large median size shows we did not split them.
 
 # Does not seem to have strong correlations between features.
-df[all_columns].corr()  # type: ignore[reportCallIssue]
+df[["size"] + all_columns].corr()  # type: ignore[reportCallIssue]
 """
-                             subdomain_rank      size  rewritten  total_call    silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage
-subdomain_rank                     1.000000  0.004444   0.010444   -0.001309 -0.003998                 -0.011032                     0.005252            -0.003425                   0.000585    -0.000978        -0.015328      0.003195
-size                               0.004444  1.000000  -0.043035    0.056608 -0.038269                  0.113154                     0.165579             0.237483                   0.222832     0.239167         0.157545      0.228421
-rewritten                          0.010444 -0.043035   1.000000   -0.008490  0.076273                 -0.055310                    -0.080623            -0.051576                  -0.052007    -0.037097        -0.113071     -0.041413
-total_call                        -0.001309  0.056608  -0.008490    1.000000 -0.032933                  0.025988                     0.052352             0.081589                   0.054885     0.035398         0.029932      0.020719
-silent                            -0.003998 -0.038269   0.076273   -0.032933  1.000000                 -0.288366                    -0.132454            -0.080164                  -0.088930    -0.063810        -0.171456     -0.079473
-sure_frontend_processing          -0.011032  0.113154  -0.055310    0.025988 -0.288366                  1.000000                     0.126581             0.160958                   0.125115     0.136956         0.155620      0.138677
-sure_dom_element_generation        0.005252  0.165579  -0.080623    0.052352 -0.132454                  0.126581                     1.000000             0.293375                   0.125775     0.161977         0.313452      0.159940
-sure_ux_enhancement               -0.003425  0.237483  -0.051576    0.081589 -0.080164                  0.160958                     0.293375             1.000000                   0.181268     0.213109         0.277648      0.193194
-sure_extensional_featuers          0.000585  0.222832  -0.052007    0.054885 -0.088930                  0.125115                     0.125775             0.181268                   1.000000     0.209339         0.122774      0.177579
-has_request                       -0.000978  0.239167  -0.037097    0.035398 -0.063810                  0.136956                     0.161977             0.213109                   0.209339     1.000000         0.169864      0.313140
-queries_element                   -0.015328  0.157545  -0.113071    0.029932 -0.171456                  0.155620                     0.313452             0.277648                   0.122774     0.169864         1.000000      0.174820
-uses_storage                       0.003195  0.228421  -0.041413    0.020719 -0.079473                  0.138677                     0.159940             0.193194                   0.177579     0.313140         0.174820      1.000000
+                                 size  total_call    silent  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers  has_request  queries_element  uses_storage
+size                         1.000000    0.243324 -0.136351                  0.274836                     0.298781             0.354677                   0.344473     0.270313         0.262180      0.303291
+total_call                   0.243324    1.000000 -0.047748                  0.089739                     0.139279             0.141431                   0.132914     0.108605         0.078656      0.112162
+silent                      -0.136351   -0.047748  1.000000                 -0.432251                    -0.297049            -0.208269                  -0.219049    -0.200598        -0.420764     -0.210220
+sure_frontend_processing     0.274836    0.089739 -0.432251                  1.000000                     0.480895             0.373300                   0.397579     0.425916         0.504006      0.447577
+sure_dom_element_generation  0.298781    0.139279 -0.297049                  0.480895                     1.000000             0.432430                   0.320328     0.298486         0.529782      0.349092
+sure_ux_enhancement          0.354677    0.141431 -0.208269                  0.373300                     0.432430             1.000000                   0.311650     0.254798         0.371204      0.287664
+sure_extensional_featuers    0.344473    0.132914 -0.219049                  0.397579                     0.320328             0.311650                   1.000000     0.307705         0.294791      0.366788
+has_request                  0.270313    0.108605 -0.200598                  0.425916                     0.298486             0.254798                   0.307705     1.000000         0.377455      0.498098
+queries_element              0.262180    0.078656 -0.420764                  0.504006                     0.529782             0.371204                   0.294791     0.377455         1.000000      0.359011
+uses_storage                 0.303291    0.112162 -0.210220                  0.447577                     0.349092             0.287664                   0.366788     0.498098         0.359011      1.000000
 """
 
 # Count how many script are not in any "sure" category.
@@ -280,61 +194,19 @@ are not in any categories at all, \
 {size_no_categories_scripts / 1_000_000:.1f}MB ({size_no_categories_scripts * 100.0 / total_size:.2f}%)."
 )
 """
-3038177 scripts (14.45%) are not in any 'sure' categories, 3366.6MB (12.87%).
-2948586 scripts (14.02%) are not in any categories at all, 2997.4MB (11.46%).
-"""
-
-# No sure categories investigation.
-print(no_sure_scripts.describe())
-larger_no_sure_scripts = no_sure_scripts[no_sure_scripts["size"] > 10_000]
-active_no_sure_scripts = no_sure_scripts[no_sure_scripts["total_call"] > 100]
-n_smaller_no_sure_scripts = len(no_sure_scripts) - len(larger_no_sure_scripts)
-size_larger_no_sure_scripts = larger_no_sure_scripts["size"].sum()
-size_smaller_no_sure_scripts = size_no_sure_scripts - size_larger_no_sure_scripts
-n_inactive_no_sure_scripts = len(no_sure_scripts) - len(active_no_sure_scripts)
-size_active_no_sure_scripts = active_no_sure_scripts["size"].sum()
-size_inactive_no_sure_scripts = size_no_sure_scripts - size_active_no_sure_scripts
-no_sure_not_rewritten = no_sure_scripts[no_sure_scripts["rewritten"] <= 0]
-n_no_sure_not_rewritten = len(no_sure_not_rewritten)
-size_no_sure_not_rewritten = no_sure_not_rewritten["size"].sum()
-print(f"""Among contexts w/o sure categories:
-{n_smaller_no_sure_scripts} ({n_smaller_no_sure_scripts * 100.0 / len(no_sure_scripts):.2f}%) \
-contexts are smaller than 10kB, size: \
-{size_smaller_no_sure_scripts / 1_000_000:.1f}MB \
-({size_smaller_no_sure_scripts * 100.0 / size_no_sure_scripts:.2f}%).
-{n_inactive_no_sure_scripts} ({n_inactive_no_sure_scripts * 100.0 / len(no_sure_scripts):.2f}%) \
-contexts have less than 100 total calls, size: \
-{size_inactive_no_sure_scripts / 1_000_000:.1f}MB \
-({size_inactive_no_sure_scripts * 100.0 / size_no_sure_scripts:.2f}%).
-{n_no_sure_not_rewritten} ({n_no_sure_not_rewritten * 100.0 / len(no_sure_scripts):.2f}%) \
-contexts are not rewritten, size: \
-{size_no_sure_not_rewritten / 1_000_000:.1f}MB \
-({size_no_sure_not_rewritten * 100.0 / size_no_sure_scripts:.2f}%).""")
-"""
-                 id          size    total_call  sure_frontend_processing  sure_dom_element_generation  sure_ux_enhancement  sure_extensional_featuers   has_request  queries_element  uses_storage     silent
-count  3.038177e+06  3.038177e+06  3.038177e+06                 3038177.0                    3038177.0            3038177.0                  3038177.0  3.038177e+06     3.038177e+06  3.038177e+06  3038177.0
-mean   7.487046e+03  1.108100e+03  8.803613e+01                       0.0                          0.0                  0.0                        0.0  2.030494e-03     2.355689e-02  4.033998e-03        0.0
-std    8.289290e+03  2.254338e+04  1.584245e+03                       0.0                          0.0                  0.0                        0.0  4.501524e-02     1.516640e-01  6.338554e-02        0.0
-min    3.000000e+00  1.000000e+00  1.000000e+00                       0.0                          0.0                  0.0                        0.0  0.000000e+00     0.000000e+00  0.000000e+00        0.0
-25%    1.371000e+03  3.900000e+01  1.000000e+00                       0.0                          0.0                  0.0                        0.0  0.000000e+00     0.000000e+00  0.000000e+00        0.0
-50%    4.830000e+03  7.400000e+01  2.000000e+00                       0.0                          0.0                  0.0                        0.0  0.000000e+00     0.000000e+00  0.000000e+00        0.0
-75%    1.041100e+04  1.300000e+02  8.000000e+00                       0.0                          0.0                  0.0                        0.0  0.000000e+00     0.000000e+00  0.000000e+00        0.0
-max    5.748500e+04  6.071970e+06  3.072610e+05                       0.0                          0.0                  0.0                        0.0  1.000000e+00     1.000000e+00  1.000000e+00        0.0
-Among contexts w/o sure categories:
-3002440 (98.82%) contexts are smaller than 10kB, size: 584.7MB (17.37%).
-2836855 (93.37%) contexts have less than 100 total calls, size: 3284.8MB (97.57%).
-63278 (2.08%) contexts are not rewritten, size: 666.7MB (19.80%).
+13148 scripts (32.77%) are not in any 'sure' categories, 221.1MB (6.93%).
+10178 scripts (25.37%) are not in any categories at all, 179.7MB (5.63%).
 """
 
 # Plot the distribution of script sizes.
 fig: Figure
 ax: Axes
 fig, ax = plt.subplots(figsize=(16, 9))
-ax.ecdf(df["size"], linewidth=4, label="All Contexts")
+ax.ecdf(df["size"], linewidth=4, label="All Scripts")
 ax.ecdf(
     df[df["silent"] == 1]["size"],
     linewidth=4,
-    label="Silent Contexts",
+    label="Silent Scripts",
 )
 ax.ecdf(
     df[df["sure_frontend_processing"] == 1]["size"],
@@ -357,76 +229,10 @@ ax.ecdf(
     label="Extensional Features",
 )
 ax.set_xscale("log")
-ax.set_xlabel("Sizes of Execution Context Source Code (bytes)", fontsize=36)
-ax.set_ylabel("Cumulative Fraction of\nContexts in Each Category", fontsize=36)
+ax.set_xlabel("Script Size (bytes)", fontsize=36)
+ax.set_ylabel("Cumulative Fraction of\nScripts in Each Category", fontsize=36)
 ax.tick_params(axis="both", labelsize=32)
 ax.grid()
-ax.legend(fontsize=30, loc="best")
-fig.savefig("script_size_cdf2.pdf", bbox_inches="tight")
-fig.savefig("script_size_cdf2.png", bbox_inches="tight")
+ax.legend(fontsize=30, loc="center left")
+fig.savefig("script_size_cdf.png", bbox_inches="tight")
 fig.show()
-
-# Per-subdomain aggregation.
-dict_size = {column: df[column] * df["size"] for column in sure_columns}
-for column in ("subdomain_rank", "size", "rewritten", "total_call"):
-    dict_size[column] = df[column]
-df_size = pd.DataFrame(dict_size)
-df_subdomain = df_size.groupby("subdomain_rank").sum()
-assert type(df_subdomain) is pd.DataFrame
-for column in sure_columns:
-    df_subdomain[f"%{column}"] = df_subdomain[column] * 100.0 / df_subdomain["size"]
-percentages = [f"%{column}" for column in sure_columns[1:]] + ["%silent"]
-df_subdomain["%total"] = sum(df_subdomain[f"%{column}"] for column in sure_columns[1:])
-df_subdomain.sort_values(
-    by=["%total"] + percentages,
-    ascending=[False] + [False for _ in sure_columns[1:]] + [True],
-    ignore_index=True,
-    inplace=True,
-)
-indexes, values = smart_sample(
-    tuple(df_subdomain[column] for column in percentages),  # type: ignore[reportArgumentType]
-)
-SPHERE_LABELS = [
-    "Frontend Processing",
-    "DOM Generation",
-    "UX Enhancement",
-    "Extensional Features",
-    "Silent",
-]
-SPHERE_COLORS = ["cyan", "red", "purple", "#dfdf6f", "gray"]
-fig, ax = plt.subplots(figsize=(16, 9))
-ax.stackplot(
-    indexes,
-    values,
-    labels=SPHERE_LABELS,
-    colors=["cyan", "red", "purple", "#dfdf6f", "gray"],
-)
-ax.set_xlabel("Subdomains, Ordered by Spheres Usage", fontsize=36)
-ax.set_ylabel("Percentages of Code Sizes", fontsize=36)
-ax.tick_params(axis="both", labelsize=32)
-ax.grid()
-ax.legend(fontsize=30, loc="best")
-fig.savefig("subdomain_spheres_size_stacked.pdf", bbox_inches="tight")
-fig.savefig("subdomain_spheres_size_stacked.png", bbox_inches="tight")
-
-
-subset_sizes = {}
-for subset_id in itertools.product([0, 1], repeat=4):
-    if subset_id == (0, 0, 0, 0):
-        continue
-    condition = (df[sure_columns[1:]].values == subset_id).all(axis=1)  # type: ignore[reportAttributeAccessIssue]
-    subset_size = df[condition]["size"].sum()
-    subset_sizes[subset_id] = subset_size
-fig, ax = plt.subplots(figsize=(16, 9))
-EulerDiagram(
-    subset_sizes,
-    set_labels=["               ", "", "", ""],
-    set_colors=SPHERE_COLORS[:4],  # type: ignore[reportArgumentType]
-    ax=ax,
-    subset_label_formatter=lambda _subset, size: f" {size * 100.0 / total_size:.2f}%",
-)
-ax.stackplot([], [[], [], [], []], colors=SPHERE_COLORS[:4], labels=SPHERE_LABELS)
-ax.legend(fontsize=24, loc="upper left", bbox_to_anchor=(-0.3, 0.2))
-fig.savefig("spheres_venn.pdf", bbox_inches="tight")
-fig.savefig("spheres_venn.png", bbox_inches="tight")
-plt.show()
