@@ -323,6 +323,14 @@ extract webpage performance data by interacting with the `Performance`,
 `PerformanceTiming` or `PerformanceResourceTiming` objects, or
 sends tracking data with `Navigator.sendBeacon`, as extensional features.
 
+There are no clear ways to validate our heuristics due to the lack of
+ground truth about developer intentions.
+One possible approach is to let a human or language model inspect the code to
+determine which sphere it belongs to, but JS scripts on
+the Web are usually minified and unreadable,
+thus manual classification is laborious and unlikely to be more accurate than
+our heuristics, which directly rely on the semantics of JS APIs.
+
 ## Vanilla Experiment Results
 
 For results from our vanilla setup, we are mostly concerned with two aspects:
@@ -338,8 +346,6 @@ demonstrated in @fig-api-calls-cdf.
 This tail-heavy distribution suggests that, at run time,
 a relatively small set of APIs dominates JS usage on the web.
 
-<!-- TODO: Is it possible to also show the count? -->
-<!-- TODO: Replot the figure with 1000 sites. -->
 ![Cumulative distribution function of observed API calls by
 increasing fraction of
 APIs.](data/api_calls_cdf.png){width=45% #fig-api-calls-cdf}
