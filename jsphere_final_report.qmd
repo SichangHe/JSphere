@@ -12,7 +12,26 @@ acm-metadata:
     final: true
     acmart-options: sigconf,screen,nonacm
     copyright: none
-abstract: TODO
+abstract: |
+    JavaScript (JS) scripts are popular among websites and have high impact on
+    users browser the Web. Why is JS used so extensively?
+    What purposes does it serve?
+    We begin the first known research to
+    classify JS scripts into common functionalities, which we call *spheres*.
+    Through web crawling and JS API call analysis,
+    we look into the usage pattern of JS among the top 1000 subdomains on
+    the public Web. We find that
+    JS script sizes follow a tail-heavy distribution and
+    many large scripts perform multiple functionalities, based on which
+    we propose a novel approach to
+    break down large JS scripts into smaller execution contexts.
+    We find that frontend processing remains the core of JS usage, but half of
+    the functional code is related to Document Object Model (DOM)
+    element generation.
+    Additionally, we observe half of the code to not invoke any browser APIs or
+    mutate global state, which may suggest much JS code is unnecessary.
+    Our findings may provide insights into JS usage and
+    subsequently inform website optimization and future Web development.
 bibliography: main.bib
 ---
 
@@ -272,19 +291,37 @@ Although there are tens of thousands of browser APIs,
 prior studies observed an 20/80 rule of browser API usage, that
 only a fraction is popularly used [@snyder2016browser].
 Therefore, we expect to classify most scripts through a few popular APIs.
-We currently deploy the following heuristics, which are subject to change:
+By manually inspecting the 678 most popular APIs that cover 90% of
+all API calls we observed in the vanilla experiment,
+we identify anchor APIs for each sphere and
+handcrafted the following heuristics.
 
-<!-- TODO: specify the exact heuristics. -->
-- **Frontend processing** scripts
-    read event attributes, webpage location, or form elements.
-    We also identify they if they listen to events,
-    calculate bounding rectangles, or set text content.
-- **DOM element generation** is classified if the scripts create elements or
-    apply styles before interaction begins.
-- **UX enhancement** is assumed if the scripts remove or hide elements,
-    animate elements, query media type, or set font faces.
-- **Extensional features** are detected if
-    the scripts request performance data or send beacons.
+**Frontend processing.** Scripts that listen to webpage events via
+`addEventListener`, read `Event` attributes or form elements `HTMLInputElement`
+or `HTMLTextAreaElement`, handle interaction.
+Additionally, interacting client-side-only information,
+including reading webpage `Location`, writing to
+search parameters `URLSearchParams`, element text `textContent`, or
+bounding rectangles `DOMRect` are done by frontend processing scripts.
+
+**DOM element generation.** Scripts that add elements to the DOM or
+apply styling before interaction begins are classified as
+DOM element generation.
+These DOM APIs include the `createElement`, `createElementNS`,
+`createTextNode`, `appendChild`, `insertBefore` and
+`CSSStyleDeclaration.setProperty` functions or modifying the values of
+`CSSStyleDeclaration` or `style`.
+
+**UX enhancement.** If a script removes or
+hides elements using `removeAttribute` or `removeChild`,
+animate elements using `requestAnimationFrame` or `cancelAnimationFrame`,
+query media type with `matchMedia` or `MediaQueryList.matches`, or
+set font faces with `FontFaceSet.load`, we consider it a UX enhancement.
+
+**Extensional features.** Currently, we classify scripts that
+extract webpage performance data by interacting with the `Performance`,
+`PerformanceTiming` or `PerformanceResourceTiming` objects, or
+sends tracking data with `Navigator.sendBeacon`, as extensional features.
 
 ## Vanilla Experiment Results
 
@@ -616,7 +653,7 @@ each sphere.](data/script_size_cdf2.pdf){width=45% #fig-script-size-cdf2}
 
 **Spheres per website.** @fig-subdomain-stacked shows the distribution of
 code in each sphere per subdomain, which is less skewed by outliers than
-@tbl-context-classification.
+@dbl-context-classification.
 Among the 555 subdomains with at least one classified context,
 most subdomains have some of their code spanning multiple spheres,
 thus their code sizes sum up to more than 100%.
