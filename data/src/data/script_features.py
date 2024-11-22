@@ -46,6 +46,32 @@ min    3.000000e+00  1.000000e+00  0.000000e+00              0.000000e+00       
 max    5.748600e+04  6.071970e+06  1.091761e+06              1.000000e+00                 1.000000e+00         1.000000e+00               1.000000e+00  1.000000e+00     1.000000e+00  1.000000e+00  1.000000e+00
 """
 
+# Silent script reason.
+df_silent = df[df["silent"] > 0]
+size_silent = df_silent["size"].sum()
+df_smaller_silent = df_silent[df_silent["size"] <= 1000]
+size_smaller_silent = df_smaller_silent["size"].sum()
+print(
+    f"""{len(df_smaller_silent)} ({len(df_smaller_silent) * 100.0 / len(df_silent):.2f}%) \
+silent scripts are smaller than 1kB, \
+{size_smaller_silent / 1_000_000:.1f}MB \
+({size_smaller_silent * 100.0 / size_silent:.2f}%)."""
+)
+"""
+17289267 (98.39%) silent scripts are smaller than 1kB, 1288.1MB (10.02%).
+"""
+
+# Large scripts.
+df_large = df[df["size"] > 10_000]
+size_large = df_large["size"].sum()
+print(
+    f"{len(df_large)} ({len(df_large) * 100.0 / len(df):.2f}%) scripts larger than 10kB, \
+{size_large / 1_000_000:.1f}MB ({size_large * 100.0 / df['size'].sum():.2f}%)."
+)
+"""
+146979 (0.70%) scripts larger than 10kB, 23510.3MB (89.86%)
+"""
+
 # Subdomain rank
 df_subdomains = pd.read_csv(
     "../headless_browser/input_urls.csv",

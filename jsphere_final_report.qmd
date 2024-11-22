@@ -5,6 +5,7 @@ author:
     - name: "Mentor: Harsha V. Madhyastha"
 format: acm-pdf
 keep-tex: true
+fig-pos: 'tb'
 filters:
     - table_workaround_filter.lua
 acm-metadata:
@@ -184,7 +185,7 @@ You will likely want to use multiple sections or subsections here, and
 you should identify your goal, methodology/approach, data collection, and
 results. -->
 
-We automate browsers to crawl and collect API call logs from
+We automate browsers to crawl and collect JS API call logs from
 the top 1000 subdomains in the Tranco sites ranking downloaded on September 25,
 2024 [@pochat2018tranco].
 In @sec-methods, we first experiment in a smaller scale of
@@ -285,18 +286,12 @@ We currently deploy the following heuristics, which are subject to change:
 - **Extensional features** are detected if
     the scripts request performance data or send beacons.
 
-<!-- TODO: These are copied over. -->
 ## Vanilla Experiment Results
 
-For our initial results, we are mostly concerned with two aspects:
+For results from our vanilla setup, we are mostly concerned with two aspects:
 validating our assumptions about a small set of
 browser APIs dominating all API usage (the 20/80 rule), and testing whether
 we can classify scripts into spheres based on these APIs.
-Our preliminary analysis of the top 100 subdomains confirmed the 20/80 rule of
-browser APIs, based on which
-we developed our initial classification heuristics; however,
-our initial classification results demonstrate that
-script is too large a unit to separate spheres effectively.
 
 ### The 20/80 Rule of Browser APIs
 
@@ -319,12 +314,11 @@ For example, `addEventListener` for Frontend Processing and `createElement` for
 DOM Element Generation.
 Additionally, we manually inspected five scripts from YouTube to
 gain intuition on the purpose of several anchor APIs.
-Using these anchor APIs, we handcrafted the initial heuristics in
-@sec-heuristics to classify scripts into spheres.
+Using these anchor APIs, we handcrafted the heuristics in @sec-heuristics to
+classify scripts into spheres.
 
 ### Vanilla Classification Results {#sec-class-results}
 
-<!-- TODO: Replace with results from 1000 sites with `eval`. -->
 We apply our heuristics to the 40,116 scripts from the top 100 subdomains,
 aggregate classification results, and correlate them with script sizes.
 In addition to the spheres,
@@ -374,7 +368,7 @@ alludes to the peculiar script size distribution we discuss below.
 | No Sure Sphere    | 13148 | 32.77     | 221.1     | 6.93     |
 | No Category       | 10178 | 25.37     | 179.7     | 5.63     |
 
-: Initial classification results for the top 100 subdomains: the script counts,
+: Classification results for the top 100 subdomains: the script counts,
 sizes and their corresponding percentages out of the respective total.
 {#tbl-script-classification}
 
@@ -485,8 +479,8 @@ We judge correctness by whether
 we can browse the webpages normally after rewriting its JS, and we aim to
 create `eval` blocks of around 1 kB in sizes for efficacy.
 
-Hoisting and scoping immediately impact correctness.
-Naively, one may group all the top-level statements in
+**Hoisting and scoping impact correctness.** Naively,
+one may group all the top-level statements in
 a JS script into multiple small blocks, then include each block in an `eval`
 call.
 However, variables declared with `var` and functions are hoisted, treated as if
@@ -509,9 +503,9 @@ This workaround ensuring that variables and
 functions are declared before they are accessed, and they leak out of `eval`
 calls as needed.
 
-Efficacy also requires more sophistication than splitting scripts only on
-the top level.
-This requirement is due to the extensive use of closure functions in JS, where
+**Efficacy requires recursive rewriting.** Splitting scripts only on
+the top level results in large `eval` blocks.
+This pitfall is due to the extensive use of closure functions in JS, where
 functions are defined within other functions, resulting in
 large top-level functions.
 Additionally, many scripts avoid polluting the global scope with
@@ -528,27 +522,92 @@ We wrap some code blocks in IIFE or async IIFE to enable `return` and `await`
 syntax.
 We converting function declarations to function expressions to leak them out of
 IIFE.
-We preserve blocks with `break`, `continue`, `yield` and `export` to
-avoid syntax errors.
+We preserve blocks with `break`, `continue` and `yield` to avoid syntax errors.
 To enable efficient `eval` nesting, we inject JS raw string literals and
 use nested function calls to construct the strings at runtime for
 `eval`'s argument.
-Finally, we increase Chromium's stack size to 4 GB and limit the depth of
-`eval` nesting to 8, to avoid exceeding the stack size limit.
+We increase Chromium's stack size to 4 GB and limit the depth of `eval`
+nesting to 8, to avoid exceeding the stack size limit.
+Finally, we skip rewriting scripts that export top-level functions and
+scripts we cannot rewrite correctly.
 Some of
 these workarounds introduce obscure edge cases we not yet handle[^eval_trick].
 
 We use Acorn[^acorn] to parse JS code into an abstract syntax tree (AST) and
 generate the rewritten JS code from this AST.
+An *effective length* is calculated and prepended to each `eval` block, so that
+postprocessing knows the size corresponding to the original code in bytes.
 Our implementation finishes rewriting an 8.6 MB script under 1 second,
 thus it introduces tolerable overhead to web crawling.
 
-## Improved Experiment Results
+## Granularity-Improved Experiment Results {#sec-results2}
 
-<!-- TODO: Caption and explanation. -->
+After applying our JS rewriting approach, we reran our experiment in
+@sec-methods for the top 1000 subdomains for results with
+improved classification granularity.
+We measure the same metrics as in @sec-class-results, except
+using execution contexts from `eval` blocks instead of script files as
+the granularity unit.
+Since the counts of execution contexts is not meaningful for
+analyzing the source scripts, we focus on the sizes of the corresponding code.
+
+Overall, we observe 21.0 million execution contexts with
+source code effective size ranging from 1 byte to 6.1 MB, totaling 26.2 GB.
+Only 10.86% of code is skipped and not rewritten (2.9 GB), but
+some rewritten contexts remain large in size, possibly because
+we do not yet break down JS classes during our rewriting, and
+more likely because of hitting the `eval` nesting limit.
+Unfortunately, 89.9% of code is in contexts larger than 10 kB,
+showing a large room of improvement in rewriting coverage.
+However, classifications of
+improved granularity still reveal more observations regarding JS usage.
+
+**Silent Contexts.** The improved granularity reveals a much higher 49% of
+code (12.9 GB) that does not invoke any API calls or mutate global state.
+This is not because of the small contexts for function headers and
+other peripheral code that the rewriting produced, since only 10.0% of
+the silent code (1.3 GB) is smaller than 1 kB.
+Therefore, most silent code either performs only computations that
+do not require browser APIs, or is likely never executed, *e.g.,* definition of
+an unused functions.
+This reasoning echos the observation in @goel2022jawa that
+much JS code is unreachable, and may not need to be sent to the client in
+the first place.
+
+**Single-Category Results.** The finer granularity reduces the overlap among
+each sphere compared to our results in @sec-class-results.
+@tbl-context-classification shows frontend processing to
+be much more popular than the other spheres, accounting for 36% of code.
+DOM element generation, UX enhancement, and
+extensional features all enjoy similar popularities of around 22%;
+considering that 50.9% of code is not silent, we can argue that nearly half of
+the functional code does some kind of DOM element generation, or
+a similar argument for the other two spheres.
+Lower than the vanilla setup, the 38% of code that
+is classified into at least one sphere accounts for 3/4 of the non-silent code,
+and the 12.4% of code that fall into all sphere accounts for 1/3 of
+classified code.
+<!-- TODO: WTF is this? -->
+
+| Feature                  | Size (MB) | Size (%) |
+| :----------------------- | --------: | -------: |
+| Frontend Processing      | 9469.6    | 36.19    |
+| DOM Elemement Generation | 6250.1    | 23.89    |
+| UX Enhancement           | 5392.0    | 20.61    |
+| Extensional Feature      | 5617.2    | 21.47    |
+| Silent Contexts          | 12850.4   | 49.12    |
+| No Sure Sphere           | 3366.6    | 12.87    |
+| All Sure Spheres         | 3235.2    | 12.37    |
+
+: Classification results for execution contexts for the top 1000 subdomains,
+after applying JS rewriting. {#tbl-context-classification}
+
+<!--
+This is no longer meaningful.
 ![Cumulative distribution function of sizes of
 execution contexts among all contexts and contexts belonging to
 each sphere.](data/script_size_cdf2.pdf){width=45% #fig-script-size-cdf2}
+-->
 
 <!-- TODO: Explanation. -->
 ![Stacked Area Plot of
