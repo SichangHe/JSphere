@@ -116,7 +116,7 @@ much JS transferred.
 As a web developer, I also found the SPA frameworks unnecessary, that
 it causes constant struggles to synchronize both frontend and
 backend implementations and state.
-I hope JSphere can bridges some gaps between the popular beliefs and
+I hope JSphere can bridge some gaps between the popular beliefs and
 the reality of JS usage.
 
 # Related Work
@@ -371,7 +371,7 @@ and how many megabytes they total (size).
 @tbl-script-classification shows our heuristics successfully categorized 93.0%
 of script bytes into at least one sphere (inverse of "No Sure Sphere"), though
 it is only 67.2% of scripts by count.
-This size coverage cannot be improve to over 94.4% even if
+This size coverage cannot be improved to over 94.4% even if
 we use the auxiliary categories (inverse of "No Category"), so
 we do not see any potential to significantly improvement coverage.
 Additionally, a quarter of scripts executed do not call any browser APIs or
@@ -384,7 +384,7 @@ Frontend processing is the most popular sphere, encompassing almost 90% of
 scripts, which may indicate that
 most scripts are doing essential client-side work.
 However,
-our heuristics is very relaxed toward classifying scripts into frontend
+our heuristics are very relaxed toward classifying scripts into frontend
 processing, thus this can be a false positive.
 For example, a script primarily responsible for
 DOM element generation may listen for DOM load and then generate elements,
@@ -535,7 +535,7 @@ To mitigate issues brought by hoisting and scoping,
 we manually hoist declarations.
 We extract all the function and variable declarations, and declare them as
 variables at the top of the script.
-Then, we evaluation all function declarations first.
+Then, we evaluate all function declarations first.
 This workaround ensuring that variables and
 functions are declared before they are accessed, and they leak out of `eval`
 calls as needed.
@@ -557,7 +557,7 @@ We apply many more workarounds until we can successfully browser most webpages
 we tested after rewriting their JS.
 We wrap some code blocks in IIFE or async IIFE to enable `return` and `await`
 syntax.
-We converting function declarations to function expressions to leak them out of
+We convert function declarations to function expressions to leak them out of
 IIFE.
 We preserve blocks with `break`, `continue` and `yield` to avoid syntax errors.
 To enable efficient `eval` nesting, we inject JS raw string literals and
@@ -606,7 +606,7 @@ other peripheral code that the rewriting produced, since only 10.0% of
 the silent code (1.3 GB) is smaller than 1 kB.
 Therefore, most silent code either performs only computations that
 do not require browser APIs, or is likely never executed, *e.g.,* definition of
-an unused functions.
+an unused function.
 This reasoning echos the observation in @goel2022jawa that
 much JS code is unreachable, and may not need to be sent to the client in
 the first place.
@@ -617,7 +617,7 @@ we see less overlap among each sphere compared to our results in
 Whereas 50.9% of code is not silent, 38% of
 code is classified into at least one sphere and 12.4% of
 code is classified into all spheres, as illustrated in @fig-sphere-venn.
-@tbl-context-classification shows frontend processing continue being much more
+@dbl-context-classification shows frontend processing continue being much more
 popular than the other spheres, accounting for 36% of code, which
 reinforces the argument that most scripts contain essential functionalities.
 DOM element generation, UX enhancement, and
@@ -627,15 +627,15 @@ the functional code does DOM element generation, which
 shows generating DOM elements is a major cause of high JS usage;
 similar arguments can be made for UX enhancement and extensional features.
 
-| Feature                  | Size (MB) | Size (%) |
-| :----------------------- | --------: | -------: |
-| Frontend Processing      | 9469.6    | 36.19    |
-| DOM Elemement Generation | 6250.1    | 23.89    |
-| UX Enhancement           | 5392.0    | 20.61    |
-| Extensional Feature      | 5617.2    | 21.47    |
-| Silent Contexts          | 12850.4   | 49.12    |
-| No Sure Sphere           | 3366.6    | 12.87    |
-| All Sure Spheres         | 3235.2    | 12.37    |
+| Feature                | Size (MB) | Size (%) |
+| :--------------------- | --------: | -------: |
+| Frontend Processing    | 9469.6    | 36.19    |
+| DOM Element Generation | 6250.1    | 23.89    |
+| UX Enhancement         | 5392.0    | 20.61    |
+| Extensional Feature    | 5617.2    | 21.47    |
+| Silent Contexts        | 12850.4   | 49.12    |
+| No Sure Sphere         | 3366.6    | 12.87    |
+| All Sure Spheres       | 3235.2    | 12.37    |
 
 : Classification results for execution contexts for the top 1000 subdomains,
 after applying JS rewriting. {#tbl-context-classification}
@@ -653,7 +653,7 @@ each sphere.](data/script_size_cdf2.pdf){width=45% #fig-script-size-cdf2}
 
 **Spheres per website.** @fig-subdomain-stacked shows the distribution of
 code in each sphere per subdomain, which is less skewed by outliers than
-@dbl-context-classification.
+@tbl-context-classification.
 Among the 555 subdomains with at least one classified context,
 most subdomains have some of their code spanning multiple spheres,
 thus their code sizes sum up to more than 100%.
