@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib_set_diagrams import EulerDiagram
 
 from data import CsvFile, smart_sample
 
@@ -392,6 +393,7 @@ SPHERE_LABELS = [
     "Extensional Features",
     "Silent",
 ]
+SPHERE_COLORS = ["cyan", "red", "purple", "#dfdf6f", "gray"]
 fig, ax = plt.subplots(figsize=(16, 9))
 ax.stackplot(
     indexes,
@@ -400,9 +402,31 @@ ax.stackplot(
     colors=["cyan", "red", "purple", "#dfdf6f", "gray"],
 )
 ax.set_xlabel("Subdomains, Ordered by Spheres Usage", fontsize=36)
-ax.set_ylabel("Percentages of Sizes of\nScripts", fontsize=36)
+ax.set_ylabel("Percentages of Code Sizes", fontsize=36)
 ax.tick_params(axis="both", labelsize=32)
 ax.grid()
 ax.legend(fontsize=30, loc="best")
 fig.savefig("subdomain_spheres_size_stacked.pdf", bbox_inches="tight")
 fig.savefig("subdomain_spheres_size_stacked.png", bbox_inches="tight")
+
+
+subset_sizes = {}
+for subset_id in itertools.product([0, 1], repeat=4):
+    if subset_id == (0, 0, 0, 0):
+        continue
+    condition = (df[sure_columns[1:]].values == subset_id).all(axis=1)  # type: ignore[reportAttributeAccessIssue]
+    subset_size = df[condition]["size"].sum()
+    subset_sizes[subset_id] = subset_size
+fig, ax = plt.subplots(figsize=(16, 9))
+EulerDiagram(
+    subset_sizes,
+    set_labels=["               ", "", "", ""],
+    set_colors=SPHERE_COLORS[:4],  # type: ignore[reportArgumentType]
+    ax=ax,
+    subset_label_formatter=lambda _subset, size: f" {size * 100.0 / total_size:.2f}%",
+)
+ax.stackplot([], [[], [], [], []], colors=SPHERE_COLORS[:4], labels=SPHERE_LABELS)
+ax.legend(fontsize=24, loc="upper left", bbox_to_anchor=(-0.3, 0.2))
+fig.savefig("spheres_venn.pdf", bbox_inches="tight")
+fig.savefig("spheres_venn.png", bbox_inches="tight")
+plt.show()
