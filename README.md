@@ -7,7 +7,7 @@ the top level this repository, data are posted in Issues and Releases,
 the preliminary results are in [the
 report](https://github.com/SichangHe/JSphere/releases/download/final-report/jsphere_final_report_11221845.pdf),
 and we have [a
-poster](https://github.com/SichangHe/JSphere/releases/download/poster/JSphere.CSci.651.Poster.pdf).
+poster](https://github.com/SichangHe/JSphere/releases/download/poster-patch1/JSphere-_Classify_Use_of_JS_on_The_Web_Sichang_He.pdf).
 
 In a nutshell, we crawl top websites and collect logs of
 API calls per JS script using VisibleV8, then apply heuristics to

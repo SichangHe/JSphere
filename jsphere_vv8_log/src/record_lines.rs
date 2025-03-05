@@ -7,7 +7,7 @@ pub struct SplitRecordLine<'a> {
     remaining: &'a str,
 }
 
-impl<'a> SplitRecordLine<'a> {
+impl SplitRecordLine<'_> {
     pub fn drain(&mut self) -> &str {
         let output = self.remaining;
         self.remaining = "";
